@@ -1,10 +1,11 @@
 open Async;
+
 module Event = Event;
 
 type t = {editor: Atom.TextEditor.t};
 
 let make = (editor: Atom.TextEditor.t) => {
-  Js.log2("make", editor |> Atom.TextEditor.getPath);
+  Js.log2("[ instance ][ construct ]", editor |> Atom.TextEditor.getPath);
   // add "gcl" to the class-list
   editor
   |> Atom.Views.getView
@@ -15,7 +16,7 @@ let make = (editor: Atom.TextEditor.t) => {
 };
 
 let destroy = self => {
-  Js.log2("destroy", self.editor |> Atom.TextEditor.getPath);
+  Js.log2("[ instance ][ destroy ]", self.editor |> Atom.TextEditor.getPath);
   // remove "gcl" to the class-list
   self.editor
   |> Atom.Views.getView
@@ -25,10 +26,20 @@ let destroy = self => {
   ();
 };
 
-let activate = self => {
-  Js.log("activating");
+let dispatch = (command, self) => {
+  Command.(
+    switch (command) {
+    | Activate => Js.log("[ activate ]")
+    | Deactivate => Js.log("[ deactivate ]")
+    | Save =>
+      self.editor
+      |> Atom.TextEditor.save
+      |> Async.fromPromise
+      |> Async.finalOk(_ => Js.log("[ save ]"))
+    }
+  );
 };
 
-let deactivate = self => {
-  Js.log("deactivating");
-};
+let activate = _ => ();
+
+let deactivate = _ => ();

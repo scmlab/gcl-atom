@@ -108,25 +108,22 @@ let eventTargetEditor = (event: Webapi.Dom.Event.t): option(TextEditor.t) => {
   targetedEditors[0];
 };
 
-// /* register keymap bindings and emit commands */
-// let onTriggerCommand = () => {
-//   Command.names
-//   |> Array.forEach(command =>
-//        Commands.add(
-//          `CSSSelector("atom-text-editor"), "agda-mode:" ++ command, event =>
-//          event
-//          |> eventTargetEditor
-//          |> Option.flatMap(Instances.get)
-//          |> Option.forEach(instance =>
-//               instance
-//               |> Instance.dispatch(Command.Primitive.parse(command))
-//               |> Instance.handleCommandError(instance)
-//               |> ignore
-//             )
-//        )
-//        |> CompositeDisposable.add(subscriptions)
-//      );
-// };
+/* register keymap bindings and emit commands */
+let onTriggerCommand = () => {
+  [|"activate", "save"|]
+  |> Array.forEach(command =>
+       Commands.add(
+         `CSSSelector("atom-text-editor"), "gcl-atom:" ++ command, event =>
+         event
+         |> eventTargetEditor
+         |> Option.flatMap(Instances.get)
+         |> Option.forEach(instance =>
+              instance |> Instance.dispatch(Command.parse(command)) |> ignore
+            )
+       )
+       |> CompositeDisposable.add(subscriptions)
+     );
+};
 
 // triggered everytime when a new text editor is opened
 let onOpenEditor = () => {
@@ -169,6 +166,7 @@ let onOpenEditor = () => {
 let setup = () => {
   onOpenEditor();
   onEditorActivationChange();
+  onTriggerCommand();
 };
 
 // the entry point of the whole package, should only be called once (before deactivation)
@@ -184,7 +182,6 @@ let activate = _ => {
 let deactivate = _ =>
   if (activated^) {
     activated := false;
+    Instances.destroyAll();
+    CompositeDisposable.dispose(subscriptions);
   };
-
-// Instances.destroyAll();
-// CompositeDisposable.dispose(subscriptions);

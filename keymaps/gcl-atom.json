@@ -1,5 +1,10 @@
 {
   "atom-text-editor": {
     "ctrl-c ctrl-l": "gcl-atom:activate"
+  },
+  "atom-text-editor.gcl": {
+    "cmd-s": "gcl-atom:save",
+    "ctrl-s": "gcl-atom:save",
+    "ctrl-c ctrl-x ctrl-q": "gcl-atom:deactivate"
   }
 }
