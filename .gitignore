@@ -1,3 +1,16 @@
 .DS_Store
-npm-debug.log
+
+# OCaml/Reason/BuckleScript
+lib/bs
+.bsb.lock
+.merlin
+
+# Dependency directories
 node_modules
+jspm_packages
+
+# Logs
+logs
+*.log
+npm-debug.log
+npm-debug.log*
