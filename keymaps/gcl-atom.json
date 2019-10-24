@@ -1,5 +1,5 @@
 {
-  "atom-workspace": {
-    "ctrl-alt-o": "gcl-atom:toggle"
+  "atom-text-editor": {
+    "ctrl-c ctrl-l": "gcl-atom:activate"
   }
 }

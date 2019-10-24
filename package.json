@@ -9,7 +9,7 @@
     "build": "bsb -make-world && npx webpack --mode=production"
   },
   "activationCommands": {
-    "atom-workspace": "gcl-atom:toggle"
+    "atom-text-editor": "gcl-atom:activate"
   },
   "repository": "https://github.com/atom/gcl-atom",
   "license": "MIT",
