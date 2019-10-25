@@ -2,7 +2,10 @@ open Async;
 
 module Event = Event;
 
-type t = {editor: Atom.TextEditor.t};
+type t = {
+  editor: Atom.TextEditor.t,
+  mutable connection: option(Connection.t),
+};
 
 let make = (editor: Atom.TextEditor.t) => {
   Js.log2("[ instance ][ construct ]", editor |> Atom.TextEditor.getPath);
@@ -12,7 +15,7 @@ let make = (editor: Atom.TextEditor.t) => {
   |> Webapi.Dom.HtmlElement.classList
   |> Webapi.Dom.DomTokenList.add("gcl");
 
-  {editor: editor};
+  {editor, connection: None};
 };
 
 let destroy = self => {
@@ -29,13 +32,37 @@ let destroy = self => {
 let dispatch = (command, self) => {
   Command.(
     switch (command) {
-    | Activate => Js.log("[ activate ]")
+    | Activate =>
+      Js.log("[ activated ]");
+      Connection.autoSearch("gcl")
+      |> thenOk(Connection.connect)
+      |> thenOk(connection => {
+           self.connection = Some(connection);
+           Js.log("[ connected ]");
+           resolve();
+         })
+      |> finalError(error =>
+           Js.log2("[ connection error ]", Connection.Error.toString(error))
+         );
+
     | Deactivate => Js.log("[ deactivate ]")
     | Save =>
+      Js.log("[ saved ]");
       self.editor
       |> Atom.TextEditor.save
-      |> Async.fromPromise
-      |> Async.finalOk(_ => Js.log("[ save ]"))
+      |> fromPromise
+      |> mapError(_ => ())
+      |> thenOk(_ => {
+           Js.log("[ sending ]");
+           switch (self.connection) {
+           | Some(connection) =>
+             Connection.send("{\"tag\": \"Hey\"}", connection)
+           | None =>
+             Js.log("[ send failed ]");
+             resolve("");
+           };
+         })
+      |> finalOk(result => Js.log2("[ received ]", result));
     }
   );
 };
