@@ -4,7 +4,7 @@ module Event = Event;
 
 type t = {
   editor: Atom.TextEditor.t,
-  mutable connection: option(Connection.t),
+  mutable connection: Connection.t,
 };
 
 let make = (editor: Atom.TextEditor.t) => {
@@ -15,7 +15,13 @@ let make = (editor: Atom.TextEditor.t) => {
   |> Webapi.Dom.HtmlElement.classList
   |> Webapi.Dom.DomTokenList.add("gcl");
 
-  {editor, connection: None};
+  {
+    editor,
+    connection: {
+      path: None,
+      process: None,
+    },
+  };
 };
 
 let destroy = self => {
@@ -29,23 +35,37 @@ let destroy = self => {
   ();
 };
 
+let isConnected = self =>
+  switch (self.connection.process) {
+  | None => false
+  | Some(_) => true
+  };
+
 let dispatch = (command, self) => {
   Command.(
     switch (command) {
     | Activate =>
-      Js.log("[ activated ]");
-      Connection.autoSearch("gcl")
-      |> thenOk(Connection.connect)
-      |> thenOk(connection => {
-           self.connection = Some(connection);
-           Js.log("[ connected ]");
-           resolve();
-         })
-      |> finalError(error =>
-           Js.log2("[ connection error ]", Connection.Error.toString(error))
-         );
+      if (isConnected(self)) {
+        ();
+      } else {
+        Connection.autoSearch("gcl")
+        |> thenOk(Connection.make)
+        |> thenOk(connection => {
+             self.connection = connection;
+             Js.log("[ connected ]");
+             resolve();
+           })
+        |> finalError(error =>
+             Js.log2(
+               "[ connection error ]",
+               Connection.Error.toString(error),
+             )
+           );
+      }
 
-    | Deactivate => Js.log("[ deactivate ]")
+    | Deactivate =>
+      self.connection = Connection.disconnect(self.connection);
+      Js.log("[ deactivate ]");
     | Save =>
       Js.log("[ saved ]");
       self.editor
@@ -54,12 +74,14 @@ let dispatch = (command, self) => {
       |> mapError(_ => ())
       |> thenOk(_ => {
            Js.log("[ sending ]");
-           switch (self.connection) {
-           | Some(connection) =>
-             Connection.send("{\"tag\": \"Hey\"}", connection)
-           | None =>
-             Js.log("[ send failed ]");
-             resolve("");
+           let filepath = Atom.TextEditor.getPath(self.editor);
+           switch (filepath) {
+           | Some(path) =>
+             Connection.send(
+               "{\"tag\": \"Load\", \"contents\": \"" ++ path ++ "\"}",
+               self.connection,
+             )
+           | None => reject()
            };
          })
       |> finalOk(result => Js.log2("[ received ]", result));

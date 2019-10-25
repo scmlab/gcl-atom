@@ -83,28 +83,29 @@ signal: $signal
 };
 
 type t = {
-  path: string,
-  process: N.ChildProcess.t,
-  mutable connected: bool,
+  path: option(string),
+  mutable process: option(N.ChildProcess.t),
 };
 
 let disconnect = self => {
-  self.process |> N.ChildProcess.kill("SIGTERM");
-  self.connected = false;
+  self.process |> Option.forEach(N.ChildProcess.kill("SIGTERM"));
+  self.process = None;
+
+  self;
 };
 
-let connect = (path: string): Async.t(t, Error.t) =>
+let make = (path: string): Async.t(t, Error.t) =>
   {
     open N;
     let process = ChildProcess.spawn(path, [||], {"shell": true});
-    let connection = {path, process, connected: true};
+    let connection = {path: Some(path), process: Some(process)};
 
     // on errors and anomalies
     process
     |> ChildProcess.on(
          `error(
            exn => {
-             disconnect(connection);
+             disconnect(connection) |> ignore;
              Js.log(Error.ShellError(exn));
            },
          ),
@@ -112,7 +113,7 @@ let connect = (path: string): Async.t(t, Error.t) =>
     |> ChildProcess.on(
          `close(
            (code, signal) => {
-             disconnect(connection);
+             disconnect(connection) |> ignore;
              Js.log(Error.ClosedByProcess(code, signal));
            },
          ),
@@ -179,30 +180,37 @@ let autoSearch = (name): Async.t(string, Error.t) =>
   |> Async.mapError(e => Error.AutoSearchError(e));
 
 let send = (request, self): Async.t(string, unit) => {
-  let event: Event.t(string, unit) = Event.make();
+  switch (self.process) {
+  | None =>
+    Js.log("[ send failed, GCL not connected ]");
+    Async.reject();
+  | Some(process) =>
+    let event: Event.t(string, unit) = Event.make();
 
-  // listens to the "data" event on the stdout
-  let onData: Node.buffer => unit =
-    chunk => {
-      // serialize the binary chunk into string
-      let rawText = chunk |> Node.Buffer.toString;
-      event |> Event.emitOk(rawText);
-    };
+    // listens to the "data" event on the stdout
+    let onData: Node.buffer => unit = (
+      chunk => {
+        // serialize the binary chunk into string
+        let rawText = chunk |> Node.Buffer.toString;
+        event |> Event.emitOk(rawText);
+      }
+    );
 
-  // on data
-  self.process
-  |> N.ChildProcess.stdout
-  |> N.Stream.Readable.once(`data(onData))
-  |> ignore;
+    // on data
+    process
+    |> N.ChildProcess.stdout
+    |> N.Stream.Readable.once(`data(onData))
+    |> ignore;
 
-  let promise = event |> Event.once;
+    let promise = event |> Event.once;
 
-  let payload = Node.Buffer.fromString(request ++ "\n");
-  // write
-  self.process
-  |> N.ChildProcess.stdin
-  |> N.Stream.Writable.write(payload)
-  |> ignore;
+    let payload = Node.Buffer.fromString(request ++ "\n");
+    // write
+    process
+    |> N.ChildProcess.stdin
+    |> N.Stream.Writable.write(payload)
+    |> ignore;
 
-  promise;
+    promise;
+  };
 };
