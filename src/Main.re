@@ -3,7 +3,7 @@ open Rebase;
 
 let activated: ref(bool) = ref(false);
 
-let instances: Js.Dict.t(Instance.t) = Js.Dict.empty();
+let instances: Js.Dict.t(Type.instance) = Js.Dict.empty();
 
 module Instances = {
   let textEditorID = textEditor =>
@@ -118,7 +118,7 @@ let onTriggerCommand = () => {
          |> eventTargetEditor
          |> Option.flatMap(Instances.get)
          |> Option.forEach(instance =>
-              instance |> Instance.dispatch(Command.parse(command)) |> ignore
+              instance |> Instance.dispatch(Request.parse(command)) |> ignore
             )
        )
        |> CompositeDisposable.add(subscriptions)
