@@ -12,14 +12,7 @@ let make = (editor: Atom.TextEditor.t): Type.instance => {
   |> Webapi.Dom.HtmlElement.classList
   |> Webapi.Dom.DomTokenList.add("gcl");
 
-  {
-    editor,
-    connection: {
-      path: None,
-      process: None,
-    },
-    decorations: [||],
-  };
+  {editor, connection: Connection.make(), decorations: [||]};
 };
 
 let destroy = instance => {
@@ -51,13 +44,7 @@ let dispatch = (request, instance) => {
       if (isConnected(instance)) {
         ();
       } else {
-        Connection.autoSearch("gcl")
-        |> thenOk(Connection.make)
-        |> thenOk(connection => {
-             instance.connection = connection;
-             Js.log("[ connected ]");
-             resolve();
-           })
+        Connection.connect(instance.connection)
         |> finalError(error =>
              Js.log2(
                "[ connection error ]",
@@ -67,7 +54,7 @@ let dispatch = (request, instance) => {
       }
 
     | Deactivate =>
-      instance.connection = Connection.disconnect(instance.connection);
+      instance.connection |> Connection.disconnect;
       Js.log("[ deactivate ]");
     | Save =>
       instance.decorations |> Array.forEach(Atom.Decoration.destroy);
@@ -86,6 +73,7 @@ let dispatch = (request, instance) => {
                "{\"tag\": \"Load\", \"contents\": \"" ++ path ++ "\"}",
                instance.connection,
              )
+             |> Async.mapError(_ => ())
            | None => reject()
            };
          })

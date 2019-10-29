@@ -28,7 +28,7 @@ module Decode = {
 
   let parseErrorPair: decoder((Atom.Point.t, string)) =
     pair(pos, string)
-    |> map(((x, y)) => (Atom.Point.make(x.line, x.column), y));
+    |> map(((x, y)) => (Atom.Point.make(x.line - 1, x.column), y));
 
   let parseError: decoder(t) =
     array(parseErrorPair) |> map(a => ParseError(a));

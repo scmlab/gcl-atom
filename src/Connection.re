@@ -22,7 +22,8 @@ module Error = {
   type connection =
     | ShellError(Js.Exn.t)
     | ClosedByProcess(int, string)
-    | DisconnectedByUser;
+    | DisconnectedByUser
+    | NotEstablishedYet;
 
   type t =
     | AutoSearchError(autoSearch)
@@ -79,51 +80,26 @@ signal: $signal
     | ConnectionError(DisconnectedByUser) => (
         "Disconnected",
         "Connection disconnected by ourselves",
+      )
+    | ConnectionError(NotEstablishedYet) => (
+        "Connection not established yet",
+        "Please establish the connection first",
       );
 };
 
 type t = {
-  path: option(string),
+  mutable path: option(string),
   mutable process: option(N.ChildProcess.t),
+  emitter: Event.t(string, Error.t),
 };
 
-let disconnect = self => {
-  self.process |> Option.forEach(N.ChildProcess.kill("SIGTERM"));
-  self.process = None;
-
-  self;
+let disconnect = connection => {
+  connection.emitter |> Event.destroy;
+  connection.process |> Option.forEach(N.ChildProcess.kill("SIGTERM"));
+  connection.process = None;
 };
 
-let make = (path: string): Async.t(t, Error.t) =>
-  {
-    open N;
-    let process = ChildProcess.spawn(path, [||], {"shell": true});
-    let connection = {path: Some(path), process: Some(process)};
-
-    // on errors and anomalies
-    process
-    |> ChildProcess.on(
-         `error(
-           exn => {
-             disconnect(connection) |> ignore;
-             Js.log(Error.ShellError(exn));
-           },
-         ),
-       )
-    |> ChildProcess.on(
-         `close(
-           (code, signal) => {
-             disconnect(connection) |> ignore;
-             Js.log(Error.ClosedByProcess(code, signal));
-           },
-         ),
-       )
-    |> ChildProcess.on(`message(Js.log))
-    |> ignore;
-
-    Async.resolve(connection);
-  }
-  |> Async.mapError(e => Error.ConnectionError(e));
+let make = (): t => {path: None, process: None, emitter: Event.make()};
 
 let autoSearch = (name): Async.t(string, Error.t) =>
   Async.make((resolve, reject) => {
@@ -179,30 +155,64 @@ let autoSearch = (name): Async.t(string, Error.t) =>
   })
   |> Async.mapError(e => Error.AutoSearchError(e));
 
-let send = (request, self): Async.t(string, unit) => {
-  switch (self.process) {
-  | None =>
-    Js.log("[ send failed, GCL not connected ]");
-    Async.reject();
+let connect = connection =>
+  autoSearch("gcl")
+  |> Async.thenOk(path => {
+       open N;
+       let process = ChildProcess.spawn(path, [||], {"shell": true});
+       connection.path = Some(path);
+       connection.process = Some(process);
+
+       // on data
+       process
+       |> N.ChildProcess.stdout
+       |> N.Stream.Readable.on(
+            `data(
+              chunk => {
+                // serialize the binary chunk into string
+                let rawText = chunk |> Node.Buffer.toString;
+                connection.emitter |> Event.emitOk(rawText);
+              },
+            ),
+          )
+       |> ignore;
+
+       // on errors and anomalies
+       process
+       |> ChildProcess.on(
+            `error(
+              exn => {
+                disconnect(connection) |> ignore;
+                connection.emitter
+                |> Event.emitError(
+                     Error.ConnectionError(Error.ShellError(exn)),
+                   );
+              },
+            ),
+          )
+       |> ChildProcess.on(
+            `close(
+              (code, signal) => {
+                disconnect(connection) |> ignore;
+                connection.emitter
+                |> Event.emitError(
+                     Error.ConnectionError(
+                       Error.ClosedByProcess(code, signal),
+                     ),
+                   );
+              },
+            ),
+          )
+       |> ignore;
+
+       Async.resolve();
+     });
+
+let send = (request, connection): Async.t(string, Error.t) => {
+  switch (connection.process) {
+  | None => Async.reject(Error.ConnectionError(Error.NotEstablishedYet))
   | Some(process) =>
-    let event: Event.t(string, unit) = Event.make();
-
-    // listens to the "data" event on the stdout
-    let onData: Node.buffer => unit = (
-      chunk => {
-        // serialize the binary chunk into string
-        let rawText = chunk |> Node.Buffer.toString;
-        event |> Event.emitOk(rawText);
-      }
-    );
-
-    // on data
-    process
-    |> N.ChildProcess.stdout
-    |> N.Stream.Readable.once(`data(onData))
-    |> ignore;
-
-    let promise = event |> Event.once;
+    let promise = connection.emitter |> Event.once;
 
     let payload = Node.Buffer.fromString(request ++ "\n");
     // write

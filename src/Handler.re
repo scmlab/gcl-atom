@@ -6,12 +6,11 @@ let handle = (instance: Type.instance) =>
   fun
   | OK => ()
   | ParseError(pairs) => {
-      let decorate = ((pos, _msg)) => {
-        open Atom;
-        let pos' = Point.translate(pos, Point.make(-1, 0));
-        let range = Range.make(pos', pos');
+      let decorate = ((pos, msg)) => {
         Js.log(pos);
-        Js.log(range);
+        Js.log(msg);
+        open Atom;
+        let range = Range.make(pos, pos);
         let marker = instance.editor |> TextEditor.markBufferRange(range);
         let option =
           TextEditor.decorateMarkerOptions(
