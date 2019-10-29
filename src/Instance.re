@@ -18,6 +18,7 @@ let make = (editor: Atom.TextEditor.t): Type.instance => {
       path: None,
       process: None,
     },
+    decorations: [||],
   };
 };
 
@@ -31,8 +32,10 @@ let destroy = instance => {
   |> Atom.Views.getView
   |> Webapi.Dom.HtmlElement.classList
   |> Webapi.Dom.DomTokenList.remove("gcl");
-
-  ();
+  // destroy the connection
+  Connection.disconnect(instance.connection) |> ignore;
+  // destroy all decorations
+  instance.decorations |> Array.forEach(Atom.Decoration.destroy);
 };
 
 let isConnected = instance =>
@@ -67,6 +70,8 @@ let dispatch = (request, instance) => {
       instance.connection = Connection.disconnect(instance.connection);
       Js.log("[ deactivate ]");
     | Save =>
+      instance.decorations |> Array.forEach(Atom.Decoration.destroy);
+
       Js.log("[ saved ]");
       instance.editor
       |> Atom.TextEditor.save

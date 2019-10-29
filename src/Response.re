@@ -9,7 +9,7 @@ type pos = {
 
 type t =
   | OK
-  | ParseError(Atom.Point.t, string);
+  | ParseError(array((Atom.Point.t, string)));
 
 module Decode = {
   open Json.Decode;
@@ -25,9 +25,13 @@ module Decode = {
 
   // response
   let ok: decoder(t) = _ => OK;
-  let parseError: decoder(t) =
+
+  let parseErrorPair: decoder((Atom.Point.t, string)) =
     pair(pos, string)
-    |> map(((x, y)) => ParseError(Atom.Point.make(x.line, x.column), y));
+    |> map(((x, y)) => (Atom.Point.make(x.line, x.column), y));
+
+  let parseError: decoder(t) =
+    array(parseErrorPair) |> map(a => ParseError(a));
 
   let response: decoder(t) =
     field("tag", string)
