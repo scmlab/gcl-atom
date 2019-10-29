@@ -38,7 +38,7 @@ let isConnected = instance =>
   };
 
 let dispatch = (request, instance) => {
-  Request.(
+  Command.(
     switch (request) {
     | Activate =>
       if (isConnected(instance)) {
@@ -58,8 +58,6 @@ let dispatch = (request, instance) => {
       Js.log("[ deactivate ]");
     | Save =>
       instance.decorations |> Array.forEach(Atom.Decoration.destroy);
-
-      Js.log("[ saved ]");
       instance.editor
       |> Atom.TextEditor.save
       |> fromPromise
@@ -70,7 +68,7 @@ let dispatch = (request, instance) => {
            switch (filepath) {
            | Some(path) =>
              Connection.send(
-               "{\"tag\": \"Load\", \"contents\": \"" ++ path ++ "\"}",
+               Request.encode(Request.Load(path)),
                instance.connection,
              )
              |> Async.mapError(_ => ())

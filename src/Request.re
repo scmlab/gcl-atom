@@ -1,11 +1,13 @@
 type t =
-  | Activate
-  | Deactivate
-  | Save;
-let commandNames = [|"activate", "deactivate", "save"|];
-let parse =
-  fun
-  | "activate" => Activate
-  | "deactivate" => Deactivate
-  | "save" => Save
-  | _ => Save;
+  | Load(string);
+
+module Encode = {
+  open Json.Encode;
+
+  let request: encoder(t) =
+    fun
+    | Load(filepath) =>
+      object_([("tag", string("Load")), ("contents", string(filepath))]);
+};
+
+let encode: t => string = x => x |> Encode.request |> Json.stringify;

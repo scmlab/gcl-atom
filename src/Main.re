@@ -118,7 +118,7 @@ let onTriggerCommand = () => {
          |> eventTargetEditor
          |> Option.flatMap(Instances.get)
          |> Option.forEach(instance =>
-              instance |> Instance.dispatch(Request.parse(command)) |> ignore
+              instance |> Instance.dispatch(Command.parse(command)) |> ignore
             )
        )
        |> CompositeDisposable.add(subscriptions)
