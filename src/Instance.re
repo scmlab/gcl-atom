@@ -31,20 +31,21 @@ let destroy = instance => {
   instance.decorations |> Array.forEach(Atom.Decoration.destroy);
 };
 
-let isConnected = instance =>
-  switch (instance.connection.process) {
-  | None => false
-  | Some(_) => true
-  };
-
 let dispatch = (request, instance) => {
   Command.(
     switch (request) {
     | Activate =>
-      if (isConnected(instance)) {
+      if (Connection.isConnected(instance.connection)) {
         ();
       } else {
+        let channels = View.create();
+
         Connection.connect(instance.connection)
+        |> thenOk(_ => {
+             channels.updateConnection
+             |> Channel.send((instance.connection, None));
+             resolve();
+           })
         |> finalError(error =>
              Js.log2(
                "[ connection error ]",

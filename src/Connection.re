@@ -99,6 +99,12 @@ let disconnect = connection => {
   connection.process = None;
 };
 
+let isConnected = connection =>
+  switch (connection.process) {
+  | None => false
+  | Some(_) => true
+  };
+
 let make = (): t => {path: None, process: None, emitter: Event.make()};
 
 let autoSearch = (name): Async.t(string, Error.t) =>
