@@ -15,4 +15,22 @@
 .gcl-panel {
   // For hiding React components
   .hidden { display: none }
+
+
+	font-size: var(--editor-font-size) !important;
+	line-height: var(--editor-line-height) !important;
+
+  // font-size: 120%;
+
+  .gcl-header {
+    font-size: 100%;
+    margin: 0;
+    padding: @component-padding * 2 @component-padding;
+  }
+
+  .gcl-body {
+    margin: 0 @component-padding @component-padding @component-padding;
+    padding: @component-padding;
+    background: @base-background-color;
+  }
 }

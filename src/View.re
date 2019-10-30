@@ -1,4 +1,6 @@
 open Rebase;
+// open Type;
+open Type.View;
 
 module PanelContainer = {
   // get "article.gcl-panel-container", create one if not found
@@ -45,19 +47,9 @@ module PanelContainer = {
   };
 };
 
-module Interface = {
-  type t = {
-    setActivation: bool => Async.t(unit, unit),
-    setHeader: string => Async.t(unit, unit),
-    setBody: string => Async.t(unit, unit),
-  };
-
-  let make = (channels: Channels.t) => {
-    setActivation: Channel.sendTo(channels.setActivation),
-    setHeader: Channel.sendTo(channels.setHeader),
-    setBody: Channel.sendTo(channels.setBody),
-  };
-};
+// type body =
+//   | Plain(string)
+//   | Error(string);
 
 let make = (editor: Atom.TextEditor.t) => {
   open Webapi.Dom;

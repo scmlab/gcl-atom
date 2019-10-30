@@ -5,13 +5,13 @@ open Response;
 let handle = (instance: Type.instance) =>
   fun
   | OK => {
-      instance.view.setHeader("All good") |> ignore;
-      instance.view.setBody("") |> ignore;
+      instance.view.setHeader(AllGood) |> ignore;
+      instance.view.setBody(Nothing) |> ignore;
     }
   | ParseError(pairs) => {
-      let decorate = ((pos, body)) => {
-        instance.view.setHeader("Parse error") |> ignore;
-        instance.view.setBody(body) |> ignore;
+      let decorate = ((pos, msg)) => {
+        instance.view.setHeader(Error("Parse Error")) |> ignore;
+        instance.view.setBody(Plain(msg)) |> ignore;
         open Atom;
         let range = Range.make(pos, pos);
         let marker = instance.editor |> TextEditor.markBufferRange(range);

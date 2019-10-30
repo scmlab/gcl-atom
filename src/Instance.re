@@ -1,6 +1,5 @@
 open Rebase;
 open Async;
-open Type;
 
 module Event = Event;
 
@@ -19,7 +18,7 @@ let make = (editor: Atom.TextEditor.t): Type.instance => {
 
 let destroy = instance => {
   // remove "gcl" from the class-list of the editor
-  instance.editor
+  instance.Type.editor
   |> Atom.Views.getView
   |> Webapi.Dom.HtmlElement.classList
   |> Webapi.Dom.DomTokenList.remove("gcl");
@@ -31,9 +30,9 @@ let destroy = instance => {
   instance.editor |> View.destroy;
 };
 
-let activate = instance => instance.view.setActivation(true);
+let activate = instance => instance.Type.view.setActivation(true);
 
-let deactivate = instance => instance.view.setActivation(false);
+let deactivate = instance => instance.Type.view.setActivation(false);
 
 let dispatch = (request, instance) => {
   Command.(
@@ -48,8 +47,8 @@ let dispatch = (request, instance) => {
         |> thenOk(_ => resolve())
         |> finalError(error => {
              let (header, body) = Connection.Error.toString(error);
-             instance.view.setHeader(header) |> ignore;
-             instance.view.setBody(body) |> ignore;
+             instance.view.setHeader(Error(header)) |> ignore;
+             instance.view.setBody(Plain(body)) |> ignore;
            });
       };
     | Deactivate => deactivate(instance) |> ignore
@@ -70,13 +69,15 @@ let dispatch = (request, instance) => {
              )
              |> Async.mapError(error => {
                   let (header, body) = Connection.Error.toString(error);
-                  instance.view.setHeader(header) |> ignore;
-                  instance.view.setBody(body) |> ignore;
+                  instance.view.setHeader(Error(header)) |> ignore;
+                  instance.view.setBody(Plain(body)) |> ignore;
                   ();
                 })
            | None =>
-             instance.view.setHeader("Cannot read filepath ") |> ignore;
-             instance.view.setBody("Please save the file first") |> ignore;
+             instance.view.setHeader(Error("Cannot read filepath "))
+             |> ignore;
+             instance.view.setBody(Plain("Please save the file first"))
+             |> ignore;
              reject();
            };
          })
