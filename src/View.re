@@ -49,48 +49,74 @@ module Channels = {
   type t = {
     updateConnection:
       Channel.t((Connection.t, option(Connection.Error.t)), unit, unit),
+    setHeader: Channel.t(string, unit, unit),
+    setBody: Channel.t(string, unit, unit),
   };
 
-  let make = () => {updateConnection: Channel.make()};
+  let make = () => {
+    updateConnection: Channel.make(),
+    setHeader: Channel.make(),
+    setBody: Channel.make(),
+  };
 };
 
 [@react.component]
 let make = (~channels: Channels.t) => {
   open React;
-  let ((connection, connectionError), setConnectionAndError) =
-    Hook.useState((Connection.make(), None));
-
-  Hook.useChannel(
-    x => x |> setConnectionAndError |> Async.resolve,
-    channels.updateConnection,
-  );
-  let connected = Connection.isConnected(connection);
-  let status =
-    connected
-      ? <span
-          title="connected"
-          id="connection-status"
-          className="icon icon-primitive-dot text-success"
-        />
-      : <span
-          title="disconnected"
-          id="connection-status"
-          className="icon icon-primitive-dot text-error"
-        />;
-  let (header, body) =
-    switch (connectionError) {
-    | None => ("All good", "")
-    | Some(err) => Connection.Error.toString(err)
-    };
+  let (header, setHeader) = Hook.useState("");
+  let (body, setBody) = Hook.useState("");
+  Hook.useChannel(x => x |> setHeader |> Async.resolve, channels.setHeader);
+  Hook.useChannel(x => x |> setBody |> Async.resolve, channels.setBody);
+  Js.log2("[ view ]", header);
+  // let ((connection, connectionError), setConnectionAndError) =
+  //   Hook.useState((Connection.make(), None));
+  //
+  // Hook.useChannel(
+  //   x => x |> setConnectionAndError |> Async.resolve,
+  //   channels.updateConnection,
+  // );
+  // let connected = Connection.isConnected(connection);
+  // let status =
+  //   connected
+  //     ? <span
+  //         title="connected"
+  //         id="connection-status"
+  //         className="icon icon-primitive-dot text-success"
+  //       />
+  //     : <span
+  //         title="disconnected"
+  //         id="connection-status"
+  //         className="icon icon-primitive-dot text-error"
+  //       />;
+  // let (header, body) =
+  //   switch (connectionError) {
+  //   | None => ("All good", "")
+  //   | Some(err) => Connection.Error.toString(err)
+  //   };
   <section className="gcl-panel">
-    <h2> <span> {string(header)} </span> status </h2>
-    <div> <span> {string(body)} </span> </div>
+    <h2> {string(header)} </h2>
+    <div> {string(body)} </div>
   </section>;
 };
 
-let create = () => {
-  // Js.log("[ view create ]");
+module Interface = {
+  type t = {
+    setHeader: string => Async.t(unit, unit),
+    setBody: string => Async.t(unit, unit),
+  };
 
+  let make = (channels: Channels.t) => {
+    setHeader: s => {
+      Js.log2("[ channel ]", s);
+      channels.setHeader |> Channel.send(s);
+    },
+    setBody: s => {
+      channels.setBody |> Channel.send(s);
+    },
+  };
+};
+
+let create = () => {
   // open Webapi.Dom;
   let element = PanelContainer.make();
   // document |> Document.createElement("article");
@@ -102,6 +128,6 @@ let create = () => {
   let component =
     React.createElementVariadic(make, makeProps(~channels, ()), [||]);
   ReactDOMRe.render(component, element);
-  /* return the handles for drilling */
-  channels;
+  // return the interface
+  Interface.make(channels);
 };

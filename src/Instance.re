@@ -12,7 +12,10 @@ let make = (editor: Atom.TextEditor.t): Type.instance => {
   |> Webapi.Dom.HtmlElement.classList
   |> Webapi.Dom.DomTokenList.add("gcl");
 
-  {editor, connection: Connection.make(), decorations: [||]};
+  let view = View.create();
+  let connection = Connection.make();
+
+  {editor, view, connection, decorations: [||]};
 };
 
 let destroy = instance => {
@@ -38,20 +41,17 @@ let dispatch = (request, instance) => {
       if (Connection.isConnected(instance.connection)) {
         ();
       } else {
-        let channels = View.create();
-
         Connection.connect(instance.connection)
         |> thenOk(_ => {
-             channels.updateConnection
-             |> Channel.send((instance.connection, None));
+             instance.view.setHeader("All good") |> ignore;
+             instance.view.setBody("All good") |> ignore;
              resolve();
            })
-        |> finalError(error =>
-             Js.log2(
-               "[ connection error ]",
-               Connection.Error.toString(error),
-             )
-           );
+        |> finalError(error => {
+             let (header, body) = Connection.Error.toString(error);
+             instance.view.setHeader(header) |> ignore;
+             instance.view.setBody(body) |> ignore;
+           });
       }
 
     | Deactivate =>
@@ -64,7 +64,6 @@ let dispatch = (request, instance) => {
       |> fromPromise
       |> mapError(_ => ())
       |> thenOk(_ => {
-           Js.log("[ sending ]");
            let filepath = Atom.TextEditor.getPath(instance.editor);
            switch (filepath) {
            | Some(path) =>
@@ -72,8 +71,16 @@ let dispatch = (request, instance) => {
                Request.encode(Request.Load(path)),
                instance.connection,
              )
-             |> Async.mapError(_ => ())
-           | None => reject()
+             |> Async.mapError(error => {
+                  let (header, body) = Connection.Error.toString(error);
+                  instance.view.setHeader(header) |> ignore;
+                  instance.view.setBody(body) |> ignore;
+                  ();
+                })
+           | None =>
+             instance.view.setHeader("Cannot read filepath ") |> ignore;
+             instance.view.setBody("Please save the file first") |> ignore;
+             reject();
            };
          })
       |> finalOk(result => {

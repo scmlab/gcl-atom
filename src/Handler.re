@@ -6,9 +6,9 @@ let handle = (instance: Type.instance) =>
   fun
   | OK => ()
   | ParseError(pairs) => {
-      let decorate = ((pos, msg)) => {
-        Js.log(pos);
-        Js.log(msg);
+      let decorate = ((pos, body)) => {
+        instance.view.setHeader("Parse error") |> ignore;
+        instance.view.setBody(body) |> ignore;
         open Atom;
         let range = Range.make(pos, pos);
         let marker = instance.editor |> TextEditor.markBufferRange(range);
