@@ -4,7 +4,10 @@ open Response;
 
 let handle = (instance: Type.instance) =>
   fun
-  | OK => ()
+  | OK => {
+      instance.view.setHeader("All good") |> ignore;
+      instance.view.setBody("") |> ignore;
+    }
   | ParseError(pairs) => {
       let decorate = ((pos, body)) => {
         instance.view.setHeader("Parse error") |> ignore;

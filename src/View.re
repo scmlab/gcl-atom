@@ -65,35 +65,11 @@ let make = (~channels: Channels.t) => {
   open React;
   let (header, setHeader) = Hook.useState("");
   let (body, setBody) = Hook.useState("");
+
   Hook.useChannel(x => x |> setHeader |> Async.resolve, channels.setHeader);
   Hook.useChannel(x => x |> setBody |> Async.resolve, channels.setBody);
-  Js.log2("[ view ]", header);
-  // let ((connection, connectionError), setConnectionAndError) =
-  //   Hook.useState((Connection.make(), None));
-  //
-  // Hook.useChannel(
-  //   x => x |> setConnectionAndError |> Async.resolve,
-  //   channels.updateConnection,
-  // );
-  // let connected = Connection.isConnected(connection);
-  // let status =
-  //   connected
-  //     ? <span
-  //         title="connected"
-  //         id="connection-status"
-  //         className="icon icon-primitive-dot text-success"
-  //       />
-  //     : <span
-  //         title="disconnected"
-  //         id="connection-status"
-  //         className="icon icon-primitive-dot text-error"
-  //       />;
-  // let (header, body) =
-  //   switch (connectionError) {
-  //   | None => ("All good", "")
-  //   | Some(err) => Connection.Error.toString(err)
-  //   };
-  <section className="gcl-panel">
+
+  <section>
     <h2> {string(header)} </h2>
     <div> {string(body)} </div>
   </section>;
@@ -101,13 +77,23 @@ let make = (~channels: Channels.t) => {
 
 module Interface = {
   type t = {
+    destroy: unit => unit,
     setHeader: string => Async.t(unit, unit),
     setBody: string => Async.t(unit, unit),
   };
 
-  let make = (channels: Channels.t) => {
+  let make = (editor: Atom.TextEditor.t, channels: Channels.t) => {
+    destroy: () => {
+      open Webapi.Dom;
+      let id = "gcl:" ++ string_of_int(Atom.TextEditor.id(editor));
+      document
+      |> Document.getElementById(id)
+      |> Option.forEach(element => {
+           ReactDOMRe.unmountComponentAtNode(element);
+           Element.remove(element);
+         });
+    },
     setHeader: s => {
-      Js.log2("[ channel ]", s);
       channels.setHeader |> Channel.send(s);
     },
     setBody: s => {
@@ -116,18 +102,23 @@ module Interface = {
   };
 };
 
-let create = () => {
-  // open Webapi.Dom;
-  let element = PanelContainer.make();
-  // document |> Document.createElement("article");
+let create = (editor: Atom.TextEditor.t) => {
+  open Webapi.Dom;
+  let container = PanelContainer.make();
 
-  // let handles = View.makeHandles();
+  // create a element to house the panel
+  let element = document |> Document.createElement("article");
+  element |> Element.classList |> DomTokenList.add("gcl-panel");
+  let id = "gcl:" ++ string_of_int(Atom.TextEditor.id(editor));
+  Element.setId(element, id);
+  container |> Element.appendChild(element);
+
+  // channels for communicating with the view
   let channels = Channels.make();
-  // let view = View.make(handles, channels);
-
+  // render
   let component =
     React.createElementVariadic(make, makeProps(~channels, ()), [||]);
   ReactDOMRe.render(component, element);
-  // return the interface
-  Interface.make(channels);
+  // expose the interface
+  Interface.make(editor, channels);
 };

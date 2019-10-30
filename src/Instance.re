@@ -5,25 +5,20 @@ open Type;
 module Event = Event;
 
 let make = (editor: Atom.TextEditor.t): Type.instance => {
-  Js.log2("[ instance ][ construct ]", editor |> Atom.TextEditor.getPath);
   // add "gcl" to the class-list
   editor
   |> Atom.Views.getView
   |> Webapi.Dom.HtmlElement.classList
   |> Webapi.Dom.DomTokenList.add("gcl");
 
-  let view = View.create();
+  let view = View.create(editor);
   let connection = Connection.make();
 
   {editor, view, connection, decorations: [||]};
 };
 
 let destroy = instance => {
-  Js.log2(
-    "[ instance ][ destroy ]",
-    instance.editor |> Atom.TextEditor.getPath,
-  );
-  // remove "gcl" to the class-list
+  // remove "gcl" from the class-list of the editor
   instance.editor
   |> Atom.Views.getView
   |> Webapi.Dom.HtmlElement.classList
@@ -32,6 +27,8 @@ let destroy = instance => {
   Connection.disconnect(instance.connection) |> ignore;
   // destroy all decorations
   instance.decorations |> Array.forEach(Atom.Decoration.destroy);
+  // destroy the view
+  instance.view.destroy();
 };
 
 let dispatch = (request, instance) => {
@@ -42,11 +39,7 @@ let dispatch = (request, instance) => {
         ();
       } else {
         Connection.connect(instance.connection)
-        |> thenOk(_ => {
-             instance.view.setHeader("All good") |> ignore;
-             instance.view.setBody("All good") |> ignore;
-             resolve();
-           })
+        |> thenOk(_ => resolve())
         |> finalError(error => {
              let (header, body) = Connection.Error.toString(error);
              instance.view.setHeader(header) |> ignore;
@@ -65,6 +58,7 @@ let dispatch = (request, instance) => {
       |> mapError(_ => ())
       |> thenOk(_ => {
            let filepath = Atom.TextEditor.getPath(instance.editor);
+
            switch (filepath) {
            | Some(path) =>
              Connection.send(
