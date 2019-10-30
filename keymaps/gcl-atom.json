@@ -5,6 +5,6 @@
   "atom-text-editor.gcl": {
     "cmd-s": "gcl-atom:save",
     "ctrl-s": "gcl-atom:save",
-    "ctrl-c ctrl-x ctrl-q": "gcl-atom:deactivate"
+    "ctrl-c ctrl-x": "gcl-atom:deactivate"
   }
 }

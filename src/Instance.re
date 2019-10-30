@@ -11,7 +11,7 @@ let make = (editor: Atom.TextEditor.t): Type.instance => {
   |> Webapi.Dom.HtmlElement.classList
   |> Webapi.Dom.DomTokenList.add("gcl");
 
-  let view = View.create(editor);
+  let view = View.make(editor);
   let connection = Connection.make();
 
   {editor, view, connection, decorations: [||]};
@@ -28,7 +28,7 @@ let destroy = instance => {
   // destroy all decorations
   instance.decorations |> Array.forEach(Atom.Decoration.destroy);
   // destroy the view
-  instance.view.destroy();
+  instance.editor |> View.destroy;
 };
 
 let activate = instance => instance.view.setActivation(true);
@@ -52,11 +52,7 @@ let dispatch = (request, instance) => {
              instance.view.setBody(body) |> ignore;
            });
       };
-
-    | Deactivate =>
-      instance.connection |> Connection.disconnect;
-      deactivate(instance) |> ignore;
-      Js.log("[ deactivate ]");
+    | Deactivate => deactivate(instance) |> ignore
     | Save =>
       instance.decorations |> Array.forEach(Atom.Decoration.destroy);
       instance.editor

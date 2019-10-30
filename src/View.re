@@ -45,75 +45,21 @@ module PanelContainer = {
   };
 };
 
-module Channels = {
-  type t = {
-    updateConnection:
-      Channel.t((Connection.t, option(Connection.Error.t)), unit, unit),
-    setActivation: Channel.t(bool, unit, unit),
-    setHeader: Channel.t(string, unit, unit),
-    setBody: Channel.t(string, unit, unit),
-  };
-
-  let make = () => {
-    updateConnection: Channel.make(),
-    setActivation: Channel.make(),
-    setHeader: Channel.make(),
-    setBody: Channel.make(),
-  };
-};
-
-[@react.component]
-let make = (~channels: Channels.t) => {
-  open React;
-  let (header, setHeader) = Hook.useState("");
-  let (body, setBody) = Hook.useState("");
-  let (activated, setActivation) = Hook.useState(false);
-
-  Hook.useChannel(x => x |> setHeader |> Async.resolve, channels.setHeader);
-  Hook.useChannel(x => x |> setBody |> Async.resolve, channels.setBody);
-  Hook.useChannel(
-    x => x |> setActivation |> Async.resolve,
-    channels.setActivation,
-  );
-
-  <section className={activated ? "" : "hidden"}>
-    <h2> {string(header)} </h2>
-    <div> {string(body)} </div>
-  </section>;
-};
-
 module Interface = {
   type t = {
-    destroy: unit => unit,
     setActivation: bool => Async.t(unit, unit),
     setHeader: string => Async.t(unit, unit),
     setBody: string => Async.t(unit, unit),
   };
 
-  let make = (editor: Atom.TextEditor.t, channels: Channels.t) => {
-    destroy: () => {
-      open Webapi.Dom;
-      let id = "gcl:" ++ string_of_int(Atom.TextEditor.id(editor));
-      document
-      |> Document.getElementById(id)
-      |> Option.forEach(element => {
-           ReactDOMRe.unmountComponentAtNode(element);
-           Element.remove(element);
-         });
-    },
-    setActivation: s => {
-      channels.setActivation |> Channel.send(s);
-    },
-    setHeader: s => {
-      channels.setHeader |> Channel.send(s);
-    },
-    setBody: s => {
-      channels.setBody |> Channel.send(s);
-    },
+  let make = (channels: Channels.t) => {
+    setActivation: Channel.sendTo(channels.setActivation),
+    setHeader: Channel.sendTo(channels.setHeader),
+    setBody: Channel.sendTo(channels.setBody),
   };
 };
 
-let create = (editor: Atom.TextEditor.t) => {
+let make = (editor: Atom.TextEditor.t) => {
   open Webapi.Dom;
   let container = PanelContainer.make();
 
@@ -128,8 +74,23 @@ let create = (editor: Atom.TextEditor.t) => {
   let channels = Channels.make();
   // render
   let component =
-    React.createElementVariadic(make, makeProps(~channels, ()), [||]);
+    React.createElementVariadic(
+      Panel.make,
+      Panel.makeProps(~channels, ()),
+      [||],
+    );
   ReactDOMRe.render(component, element);
   // expose the interface
-  Interface.make(editor, channels);
+  Interface.make(channels);
+};
+
+let destroy = (editor: Atom.TextEditor.t) => {
+  open Webapi.Dom;
+  let id = "gcl:" ++ string_of_int(Atom.TextEditor.id(editor));
+  document
+  |> Document.getElementById(id)
+  |> Option.forEach(element => {
+       ReactDOMRe.unmountComponentAtNode(element);
+       Element.remove(element);
+     });
 };

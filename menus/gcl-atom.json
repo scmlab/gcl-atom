@@ -2,8 +2,12 @@
   "context-menu": {
     "atom-text-editor": [
       {
-        "label": "Toggle gcl-atom",
-        "command": "gcl-atom:toggle"
+        "label": "Activate gcl-atom",
+        "command": "gcl-atom:activate"
+      },
+      {
+        "label": "Deactivate gcl-atom",
+        "command": "gcl-atom:deactivate"
       }
     ]
   },
@@ -15,8 +19,12 @@
           "label": "gcl-atom",
           "submenu": [
             {
-              "label": "Toggle",
-              "command": "gcl-atom:toggle"
+              "label": "Activate gcl-atom",
+              "command": "gcl-atom:activate"
+            },
+            {
+              "label": "Deactivate gcl-atom",
+              "command": "gcl-atom:deactivate"
             }
           ]
         }

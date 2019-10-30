@@ -6,6 +6,9 @@ let make = Resource.make;
 let send = (input, channel) =>
   channel.Resource.acquire() |> Async.thenOk(trigger => trigger(input));
 
+let sendTo = (channel, input) =>
+  channel.Resource.acquire() |> Async.thenOk(trigger => trigger(input));
+
 let recv = (callback, channel) => channel.Resource.supply(callback);
 
 //
