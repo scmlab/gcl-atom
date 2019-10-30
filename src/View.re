@@ -49,12 +49,14 @@ module Channels = {
   type t = {
     updateConnection:
       Channel.t((Connection.t, option(Connection.Error.t)), unit, unit),
+    setActivation: Channel.t(bool, unit, unit),
     setHeader: Channel.t(string, unit, unit),
     setBody: Channel.t(string, unit, unit),
   };
 
   let make = () => {
     updateConnection: Channel.make(),
+    setActivation: Channel.make(),
     setHeader: Channel.make(),
     setBody: Channel.make(),
   };
@@ -65,11 +67,16 @@ let make = (~channels: Channels.t) => {
   open React;
   let (header, setHeader) = Hook.useState("");
   let (body, setBody) = Hook.useState("");
+  let (activated, setActivation) = Hook.useState(false);
 
   Hook.useChannel(x => x |> setHeader |> Async.resolve, channels.setHeader);
   Hook.useChannel(x => x |> setBody |> Async.resolve, channels.setBody);
+  Hook.useChannel(
+    x => x |> setActivation |> Async.resolve,
+    channels.setActivation,
+  );
 
-  <section>
+  <section className={activated ? "" : "hidden"}>
     <h2> {string(header)} </h2>
     <div> {string(body)} </div>
   </section>;
@@ -78,6 +85,7 @@ let make = (~channels: Channels.t) => {
 module Interface = {
   type t = {
     destroy: unit => unit,
+    setActivation: bool => Async.t(unit, unit),
     setHeader: string => Async.t(unit, unit),
     setBody: string => Async.t(unit, unit),
   };
@@ -92,6 +100,9 @@ module Interface = {
            ReactDOMRe.unmountComponentAtNode(element);
            Element.remove(element);
          });
+    },
+    setActivation: s => {
+      channels.setActivation |> Channel.send(s);
     },
     setHeader: s => {
       channels.setHeader |> Channel.send(s);

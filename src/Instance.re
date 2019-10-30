@@ -31,10 +31,16 @@ let destroy = instance => {
   instance.view.destroy();
 };
 
+let activate = instance => instance.view.setActivation(true);
+
+let deactivate = instance => instance.view.setActivation(false);
+
 let dispatch = (request, instance) => {
   Command.(
     switch (request) {
     | Activate =>
+      activate(instance) |> ignore;
+
       if (Connection.isConnected(instance.connection)) {
         ();
       } else {
@@ -45,10 +51,11 @@ let dispatch = (request, instance) => {
              instance.view.setHeader(header) |> ignore;
              instance.view.setBody(body) |> ignore;
            });
-      }
+      };
 
     | Deactivate =>
       instance.connection |> Connection.disconnect;
+      deactivate(instance) |> ignore;
       Js.log("[ deactivate ]");
     | Save =>
       instance.decorations |> Array.forEach(Atom.Decoration.destroy);
@@ -86,7 +93,3 @@ let dispatch = (request, instance) => {
     }
   );
 };
-
-let activate = _ => ();
-
-let deactivate = _ => ();
