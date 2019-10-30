@@ -7,9 +7,13 @@ type pos = {
   column: int,
 };
 
+// type syntaxError =
+
 type t =
   | OK
-  | ParseError(array((Atom.Point.t, string)));
+  | ParseError(array((Atom.Point.t, string)))
+  // | SyntaxError(syntaxError)
+  | UnknownResponse(Js.Json.t);
 
 module Decode = {
   open Json.Decode;
@@ -34,13 +38,17 @@ module Decode = {
     array(parseErrorPair) |> map(a => ParseError(a));
 
   let response: decoder(t) =
-    field("tag", string)
-    |> andThen(
-         fun
-         | "OK" => ok
-         | "ParseError" => field("contents", parseError)
-         | _ => ok,
-       );
+    raw =>
+      raw
+      |> (
+        field("tag", string)
+        |> andThen(
+             fun
+             | "OK" => ok
+             | "ParseError" => field("contents", parseError)
+             | _ => (_ => UnknownResponse(raw)),
+           )
+      );
 };
 
 let parse: string => option(t) =

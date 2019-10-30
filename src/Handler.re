@@ -27,4 +27,9 @@ let handle = (instance: Type.instance) =>
       instance.decorations = Array.concat(instance.decorations, decorations);
 
       ();
-    }; // let marker = Atom.DisplayMarker.
+    }
+  | UnknownResponse(json) => {
+      instance.view.setHeader(Error("Panic: unknown response from GCL"))
+      |> ignore;
+      instance.view.setBody(Plain(Js.Json.stringify(json))) |> ignore;
+    };
