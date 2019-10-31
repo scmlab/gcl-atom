@@ -27,20 +27,8 @@ let make = (~channels: Channels.t) => {
       </h2>
     };
 
-  let bodyElem =
-    switch (body) {
-    | Nothing => <> </>
-    | Plain(s) =>
-      let paragraphs =
-        s
-        |> Js.String.split("\n")
-        |> Array.map(s => <p> {string(s)} </p>)
-        |> Util.React.manyIn("div");
-      <div className="gcl-body"> paragraphs </div>;
-    };
-
   <section className={activated ? "" : "hidden"}>
     headerElem
-    bodyElem
+    <Body body />
   </section>;
 };

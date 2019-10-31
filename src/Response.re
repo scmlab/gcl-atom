@@ -6,13 +6,11 @@ type syntaxError =
   | ExcessBound(Atom.Range.t)
   | MissingPostcondition;
 
-type proofObligation = string;
-
 type t =
   | OK
   | ParseError(array((Atom.Point.t, string)))
   | SyntaxError(syntaxError)
-  | ProofObligations(array(proofObligation))
+  | ProofObligations(array(Body.ProofObligation.t))
   | UnknownResponse(Js.Json.t);
 
 module Decode = {
@@ -61,7 +59,9 @@ module Decode = {
         ),
     );
 
-  let proofObligation: decoder(proofObligation) = string;
+  let proofObligation: decoder(Body.ProofObligation.t) =
+    pair(int, x => x)
+    |> map(((i, p)) => Body.ProofObligation.ProofObligation(i, p));
 
   let syntaxError: decoder(syntaxError) =
     fields(
