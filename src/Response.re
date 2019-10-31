@@ -1,16 +1,5 @@
 open Rebase;
 
-type pos = {
-  filepath: string,
-  offset: int,
-  line: int,
-  column: int,
-};
-
-type loc =
-  | NoLoc
-  | Loc(pos, pos);
-
 type syntaxError =
   | MissingBound(Atom.Range.t)
   | MissingAssertion(Atom.Range.t)
@@ -25,40 +14,31 @@ type t =
 module Decode = {
   open Json.Decode;
 
-  // pos
-  let pos: decoder(pos) =
-    json => {
-      filepath: json |> field("filepath", string),
-      offset: json |> field("offset", int),
-      line: json |> field("line", int),
-      column: json |> field("column", int),
-    };
+  let point: decoder(Atom.Point.t) =
+    json =>
+      Atom.Point.make(
+        field("line", int, json) - 1,
+        field("column", int, json) - 1,
+      );
 
-  // loc
-  let loc: decoder(loc) =
+  let range: decoder(Atom.Range.t) =
     field("tag", string)
     |> andThen(
          fun
          | "Loc" =>
-           field("contents", json =>
-             Loc(json |> field("start", pos), json |> field("end", pos))
-           )
-         | _ => (_ => NoLoc),
-       );
-
-  let point: decoder(Atom.Point.t) =
-    pos |> map(x => Atom.Point.make(x.line - 1, x.column));
-
-  let range: decoder(Atom.Range.t) =
-    loc
-    |> map(
-         fun
-         | NoLoc =>
-           Atom.Range.make(Atom.Point.make(0, 0), Atom.Point.make(0, 0))
-         | Loc(x, y) =>
-           Atom.Range.make(
-             Atom.Point.make(x.line - 1, x.column - 1),
-             Atom.Point.make(y.line - 1, y.column - 1),
+           field("contents", json => {
+             let x = json |> field("start", point);
+             let y = json |> field("end", point);
+             Atom.Point.(
+               Atom.Range.make(
+                 make(row(x), column(x)),
+                 make(row(y), column(y)),
+               )
+             );
+           })
+         | _ => (
+             _ =>
+               Atom.Range.make(Atom.Point.make(0, 0), Atom.Point.make(0, 0))
            ),
        );
 
