@@ -79,16 +79,17 @@ let handle = (instance: Type.instance) =>
       )
       |> ignore;
       instance |> markRangeError(range);
-      ();
     }
-  | ProofObligations(obligations) => {
-      ()// instance.view.setHeader(Error("Excess Bound")) |> ignore;
-        // instance.view.setBody(
-        //   Plain("Unnecessary bound annotation at this assertion"),
-        // )
-        // |> ignore;
-        ;
-        // instance |> markRangeError(range);
+  | SyntaxError(MissingPostcondition) => {
+      instance.view.setHeader(Error("Postcondition Missing")) |> ignore;
+      instance.view.setBody(
+        Plain("The last statement of the program should be an assertion"),
+      )
+      |> ignore;
+    }
+  | ProofObligations(_obligations) => {
+      instance.view.setHeader(Plain("Proof Obligations")) |> ignore;
+      instance.view.setBody(Nothing) |> ignore;
     }
   | UnknownResponse(json) => {
       instance.view.setHeader(Error("Panic: unknown response from GCL"))
