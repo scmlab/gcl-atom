@@ -82,10 +82,9 @@ let dispatch = (request, instance) => {
            };
          })
       |> finalOk(result => {
-           Js.log2("[ received json ]", result |> Response.test);
+           Js.log2("[ received json ]", result);
            Js.log2("[ received value ]", result |> Response.parse);
-           Response.parse(result)
-           |> Option.forEach(Handler.handle(instance));
+           Response.parse(result) |> Handler.handle(instance);
          });
     }
   );

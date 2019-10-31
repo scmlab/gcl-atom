@@ -88,6 +88,4 @@ module Decode = {
     );
 };
 
-let parse: string => option(t) =
-  data => data |> Json.parse |> Option.map(Decode.response);
-let test: string => option(Js.Json.t) = data => data |> Json.parse;
+let parse: Js.Json.t => t = Decode.response;

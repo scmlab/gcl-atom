@@ -90,7 +90,7 @@ signal: $signal
 type t = {
   mutable path: option(string),
   mutable process: option(N.ChildProcess.t),
-  emitter: Event.t(string, Error.t),
+  emitter: Event.t(Js.Json.t, Error.t),
 };
 
 let disconnect = connection => {
@@ -169,6 +169,9 @@ let connect = connection =>
        connection.path = Some(path);
        connection.process = Some(process);
 
+       // for incremental parsing
+       let unfinishedMsg = ref(None);
+
        // on data
        process
        |> N.ChildProcess.stdout
@@ -176,8 +179,20 @@ let connect = connection =>
             `data(
               chunk => {
                 // serialize the binary chunk into string
-                let rawText = chunk |> Node.Buffer.toString;
-                connection.emitter |> Event.emitOk(rawText);
+                let string = Node.Buffer.toString(chunk);
+
+                // for incremental parsing
+                let augmented =
+                  switch (unfinishedMsg^) {
+                  | None => string
+                  | Some(unfinished) => unfinished ++ string
+                  };
+
+                // try parsing the string as JSON value
+                switch (Json.parse(augmented)) {
+                | None => unfinishedMsg := Some(augmented)
+                | Some(result) => connection.emitter |> Event.emitOk(result)
+                };
               },
             ),
           )
@@ -214,7 +229,7 @@ let connect = connection =>
        Async.resolve();
      });
 
-let send = (request, connection): Async.t(string, Error.t) => {
+let send = (request, connection): Async.t(Js.Json.t, Error.t) => {
   switch (connection.process) {
   | None => Async.reject(Error.ConnectionError(Error.NotEstablishedYet))
   | Some(process) =>
