@@ -81,6 +81,15 @@ let handle = (instance: Type.instance) =>
       instance |> markRangeError(range);
       ();
     }
+  | ProofObligations(obligations) => {
+      ()// instance.view.setHeader(Error("Excess Bound")) |> ignore;
+        // instance.view.setBody(
+        //   Plain("Unnecessary bound annotation at this assertion"),
+        // )
+        // |> ignore;
+        ;
+        // instance |> markRangeError(range);
+    }
   | UnknownResponse(json) => {
       instance.view.setHeader(Error("Panic: unknown response from GCL"))
       |> ignore;

@@ -5,14 +5,20 @@ type syntaxError =
   | MissingAssertion(Atom.Range.t)
   | ExcessBound(Atom.Range.t);
 
+type proofObligation = string;
+
 type t =
   | OK
   | ParseError(array((Atom.Point.t, string)))
   | SyntaxError(syntaxError)
+  | ProofObligations(array(proofObligation))
   | UnknownResponse(Js.Json.t);
 
 module Decode = {
   open Json.Decode;
+
+  let fields = decoder =>
+    field("tag", string) |> andThen(tag => field("contents", decoder(tag)));
 
   let point: decoder(Atom.Point.t) =
     json =>
@@ -22,61 +28,53 @@ module Decode = {
       );
 
   let range: decoder(Atom.Range.t) =
-    field("tag", string)
-    |> andThen(
-         fun
-         | "Loc" =>
-           field("contents", json => {
-             let x = json |> field("start", point);
-             let y = json |> field("end", point);
-             Atom.Point.(
-               Atom.Range.make(
-                 make(row(x), column(x)),
-                 make(row(y), column(y)),
-               )
-             );
-           })
-         | _ => (
-             _ =>
-               Atom.Range.make(Atom.Point.make(0, 0), Atom.Point.make(0, 0))
-           ),
-       );
+    fields(
+      fun
+      | "Loc" => (
+          json => {
+            let x = json |> field("start", point);
+            let y = json |> field("end", point);
+            Atom.Point.(
+              Atom.Range.make(
+                make(row(x), column(x)),
+                make(row(y), column(y)),
+              )
+            );
+          }
+        )
+      | _ => (
+          _ => Atom.Range.make(Atom.Point.make(0, 0), Atom.Point.make(0, 0))
+        ),
+    );
+
+  let proofObligation: decoder(proofObligation) = string;
 
   // response
   let ok: decoder(t) = _ => OK;
 
-  let parseErrorPair: decoder((Atom.Point.t, string)) = pair(point, string);
-
   let parseError: decoder(t) =
-    array(parseErrorPair) |> map(a => ParseError(a));
+    array(pair(point, string)) |> map(a => ParseError(a));
 
   let syntaxError: decoder(syntaxError) =
-    field("tag", string)
-    |> andThen(
-         fun
-         | "MissingBound" =>
-           field("contents", json => MissingBound(json |> range))
-         | "MissingAssertion" =>
-           field("contents", json => MissingAssertion(json |> range))
-         | "ExcessBound" =>
-           field("contents", json => ExcessBound(json |> range))
-         | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
-       );
+    fields(
+      fun
+      | "MissingBound" => (json => MissingBound(json |> range))
+      | "MissingAssertion" => (json => MissingAssertion(json |> range))
+      | "ExcessBound" => (json => ExcessBound(json |> range))
+      | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
+    );
 
   let response: decoder(t) =
-    raw =>
-      raw
-      |> (
-        field("tag", string)
-        |> andThen(
-             fun
-             | "OK" => ok
-             | "ParseError" => field("contents", parseError)
-             | "SyntaxError" =>
-               field("contents", json => SyntaxError(json |> syntaxError))
-             | _ => (_ => UnknownResponse(raw)),
-           )
-      );
+    fields(
+      fun
+      | "OK" => ok
+      | "ParseError" => parseError
+      | "SyntaxError" => (json => SyntaxError(json |> syntaxError))
+      | "ProofObligations" => (
+          json => ProofObligations(json |> array(proofObligation))
+        )
+      | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
+    );
 };
 
 let parse: string => option(t) =
