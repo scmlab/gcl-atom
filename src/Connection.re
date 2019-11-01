@@ -191,7 +191,9 @@ let connect = connection =>
                 // try parsing the string as JSON value
                 switch (Json.parse(augmented)) {
                 | None => unfinishedMsg := Some(augmented)
-                | Some(result) => connection.emitter |> Event.emitOk(result)
+                | Some(result) =>
+                  unfinishedMsg := None;
+                  connection.emitter |> Event.emitOk(result);
                 };
               },
             ),
