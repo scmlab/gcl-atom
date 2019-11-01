@@ -4,14 +4,14 @@ open React;
 
 module ProofObligation = {
   type t =
-    | ProofObligation(int, Js.Json.t);
+    | ProofObligation(int, Pred.t);
 
   [@react.component]
   let make = (~payload: t) => {
-    let ProofObligation(i, p) = payload;
+    let ProofObligation(i, pred) = payload;
     <li className="gcl-proof-obligation-item">
       <span> {string(string_of_int(i))} </span>
-      <span> {string(Js.Json.stringify(p))} </span>
+      <span> {string(Pred.toString(pred))} </span>
     </li>;
   };
 };
@@ -25,6 +25,7 @@ type t =
 let make = (~body: t) => {
   switch (body) {
   | Nothing => <> </>
+  | ProofObligations([||]) => <> </>
   | ProofObligations(ps) =>
     let list =
       ps

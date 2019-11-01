@@ -1,5 +1,3 @@
-open Rebase;
-
 type syntaxError =
   | MissingBound(Atom.Range.t)
   | MissingAssertion(Atom.Range.t)
@@ -15,19 +13,7 @@ type t =
 
 module Decode = {
   open Json.Decode;
-
-  type fieldType('a) =
-    | Contents(decoder('a))
-    | TagOnly(decoder('a));
-
-  let fields = decoder =>
-    field("tag", string)
-    |> andThen(tag =>
-         switch (decoder(tag)) {
-         | Contents(d) => field("contents", d)
-         | TagOnly(d) => d
-         }
-       );
+  open Decoder;
 
   let point: decoder(Atom.Point.t) =
     json =>
@@ -60,7 +46,7 @@ module Decode = {
     );
 
   let proofObligation: decoder(Body.ProofObligation.t) =
-    pair(int, x => x)
+    pair(int, Pred.decode)
     |> map(((i, p)) => Body.ProofObligation.ProofObligation(i, p));
 
   let syntaxError: decoder(syntaxError) =
