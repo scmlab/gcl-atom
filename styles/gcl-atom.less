@@ -32,5 +32,23 @@
     margin: 0 @component-padding @component-padding @component-padding;
     padding: @component-padding;
     background: @base-background-color;
+
+    max-height: 300px;
+
+    overflow-y: scroll;
+
+    .gcl-plain-text {
+      p:last-of-type {
+        margin-bottom: 0
+      }
+    }
+
+    .gcl-proof-obligation-list {
+      padding: 0;
+
+      li {
+        margin-bottom: @component-padding;
+      }
+    }
   }
 }

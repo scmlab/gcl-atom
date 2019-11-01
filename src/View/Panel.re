@@ -4,7 +4,7 @@ open Type.View;
 let make = (~channels: Channels.t) => {
   open React;
   let (header, setHeader) = Hook.useState(AllGood);
-  let (body, setBody) = Hook.useState(Nothing);
+  let (body, setBody) = Hook.useState(Body.Nothing);
   let (activated, setActivation) = Hook.useState(false);
 
   Hook.useChannel(x => x |> setHeader |> Async.resolve, channels.setHeader);

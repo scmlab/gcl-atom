@@ -87,9 +87,9 @@ let handle = (instance: Type.instance) =>
       )
       |> ignore;
     }
-  | ProofObligations(_obligations) => {
+  | ProofObligations(obligations) => {
       instance.view.setHeader(Plain("Proof Obligations")) |> ignore;
-      instance.view.setBody(Nothing) |> ignore;
+      instance.view.setBody(ProofObligations(obligations)) |> ignore;
     }
   | UnknownResponse(json) => {
       instance.view.setHeader(Error("Panic: unknown response from GCL"))

@@ -4,16 +4,13 @@ module View = {
     | Plain(string)
     | Error(string);
 
-  type body =
-    | Nothing
-    | Plain(string);
   module Channels = {
     type t = {
       updateConnection:
         Channel.t((Connection.t, option(Connection.Error.t)), unit, unit),
       setActivation: Channel.t(bool, unit, unit),
       setHeader: Channel.t(header, unit, unit),
-      setBody: Channel.t(body, unit, unit),
+      setBody: Channel.t(Body.t, unit, unit),
     };
 
     let make = () => {
@@ -28,7 +25,7 @@ module View = {
     type t = {
       setActivation: bool => Async.t(unit, unit),
       setHeader: header => Async.t(unit, unit),
-      setBody: body => Async.t(unit, unit),
+      setBody: Body.t => Async.t(unit, unit),
     };
 
     let make = (channels: Channels.t) => {
