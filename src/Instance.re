@@ -39,19 +39,19 @@ let dispatch = (request, instance) => {
     switch (request) {
     | Activate =>
       activate(instance) |> ignore;
-
       if (Connection.isConnected(instance.connection)) {
-        ();
+        resolve();
       } else {
         Connection.connect(instance.connection)
         |> thenOk(_ => resolve())
-        |> finalError(error => {
+        |> thenError(error => {
              let (header, body) = Connection.Error.toString(error);
              instance.view.setHeader(Error(header)) |> ignore;
              instance.view.setBody(Plain(body)) |> ignore;
+             resolve();
            });
       };
-    | Deactivate => deactivate(instance) |> ignore
+    | Deactivate => deactivate(instance)
     | Save =>
       instance.decorations |> Array.forEach(Atom.Decoration.destroy);
       instance.editor
@@ -81,7 +81,7 @@ let dispatch = (request, instance) => {
              reject();
            };
          })
-      |> finalOk(result => {
+      |> thenOk(result => {
            Js.log2("[ received json ]", result);
            Js.log2("[ received value ]", result |> Response.parse);
            Response.parse(result) |> Handler.handle(instance);

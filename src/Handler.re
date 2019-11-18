@@ -37,6 +37,7 @@ let handle = (instance: Type.instance) =>
   | OK => {
       instance.view.setHeader(AllGood) |> ignore;
       instance.view.setBody(Nothing) |> ignore;
+      Async.resolve();
     }
   | ParseError(errors) => {
       // TODO: reporting only the first error now
@@ -44,12 +45,15 @@ let handle = (instance: Type.instance) =>
       | None =>
         instance.view.setHeader(AllGood) |> ignore;
         instance.view.setBody(Nothing) |> ignore;
+        Async.resolve();
       | Some((pos, msg)) =>
         instance.view.setHeader(Error("Parse Error")) |> ignore;
         instance.view.setBody(Plain(msg)) |> ignore;
 
         let range = Atom.Range.make(pos, pos);
         instance |> markLineError(range);
+
+        Async.resolve();
       };
     }
   | SyntaxError(MissingBound(range)) => {
@@ -61,7 +65,7 @@ let handle = (instance: Type.instance) =>
       )
       |> ignore;
       instance |> markRangeError(range);
-      ();
+      Async.resolve();
     }
   | SyntaxError(MissingAssertion(range)) => {
       instance.view.setHeader(Error("Assertion Missing")) |> ignore;
@@ -70,7 +74,7 @@ let handle = (instance: Type.instance) =>
       )
       |> ignore;
       instance |> markRangeError(range);
-      ();
+      Async.resolve();
     }
   | SyntaxError(ExcessBound(range)) => {
       instance.view.setHeader(Error("Excess Bound")) |> ignore;
@@ -79,6 +83,7 @@ let handle = (instance: Type.instance) =>
       )
       |> ignore;
       instance |> markRangeError(range);
+      Async.resolve();
     }
   | SyntaxError(MissingPostcondition) => {
       instance.view.setHeader(Error("Postcondition Missing")) |> ignore;
@@ -86,13 +91,16 @@ let handle = (instance: Type.instance) =>
         Plain("The last statement of the program should be an assertion"),
       )
       |> ignore;
+      Async.resolve();
     }
   | ProofObligations(obligations) => {
       instance.view.setHeader(Plain("Proof Obligations")) |> ignore;
       instance.view.setBody(ProofObligations(obligations)) |> ignore;
+      Async.resolve();
     }
   | UnknownResponse(json) => {
       instance.view.setHeader(Error("Panic: unknown response from GCL"))
       |> ignore;
       instance.view.setBody(Plain(Js.Json.stringify(json))) |> ignore;
+      Async.resolve();
     };
