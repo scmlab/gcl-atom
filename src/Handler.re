@@ -93,6 +93,17 @@ let handle = (instance: Type.instance) =>
       |> ignore;
       Async.resolve();
     }
+  | SyntaxError(Panic(message)) => {
+      instance.view.setHeader(Error("Panic")) |> ignore;
+      instance.view.setBody(
+        Plain(
+          "This should not have happened, please report this issue\n"
+          ++ message,
+        ),
+      )
+      |> ignore;
+      Async.resolve();
+    }
   | ProofObligations(obligations) => {
       instance.view.setHeader(Plain("Proof Obligations")) |> ignore;
       instance.view.setBody(ProofObligations(obligations)) |> ignore;

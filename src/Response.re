@@ -2,7 +2,8 @@ type syntaxError =
   | MissingBound(Atom.Range.t)
   | MissingAssertion(Atom.Range.t)
   | ExcessBound(Atom.Range.t)
-  | MissingPostcondition;
+  | MissingPostcondition
+  | Panic(string);
 
 type t =
   | OK
@@ -57,6 +58,7 @@ module Decode = {
         Contents(json => MissingAssertion(json |> range))
       | "ExcessBound" => Contents(json => ExcessBound(json |> range))
       | "MissingPostcondition" => TagOnly(_ => MissingPostcondition)
+      | "Panic" => Contents(json => Panic(json |> string))
       | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
     );
 
