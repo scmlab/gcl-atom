@@ -34,7 +34,7 @@ let activate = instance => instance.Type.view.setActivation(true);
 
 let deactivate = instance => instance.Type.view.setActivation(false);
 
-let dispatch = (request, instance) => {
+let rec dispatch = (request, instance) => {
   Command.(
     switch (request) {
     | Activate =>
@@ -43,13 +43,13 @@ let dispatch = (request, instance) => {
         resolve();
       } else {
         Connection.connect(instance.connection)
-        |> thenOk(_ => resolve())
         |> thenError(error => {
              let (header, body) = Connection.Error.toString(error);
              instance.view.setHeader(Error(header)) |> ignore;
              instance.view.setBody(Plain(body)) |> ignore;
              resolve();
-           });
+           })
+        |> thenOk(_ => dispatch(Save, instance));
       };
     | Deactivate => deactivate(instance)
     | Save =>
