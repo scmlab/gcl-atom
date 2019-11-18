@@ -1,6 +1,14 @@
 open Rebase;
 open Decoder;
 
+// adds parentheses when True
+let parensIf = (p, s) =>
+  if (p) {
+    "(" ++ s ++ ")";
+  } else {
+    s;
+  };
+
 module Lit = {
   type t =
     | Num(int)
@@ -109,11 +117,12 @@ module BinRel = {
     | GTh => ">";
 };
 
+// sorted by precedences in descending order
 type t =
+  | Implies(t, t) // right assoc
+  | Disj(t, t) // left assoc
+  | Conj(t, t) // left assoc
   | Term(BinRel.t, Expr.t, Expr.t)
-  | Implies(t, t)
-  | Conj(t, t)
-  | Disj(t, t)
   | Neg(t)
   | Lit(bool)
   | Hole(int);
@@ -144,18 +153,26 @@ let rec decode: Json.Decode.decoder(t) =
          )
        );
 
-let rec toString =
+let rec toStringPrec = n =>
   fun
+  | Implies(p, q) =>
+    parensIf(n > 0, toStringPrec(1, p) ++ {j| → |j} ++ toStringPrec(0, q))
+  | Disj(p, q) =>
+    parensIf(n > 1, toStringPrec(1, p) ++ {j| ⋁ |j} ++ toStringPrec(2, q))
+  | Conj(p, q) =>
+    parensIf(n > 2, toStringPrec(2, p) ++ {j| ⋀ |j} ++ toStringPrec(3, q))
   | Term(rel, p, q) =>
-    Expr.toString(p)
-    ++ " "
-    ++ BinRel.toString(rel)
-    ++ " "
-    ++ Expr.toString(q)
-  | Implies(p, q) => toString(p) ++ {j| → |j} ++ toString(q)
-  | Conj(p, q) => toString(p) ++ {j| ⋀ |j} ++ toString(q)
-  | Disj(p, q) => toString(p) ++ {j| ⋁ |j} ++ toString(q)
-  | Neg(p) => {j|¬ |j} ++ toString(p)
+    parensIf(
+      n > 3,
+      Expr.toString(p)
+      ++ " "
+      ++ BinRel.toString(rel)
+      ++ " "
+      ++ Expr.toString(q),
+    )
+  | Neg(p) => parensIf(n > 4, {j|¬ |j} ++ toStringPrec(4, p))
   | Lit(true) => "true"
   | Lit(false) => "false"
   | Hole(int) => "?" ++ string_of_int(int);
+
+let toString = toStringPrec(0);
