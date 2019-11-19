@@ -60,3 +60,9 @@ let digHole = (range, instance: Type.instance) => {
   // //      "{!" ++ content ++ padding ++ "!}",
   // //    );
 };
+
+let markSpec = (spec: Response.Specification.t, instance: Type.instance) => {
+  open Response.Specification;
+  let Specification(hardness, pre, post, range) = spec;
+  markLineError(range, instance);
+};

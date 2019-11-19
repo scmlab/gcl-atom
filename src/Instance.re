@@ -83,8 +83,8 @@ let rec dispatch = (request, instance) => {
          })
       |> thenOk(result => {
            Js.log2("[ received json ]", result);
-           Js.log2("[ received value ]", result |> Response.parse);
-           Response.parse(result) |> handle(instance);
+           Js.log2("[ received value ]", result |> Response.decode);
+           Response.decode(result) |> handle(instance);
          });
     }
   );
@@ -164,7 +164,7 @@ and handle = (instance: Type.instance) =>
   | OK(obligations, specifications) => {
       instance.view.setHeader(Plain("Proof Obligations")) |> ignore;
       instance.view.setBody(ProofObligations(obligations)) |> ignore;
-      Js.log(specifications);
+      specifications |> Array.forEach(Fn.flip(Handler.markSpec, instance));
       Async.resolve();
     }
   | UnknownResponse(json) => {

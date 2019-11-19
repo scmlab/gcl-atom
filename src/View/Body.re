@@ -14,6 +14,10 @@ module ProofObligation = {
       <span> {string(Pred.toString(pred))} </span>
     </li>;
   };
+
+  open Json.Decode;
+  let decode: decoder(t) =
+    pair(int, Pred.decode) |> map(((i, p)) => ProofObligation(i, p));
 };
 
 type t =

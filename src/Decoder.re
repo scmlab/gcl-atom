@@ -12,3 +12,32 @@ let fields = decoder =>
        | TagOnly(d) => d
        }
      );
+
+let point: decoder(Atom.Point.t) =
+  json =>
+    Atom.Point.make(
+      field("line", int, json) - 1,
+      field("column", int, json) - 1,
+    );
+
+let range: decoder(Atom.Range.t) =
+  fields(
+    fun
+    | "Loc" =>
+      Contents(
+        json => {
+          let x = json |> field("start", point);
+          let y = json |> field("end", point);
+          Atom.Point.(
+            Atom.Range.make(
+              make(row(x), column(x)),
+              make(row(y), column(y)),
+            )
+          );
+        },
+      )
+    | _ =>
+      TagOnly(
+        _ => Atom.Range.make(Atom.Point.make(0, 0), Atom.Point.make(0, 0)),
+      ),
+  );

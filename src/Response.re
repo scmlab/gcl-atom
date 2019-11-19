@@ -1,65 +1,16 @@
-type syntaxError =
-  | MissingBound(Atom.Range.t)
-  | MissingAssertion(Atom.Range.t)
-  | ExcessBound(Atom.Range.t)
-  | MissingPostcondition
-  | DigHole(Atom.Range.t)
-  | Panic(string);
+open Json.Decode;
+open Decoder;
 
-module Specification = {
+module SyntaxError = {
   type t =
-    | Specification(option(Pred.t), Pred.t, Atom.Range.t);
-};
+    | MissingBound(Atom.Range.t)
+    | MissingAssertion(Atom.Range.t)
+    | ExcessBound(Atom.Range.t)
+    | MissingPostcondition
+    | DigHole(Atom.Range.t)
+    | Panic(string);
 
-type t =
-  | ParseError(array((Atom.Point.t, string)))
-  | SyntaxError(syntaxError)
-  | OK(array(Body.ProofObligation.t), array(Specification.t))
-  | UnknownResponse(Js.Json.t);
-
-module Decode = {
-  open Json.Decode;
-  open Decoder;
-
-  let point: decoder(Atom.Point.t) =
-    json =>
-      Atom.Point.make(
-        field("line", int, json) - 1,
-        field("column", int, json) - 1,
-      );
-
-  let range: decoder(Atom.Range.t) =
-    fields(
-      fun
-      | "Loc" =>
-        Contents(
-          json => {
-            let x = json |> field("start", point);
-            let y = json |> field("end", point);
-            Atom.Point.(
-              Atom.Range.make(
-                make(row(x), column(x)),
-                make(row(y), column(y)),
-              )
-            );
-          },
-        )
-      | _ =>
-        TagOnly(
-          _ =>
-            Atom.Range.make(Atom.Point.make(0, 0), Atom.Point.make(0, 0)),
-        ),
-    );
-
-  let proofObligation: decoder(Body.ProofObligation.t) =
-    pair(int, Pred.decode)
-    |> map(((i, p)) => Body.ProofObligation.ProofObligation(i, p));
-
-  let specification: decoder(Specification.t) =
-    tuple3(optional(Pred.decode), Pred.decode, range)
-    |> map(((p, q, loc)) => Specification.Specification(p, q, loc));
-
-  let syntaxError: decoder(syntaxError) =
+  let decode: decoder(t) =
     fields(
       fun
       | "MissingBound" => Contents(json => MissingBound(json |> range))
@@ -71,21 +22,49 @@ module Decode = {
       | "Panic" => Contents(json => Panic(json |> string))
       | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
     );
-
-  // response
-  let response: decoder(t) =
-    fields(
-      fun
-      | "ParseError" =>
-        Contents(array(pair(point, string)) |> map(a => ParseError(a)))
-      | "SyntaxError" => Contents(json => SyntaxError(json |> syntaxError))
-      | "OK" =>
-        Contents(
-          pair(array(proofObligation), array(specification))
-          |> map(((obs, specs)) => OK(obs, specs)),
-        )
-      | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
-    );
 };
 
-let parse: Js.Json.t => t = Decode.response;
+module Specification = {
+  type hardness =
+    | Hard
+    | Soft;
+
+  type t =
+    | Specification(hardness, Pred.t, Pred.t, Atom.Range.t);
+
+  let decodeHardness: decoder(hardness) =
+    string
+    |> map(
+         fun
+         | "Hard" => Hard
+         | "Soft" => Soft
+         | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
+       );
+  let decode: decoder(t) =
+    tuple4(decodeHardness, Pred.decode, Pred.decode, range)
+    |> map(((h, p, q, loc)) => Specification(h, p, q, loc));
+};
+
+type t =
+  | ParseError(array((Atom.Point.t, string)))
+  | SyntaxError(SyntaxError.t)
+  | OK(array(Body.ProofObligation.t), array(Specification.t))
+  | UnknownResponse(Js.Json.t);
+
+let decode: decoder(t) =
+  fields(
+    fun
+    | "ParseError" =>
+      Contents(array(pair(point, string)) |> map(a => ParseError(a)))
+    | "SyntaxError" =>
+      Contents(json => SyntaxError(json |> SyntaxError.decode))
+    | "OK" =>
+      Contents(
+        pair(
+          array(Body.ProofObligation.decode),
+          array(Specification.decode),
+        )
+        |> map(((obs, specs)) => OK(obs, specs)),
+      )
+    | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
+  );
