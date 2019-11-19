@@ -6,11 +6,15 @@ type syntaxError =
   | DigHole(Atom.Range.t)
   | Panic(string);
 
+module Specification = {
+  type t =
+    | Specification(option(Pred.t), Pred.t, Atom.Range.t);
+};
+
 type t =
-  | OK
   | ParseError(array((Atom.Point.t, string)))
   | SyntaxError(syntaxError)
-  | ProofObligations(array(Body.ProofObligation.t))
+  | OK(array(Body.ProofObligation.t), array(Specification.t))
   | UnknownResponse(Js.Json.t);
 
 module Decode = {
@@ -51,6 +55,10 @@ module Decode = {
     pair(int, Pred.decode)
     |> map(((i, p)) => Body.ProofObligation.ProofObligation(i, p));
 
+  let specification: decoder(Specification.t) =
+    tuple3(optional(Pred.decode), Pred.decode, range)
+    |> map(((p, q, loc)) => Specification.Specification(p, q, loc));
+
   let syntaxError: decoder(syntaxError) =
     fields(
       fun
@@ -68,12 +76,14 @@ module Decode = {
   let response: decoder(t) =
     fields(
       fun
-      | "OK" => TagOnly(_ => OK)
       | "ParseError" =>
         Contents(array(pair(point, string)) |> map(a => ParseError(a)))
       | "SyntaxError" => Contents(json => SyntaxError(json |> syntaxError))
-      | "ProofObligations" =>
-        Contents(json => ProofObligations(json |> array(proofObligation)))
+      | "OK" =>
+        Contents(
+          pair(array(proofObligation), array(specification))
+          |> map(((obs, specs)) => OK(obs, specs)),
+        )
       | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
     );
 };

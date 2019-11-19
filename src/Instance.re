@@ -91,11 +91,6 @@ let rec dispatch = (request, instance) => {
 }
 and handle = (instance: Type.instance) =>
   fun
-  | OK => {
-      instance.view.setHeader(AllGood) |> ignore;
-      instance.view.setBody(Nothing) |> ignore;
-      Async.resolve();
-    }
   | ParseError(errors) => {
       // TODO: reporting only the first error now
       switch (errors[0]) {
@@ -166,9 +161,10 @@ and handle = (instance: Type.instance) =>
       |> ignore;
       Async.resolve();
     }
-  | ProofObligations(obligations) => {
+  | OK(obligations, specifications) => {
       instance.view.setHeader(Plain("Proof Obligations")) |> ignore;
       instance.view.setBody(ProofObligations(obligations)) |> ignore;
+      Js.log(specifications);
       Async.resolve();
     }
   | UnknownResponse(json) => {
