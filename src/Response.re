@@ -30,7 +30,7 @@ module Specification = {
     | Soft;
 
   type t =
-    | Specification(hardness, Pred.t, Pred.t, Atom.Range.t);
+    | Specification(hardness, Pred.t, Pred.t, Atom.Range.t, Atom.Range.t);
 
   let decodeHardness: decoder(hardness) =
     string
@@ -40,9 +40,16 @@ module Specification = {
          | "Soft" => Soft
          | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
        );
+
   let decode: decoder(t) =
-    tuple4(decodeHardness, Pred.decode, Pred.decode, range)
-    |> map(((h, p, q, loc)) => Specification(h, p, q, loc));
+    json =>
+      Specification(
+        json |> field("specHardness", decodeHardness),
+        json |> field("specPreCond", Pred.decode),
+        json |> field("specPostCond", Pred.decode),
+        json |> field("specStartLoc", range),
+        json |> field("specEndLoc", range),
+      );
 };
 
 type t =

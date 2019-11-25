@@ -31,7 +31,7 @@ let range: decoder(Atom.Range.t) =
           Atom.Point.(
             Atom.Range.make(
               make(row(x), column(x)),
-              make(row(y), column(y)),
+              make(row(y), column(y) + 1),
             )
           );
         },

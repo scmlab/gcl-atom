@@ -116,7 +116,7 @@ and handle = (instance: Type.instance) =>
         ),
       )
       |> ignore;
-      instance |> Handler.markRangeError(range);
+      instance |> Handler.highlightError(range);
       Async.resolve();
     }
   | SyntaxError(MissingAssertion(range)) => {
@@ -125,7 +125,7 @@ and handle = (instance: Type.instance) =>
         Plain("Assertion before the DO construct is missing"),
       )
       |> ignore;
-      instance |> Handler.markRangeError(range);
+      instance |> Handler.highlightError(range);
       Async.resolve();
     }
   | SyntaxError(ExcessBound(range)) => {
@@ -134,7 +134,7 @@ and handle = (instance: Type.instance) =>
         Plain("Unnecessary bound annotation at this assertion"),
       )
       |> ignore;
-      instance |> Handler.markRangeError(range);
+      instance |> Handler.highlightError(range);
       Async.resolve();
     }
   | SyntaxError(MissingPostcondition) => {
