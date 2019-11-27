@@ -103,8 +103,7 @@ and handle = (instance: Type.instance) =>
       )
       |> ignore;
 
-      // let range = Atom.Range.make(pos, pos);
-      // instance |> Handler.markLineError(range);
+      instance |> Handler.markError(point);
 
       Async.resolve();
     }
@@ -119,8 +118,7 @@ and handle = (instance: Type.instance) =>
         instance.view.setHeader(Error("Parse Error")) |> ignore;
         instance.view.setBody(Plain(msg)) |> ignore;
 
-        let range = Atom.Range.make(pos, pos);
-        instance |> Handler.markLineError(range);
+        instance |> Handler.markError(pos);
 
         Async.resolve();
       };

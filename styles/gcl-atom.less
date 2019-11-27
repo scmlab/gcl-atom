@@ -11,8 +11,14 @@
     // background: rgba(200, 50, 50, 0.5) !important;
 
     @color: saturate(@background-color-error, 100%);
-    background: fade(mix(@color, @syntax-background-color, 80%), 50%);
+    background: fade(mix(@color, @syntax-background-color, 80%), 50%) !important;
   }
+
+  .marker-error-underline {
+    border-bottom: dotted red 2px;
+    position: relative;
+  }
+
 
 
   .marker-spec-text {
