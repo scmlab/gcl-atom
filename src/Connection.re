@@ -97,6 +97,8 @@ let disconnect = connection => {
   connection.emitter |> Event.destroy;
   connection.process |> Option.forEach(N.ChildProcess.kill("SIGTERM"));
   connection.process = None;
+
+  Async.resolve();
 };
 
 let isConnected = connection =>

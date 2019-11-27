@@ -32,6 +32,7 @@ let overlay =
     (
       text,
       class_,
+      tail: bool,
       translation: (int, int),
       range: Atom.Range.t,
       instance: Type.instance,
@@ -65,7 +66,7 @@ let overlay =
   let option =
     TextEditor.decorateMarkerOptions(
       ~type_="overlay",
-      ~position="tail",
+      ~position=tail ? "tail" : "head",
       ~item=Element.unsafeAsHtmlElement(element),
       (),
     );
@@ -75,7 +76,7 @@ let overlay =
 };
 
 let overlaySpec = (text, range: Atom.Range.t, instance: Type.instance) => {
-  overlay(text, "overlay-spec-text", (0, 3), range, instance);
+  overlay(text, "overlay-spec-text", false, (0, 1), range, instance);
 };
 
 let overlayError = (range: Atom.Range.t, instance: Type.instance) => {
@@ -84,7 +85,7 @@ let overlayError = (range: Atom.Range.t, instance: Type.instance) => {
     |> Atom.TextEditor.getTextInBufferRange(range)
     |> Js.String.length;
   let text = Js.String.repeat(length, "&nbsp;");
-  overlay(text, "overlay-error", (0, 0), range, instance);
+  overlay(text, "overlay-error", true, (0, 0), range, instance);
 };
 
 let markSpec = (spec: Response.Specification.t, instance: Type.instance) => {

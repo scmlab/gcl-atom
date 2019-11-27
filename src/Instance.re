@@ -39,8 +39,11 @@ let rec dispatch = (request, instance) => {
     switch (request) {
     | Activate =>
       activate(instance) |> ignore;
+      // reconnect if already connected
       if (Connection.isConnected(instance.connection)) {
-        resolve();
+        instance.connection
+        |> Connection.disconnect
+        |> thenOk(_ => dispatch(Activate, instance));
       } else {
         Connection.connect(instance.connection)
         |> thenError(error => {
