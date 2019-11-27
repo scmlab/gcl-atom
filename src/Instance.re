@@ -91,7 +91,24 @@ let rec dispatch = (request, instance) => {
 }
 and handle = (instance: Type.instance) =>
   fun
-  | ParseError(errors) => {
+  | Error(LexicalError(point)) => {
+      instance.view.setHeader(Error("Lexical Error")) |> ignore;
+      instance.view.setBody(
+        Plain(
+          "at "
+          ++ string_of_int(Atom.Point.row(point))
+          ++ ","
+          ++ string_of_int(Atom.Point.column(point)),
+        ),
+      )
+      |> ignore;
+
+      // let range = Atom.Range.make(pos, pos);
+      // instance |> Handler.markLineError(range);
+
+      Async.resolve();
+    }
+  | Error(SyntacticError(errors)) => {
       // TODO: reporting only the first error now
       switch (errors[0]) {
       | None =>
@@ -108,7 +125,7 @@ and handle = (instance: Type.instance) =>
         Async.resolve();
       };
     }
-  | SyntaxError(MissingBound(range)) => {
+  | Error(TransformError(MissingBound(range))) => {
       instance.view.setHeader(Error("Bound Missing")) |> ignore;
       instance.view.setBody(
         Plain(
@@ -119,7 +136,7 @@ and handle = (instance: Type.instance) =>
       instance |> Handler.highlightError(range);
       Async.resolve();
     }
-  | SyntaxError(MissingAssertion(range)) => {
+  | Error(TransformError(MissingAssertion(range))) => {
       instance.view.setHeader(Error("Assertion Missing")) |> ignore;
       instance.view.setBody(
         Plain("Assertion before the DO construct is missing"),
@@ -128,7 +145,7 @@ and handle = (instance: Type.instance) =>
       instance |> Handler.highlightError(range);
       Async.resolve();
     }
-  | SyntaxError(ExcessBound(range)) => {
+  | Error(TransformError(ExcessBound(range))) => {
       instance.view.setHeader(Error("Excess Bound")) |> ignore;
       instance.view.setBody(
         Plain("Unnecessary bound annotation at this assertion"),
@@ -137,7 +154,7 @@ and handle = (instance: Type.instance) =>
       instance |> Handler.highlightError(range);
       Async.resolve();
     }
-  | SyntaxError(MissingPostcondition) => {
+  | Error(TransformError(MissingPostcondition)) => {
       instance.view.setHeader(Error("Postcondition Missing")) |> ignore;
       instance.view.setBody(
         Plain("The last statement of the program should be an assertion"),
@@ -145,12 +162,12 @@ and handle = (instance: Type.instance) =>
       |> ignore;
       Async.resolve();
     }
-  | SyntaxError(DigHole(range)) => {
+  | Error(TransformError(DigHole(range))) => {
       instance
       |> Handler.digHole(range)
       |> Async.thenOk(() => dispatch(Save, instance));
     }
-  | SyntaxError(Panic(message)) => {
+  | Error(TransformError(Panic(message))) => {
       instance.view.setHeader(Error("Panic")) |> ignore;
       instance.view.setBody(
         Plain(
