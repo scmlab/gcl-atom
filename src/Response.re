@@ -23,9 +23,22 @@ module Error = {
         | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
       );
   };
+
+  module SyntacticError = {
+    type t = {
+      locations: array(Atom.Range.t),
+      message: string,
+    };
+
+    let decode: decoder(t) =
+      json => {
+        locations: json |> field("synErrLocations", array(range)),
+        message: json |> field("synErrMessage", string),
+      };
+  };
   type t =
     | LexicalError(Atom.Point.t)
-    | SyntacticError(array((Atom.Point.t, string)))
+    | SyntacticError(array(SyntacticError.t))
     | TransformError(TransformError.t);
 
   let decode: decoder(t) =
@@ -34,7 +47,7 @@ module Error = {
       | "LexicalError" => Contents(json => LexicalError(json |> point))
       | "SyntacticError" =>
         Contents(
-          array(pair(point, string)) |> map(pairs => SyntacticError(pairs)),
+          array(SyntacticError.decode) |> map(pairs => SyntacticError(pairs)),
         )
       | "TransformError" =>
         Contents(json => TransformError(json |> TransformError.decode))

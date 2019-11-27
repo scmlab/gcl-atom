@@ -7,31 +7,32 @@
 // <TextEditor>
 .gcl {
 
-  .marker-error {
-    // background: rgba(200, 50, 50, 0.5) !important;
 
+  // line-number
+  .line-number-error {
     @color: saturate(@background-color-error, 100%);
     background: fade(mix(@color, @syntax-background-color, 80%), 50%) !important;
   }
 
-  .marker-error-underline {
+  // overlay
+  .overlay-error {
     border-bottom: dotted red 2px;
     position: relative;
   }
 
 
-
-  .marker-spec-text {
+  .overlay-spec-text {
     color: @text-color-subtle;
     position: relative;
   }
 
-  .marker-spec-soft {
+  // highlight
+  .highlight-spec-soft {
     @color: saturate(@background-color-info, 100%);
     background: fade(mix(@color, @syntax-background-color, 60%), 50%);
   }
 
-  .marker-spec-hard {
+  .highlight-spec-hard {
     @color: saturate(@background-color-warning, 100%);
     background: fade(mix(@color, @syntax-background-color, 60%), 50%);
   }

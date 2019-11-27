@@ -11,10 +11,10 @@ let mark = (type_, class_, range, instance: Type.instance) => {
   instance.decorations = Array.concat(instance.decorations, [|decoration|]);
 };
 
-let markLineError = mark("line", "marker-error");
-let markLineSpecSoft = mark("highlight", "marker-spec-soft");
-let markLineSpecHard = mark("highlight", "marker-spec-hard");
-let highlightError = mark("highlight", "marker-error");
+let markLineError = mark("line", "line-number-error");
+let markLineSpecSoft = mark("highlight", "highlight-spec-soft");
+let markLineSpecHard = mark("highlight", "highlight-spec-hard");
+let highlightError = mark("highlight", "line-number-error");
 
 // rewrite "?" to "{!!}"
 let digHole = (range, instance: Type.instance) => {
@@ -47,7 +47,7 @@ let overlay =
   // setStyle is not supported by Reason Webapi for the moment, so we use setAttribute instead
 
   let (y, x) = translation;
-  let left = (-1) + x;
+  let left = x;
   let top = float_of_int(y - 1) *. 1.5;
 
   element
@@ -65,6 +65,7 @@ let overlay =
   let option =
     TextEditor.decorateMarkerOptions(
       ~type_="overlay",
+      ~position="tail",
       ~item=Element.unsafeAsHtmlElement(element),
       (),
     );
@@ -72,8 +73,9 @@ let overlay =
     instance.editor |> TextEditor.decorateMarker(marker, option);
   instance.decorations = Array.concat(instance.decorations, [|decoration|]);
 };
+
 let overlaySpec = (text, range: Atom.Range.t, instance: Type.instance) => {
-  overlay(text, "marker-spec-text", (0, 2), range, instance);
+  overlay(text, "overlay-spec-text", (0, 3), range, instance);
 };
 
 let overlayError = (range: Atom.Range.t, instance: Type.instance) => {
@@ -82,7 +84,7 @@ let overlayError = (range: Atom.Range.t, instance: Type.instance) => {
     |> Atom.TextEditor.getTextInBufferRange(range)
     |> Js.String.length;
   let text = Js.String.repeat(length, "&nbsp;");
-  overlay(text, "marker-error-underline", (0, 0), range, instance);
+  overlay(text, "overlay-error", (0, 0), range, instance);
 };
 
 let markSpec = (spec: Response.Specification.t, instance: Type.instance) => {
@@ -106,5 +108,10 @@ let markError = (point, instance) => {
       Atom.Point.make(Atom.Point.row(point), Atom.Point.column(point) + 1),
     );
   overlayError(range, instance);
-  mark("line-number", "marker-error", range, instance);
+  mark("line-number", "line-number-error", range, instance);
+};
+
+let markError' = (range, instance) => {
+  overlayError(range, instance);
+  mark("line-number", "line-number-error", range, instance);
 };

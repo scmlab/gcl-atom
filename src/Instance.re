@@ -114,11 +114,11 @@ and handle = (instance: Type.instance) =>
         instance.view.setHeader(AllGood) |> ignore;
         instance.view.setBody(Nothing) |> ignore;
         Async.resolve();
-      | Some((pos, msg)) =>
+      | Some({locations, message}) =>
         instance.view.setHeader(Error("Parse Error")) |> ignore;
-        instance.view.setBody(Plain(msg)) |> ignore;
-
-        instance |> Handler.markError(pos);
+        instance.view.setBody(Plain(message)) |> ignore;
+        locations
+        |> Array.forEach(range => instance |> Handler.markError'(range));
 
         Async.resolve();
       };
