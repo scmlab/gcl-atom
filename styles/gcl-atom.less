@@ -45,14 +45,12 @@
 
 // <Panel>
 .gcl-panel {
+
   // For hiding React components
   .hidden { display: none }
 
-
 	font-size: var(--editor-font-size) !important;
 	line-height: var(--editor-line-height) !important;
-
-  // font-size: 120%;
 
   .gcl-header {
     font-size: 100%;
@@ -62,12 +60,20 @@
 
   .gcl-body {
     margin: 0 @component-padding @component-padding @component-padding;
-    padding: @component-padding;
-    background: @base-background-color;
 
+    // limits the inner height and let scroll if overflow
     max-height: 300px;
-
     overflow-y: scroll;
+
+    .gcl-body-item {
+      background: @base-background-color;
+      padding: @component-padding;
+      margin-bottom: @component-padding * 2;
+    }
+
+    .gcl-body-item:last-of-type {
+      margin-bottom: 0
+    }
 
     .gcl-plain-text {
       p:last-of-type {
@@ -76,11 +82,9 @@
     }
 
     .gcl-proof-obligation-list {
+      list-style: none;
       padding: 0;
-
-      li {
-        margin-bottom: @component-padding;
-      }
+      margin: 0;
     }
   }
 }

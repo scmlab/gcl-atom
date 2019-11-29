@@ -4,20 +4,21 @@ open React;
 
 module ProofObligation = {
   type t =
-    | ProofObligation(int, Pred.t);
+    | ProofObligation(int, Pred.t, Pred.t);
 
   [@react.component]
   let make = (~payload: t) => {
-    let ProofObligation(i, pred) = payload;
-    <li className="gcl-proof-obligation-item">
-      <span> {string(string_of_int(i))} </span>
-      <span> {string(Pred.toString(pred))} </span>
+    let ProofObligation(i, p, q) = payload;
+    <li className="gcl-proof-obligation-item  gcl-body-item">
+      <span> {string(Pred.toString(p))} </span>
+      <span> {string(Pred.toString(q))} </span>
     </li>;
   };
 
   open Json.Decode;
   let decode: decoder(t) =
-    pair(int, Pred.decode) |> map(((i, p)) => ProofObligation(i, p));
+    tuple3(int, Pred.decode, Pred.decode)
+    |> map(((i, p, q)) => ProofObligation(i, p, q));
 };
 
 type t =
@@ -49,7 +50,11 @@ let make = (~body: t) => {
       |> Array.map(s => <p> {string(s)} </p>)
       |> Util.React.manyIn(
            "div",
-           ~props=ReactDOMRe.domProps(~className="gcl-plain-text", ()),
+           ~props=
+             ReactDOMRe.domProps(
+               ~className="gcl-plain-text gcl-body-item",
+               (),
+             ),
          );
     <div className="gcl-body"> paragraphs </div>;
   };
