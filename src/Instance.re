@@ -34,6 +34,21 @@ let activate = instance => instance.Type.view.setActivation(true);
 
 let deactivate = instance => instance.Type.view.setActivation(false);
 
+// connect if not connected yet
+let getConnection = instance =>
+  if (Connection.isConnected(instance.Type.connection)) {
+    resolve(instance.connection);
+  } else {
+    Connection.connect(instance.connection)
+    |> thenError(error => {
+         let (header, body) = Connection.Error.toString(error);
+         instance.view.setHeader(Error(header)) |> ignore;
+         instance.view.setBody(Plain(body)) |> ignore;
+         resolve();
+       })
+    |> thenOk(_ => resolve(instance.connection));
+  };
+
 let rec dispatch = (request, instance) => {
   Command.(
     switch (request) {
@@ -66,10 +81,11 @@ let rec dispatch = (request, instance) => {
 
            switch (filepath) {
            | Some(path) =>
-             Connection.send(
-               Request.encode(Request.Load(path)),
-               instance.connection,
-             )
+             instance
+             |> getConnection
+             |> thenOk(
+                  Connection.send(Request.encode(Request.Load(path))),
+                )
              |> Async.mapError(error => {
                   let (header, body) = Connection.Error.toString(error);
                   instance.view.setHeader(Error(header)) |> ignore;

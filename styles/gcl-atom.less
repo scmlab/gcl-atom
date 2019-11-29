@@ -7,6 +7,12 @@
 // <TextEditor>
 .gcl {
 
+  // Fixes the problem that the "ghost" of a goal index that remains at the
+  // original unshifted position would block some events (e.g. mouse clicks)
+  // from getting through.
+  atom-overlay {
+      pointer-events: none;
+  }
 
   // line-number
   .line-number-error {
@@ -19,7 +25,6 @@
     border-bottom: dotted red 2px;
     position: relative;
   }
-
 
   .overlay-spec-text {
     color: @text-color-subtle;
