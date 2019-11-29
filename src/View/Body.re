@@ -8,10 +8,17 @@ module ProofObligation = {
 
   [@react.component]
   let make = (~payload: t) => {
-    let ProofObligation(i, p, q) = payload;
-    <li className="gcl-proof-obligation-item  gcl-body-item">
-      <span> {string(Pred.toString(p))} </span>
-      <span> {string(Pred.toString(q))} </span>
+    let ProofObligation(_, p, q) = payload;
+    <li className="gcl-body-item">
+      <span className="gcl-proof-obligation-antecedent">
+        {string(Pred.toString(p))}
+      </span>
+      <span className="gcl-proof-obligation-arrow">
+        {string({j|⇒|j})}
+      </span>
+      <span className="gcl-proof-obligation-consequent">
+        {string(Pred.toString(q))}
+      </span>
     </li>;
   };
 

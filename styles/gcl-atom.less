@@ -85,6 +85,19 @@
       list-style: none;
       padding: 0;
       margin: 0;
+
+      li {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+
+        .gcl-proof-obligation-antecedent { width: 45% }
+        .gcl-proof-obligation-consequent { width: 45% }
+        .gcl-proof-obligation-arrow      {
+          width: 10%;
+          text-align: center;
+        }
+      }
     }
   }
 }
