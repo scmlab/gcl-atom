@@ -13,7 +13,14 @@ let make = (editor: Atom.TextEditor.t): Type.instance => {
   let view = View.make(editor);
   let connection = Connection.make();
 
-  {editor, view, toggle: false, connection, decorations: [||]};
+  {
+    editor,
+    view,
+    toggle: false,
+    connection,
+    decorations: [||],
+    specifications: [||],
+  };
 };
 
 let destroy = instance => {
@@ -114,6 +121,9 @@ let rec dispatch = (request, instance) => {
            Js.log2("[ received value ]", result |> Response.decode);
            Response.decode(result) |> handle(instance);
          });
+    | Refine =>
+      Js.log("[ refine ]");
+      resolve();
     }
   );
 }
@@ -208,6 +218,7 @@ and handle = (instance: Type.instance) =>
       instance.view.setHeader(Plain("Proof Obligations")) |> ignore;
       instance.view.setBody(ProofObligations(obligations)) |> ignore;
       specifications |> Array.forEach(Fn.flip(Handler.markSpec, instance));
+      instance.specifications = specifications;
       Async.resolve();
     }
   | UnknownResponse(json) => {

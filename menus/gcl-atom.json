@@ -4,6 +4,10 @@
       {
         "label": "Toggle activate/deactivate gcl-atom",
         "command": "gcl-atom:toggle"
+      },
+      {
+        "label": "Refine",
+        "command": "gcl-atom:refine"
       }
     ]
   },
@@ -17,6 +21,10 @@
             {
               "label": "Toggle activate/deactivate gcl-atom",
               "command": "gcl-atom:toggle"
+            },
+            {
+              "label": "Refine",
+              "command": "gcl-atom:refine"
             }
           ]
         }

@@ -4,6 +4,7 @@
   },
   "atom-text-editor.gcl": {
     "cmd-s": "gcl-atom:save",
-    "ctrl-s": "gcl-atom:save"
+    "ctrl-s": "gcl-atom:save",
+    "ctrl-c ctrl-c": "gcl-atom:refine"
   }
 }

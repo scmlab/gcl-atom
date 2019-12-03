@@ -41,4 +41,5 @@ type instance = {
   mutable toggle: bool,
   mutable connection: Connection.t,
   mutable decorations: array(Atom.Decoration.t),
+  mutable specifications: array(Response.Specification.t),
 };

@@ -28,6 +28,18 @@ let digHole = (range, instance: Type.instance) => {
   Async.resolve();
 };
 
+let ejectLastStatement = (instance: Type.instance) => {
+  open Atom;
+
+  let cursor = instance.editor |> TextEditor.getCursorBufferPosition;
+  // let start = Range.start(range);
+  // let range' = Range.make(start, Point.translate(start, Point.make(0, 1)));
+  //
+  // |> ignore;
+
+  Async.resolve();
+};
+
 let overlay =
     (
       text,
