@@ -71,15 +71,12 @@ let onEditorActivationChange = () => {
   let previous = ref(Workspace.getActiveTextEditor());
   Workspace.onDidChangeActiveTextEditor(next => {
     /* decativate the previously activated editor */
-    previous^
-    |> Option.forEach(
-         Instances.getThen(x => x |> Instance.hideView |> ignore),
-       );
+    previous^ |> Option.forEach(Instances.getThen(Instance.hideView));
     /* activate the next editor */
     switch (next) {
     | None => ()
     | Some(nextEditor) =>
-      nextEditor |> Instances.getThen(x => x |> Instance.showView |> ignore);
+      nextEditor |> Instances.getThen(Instance.showView);
       previous := Some(nextEditor);
     };
   })

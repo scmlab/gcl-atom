@@ -13,7 +13,7 @@ let make = (editor: Atom.TextEditor.t): Type.instance => {
   let view = View.make(editor);
   let connection = Connection.make();
 
-  {editor, view, connection, decorations: [||]};
+  {editor, view, toggle: false, connection, decorations: [||]};
 };
 
 let destroy = instance => {
@@ -30,9 +30,9 @@ let destroy = instance => {
   instance.editor |> View.destroy;
 };
 
-let showView = instance => instance.Type.view.setActivation(true);
+let showView = instance => instance.Type.view.setActivation(true) |> ignore;
 
-let hideView = instance => instance.Type.view.setActivation(false);
+let hideView = instance => instance.Type.view.setActivation(false) |> ignore;
 
 // connect if not connected yet
 let getConnection = instance =>
@@ -53,23 +53,32 @@ let rec dispatch = (request, instance) => {
   Command.(
     switch (request) {
     | Toggle =>
-      showView(instance) |> ignore;
-      // reconnect if already connected
-      if (Connection.isConnected(instance.connection)) {
-        instance.connection
-        |> Connection.disconnect
-        |> thenOk(_ => dispatch(Toggle, instance));
+      if (instance.Type.toggle) {
+        instance.toggle = false;
+        hideView(instance);
+        // destroy all decorations
+        instance.decorations |> Array.forEach(Atom.Decoration.destroy);
+        // destroy the connection
+        instance.connection |> Connection.disconnect |> ignore;
+
+        resolve();
       } else {
-        Connection.connect(instance.connection)
-        |> thenError(error => {
-             let (header, body) = Connection.Error.toString(error);
-             instance.view.setHeader(Error(header)) |> ignore;
-             instance.view.setBody(Plain(body)) |> ignore;
-             resolve();
-           })
-        |> thenOk(_ => dispatch(Save, instance));
-      };
-    // | Deactivate => deactivate(instance)
+        instance.toggle = true;
+        showView(instance);
+        // reconnect if already connected
+        if (Connection.isConnected(instance.connection)) {
+          resolve();
+        } else {
+          Connection.connect(instance.connection)
+          |> thenError(error => {
+               let (header, body) = Connection.Error.toString(error);
+               instance.view.setHeader(Error(header)) |> ignore;
+               instance.view.setBody(Plain(body)) |> ignore;
+               resolve();
+             })
+          |> thenOk(_ => dispatch(Save, instance));
+        };
+      }
     | Save =>
       instance.decorations |> Array.forEach(Atom.Decoration.destroy);
       instance.editor
