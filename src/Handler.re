@@ -28,16 +28,63 @@ let digHole = (range, instance: Type.instance) => {
   Async.resolve();
 };
 
-let ejectLastStatement = (instance: Type.instance) => {
+let refine = (instance: Type.instance) => {
   open Atom;
-
+  open Response.Specification;
   let cursor = instance.editor |> TextEditor.getCursorBufferPosition;
-  // let start = Range.start(range);
-  // let range' = Range.make(start, Point.translate(start, Point.make(0, 1)));
-  //
-  // |> ignore;
 
-  Async.resolve();
+  // find the smallest hole containing the cursor
+  let smallestHole = ref(None);
+  instance.specifications
+  |> Array.filter(spec => Range.containsPoint(cursor, spec.range))
+  |> Array.forEach(spec =>
+       switch (smallestHole^) {
+       | None => smallestHole := Some(spec)
+       | Some(spec') =>
+         if (Range.containsRange(spec.range, spec'.range)) {
+           smallestHole := Some(spec');
+         }
+       }
+     );
+
+  // see if the targeting hole has any statements inside
+  switch (smallestHole^) {
+  | None => Async.resolve()
+  | Some(spec) =>
+    switch (spec.lastStmtRange) {
+    | None =>
+      instance.editor
+      |> TextEditor.getBuffer
+      |> TextBuffer.deleteRows(
+           Point.row(Range.start(spec.range)),
+           Point.row(Range.end_(spec.range)),
+         )
+      |> ignore;
+      Async.resolve();
+    | Some(stmtRange) =>
+      let stmt =
+        "\n" ++ TextEditor.getTextInBufferRange(stmtRange, instance.editor);
+      // paste rows
+      let newRange =
+        Range.make(Range.end_(spec.range), Range.end_(spec.range));
+      instance.editor
+      |> TextEditor.getBuffer
+      |> TextBuffer.setTextInRange(newRange, stmt)
+      |> ignore;
+      // delete rows
+      instance.editor
+      |> TextEditor.getBuffer
+      |> TextBuffer.deleteRows(
+           Point.row(Range.start(stmtRange)),
+           Point.row(Range.end_(stmtRange)),
+         )
+      |> ignore;
+      // move the cursor up a bit
+      instance.editor |> TextEditor.moveLeft;
+
+      Async.resolve();
+    }
+  };
 };
 
 let overlay =
