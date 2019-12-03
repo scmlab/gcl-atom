@@ -61,7 +61,7 @@ module Specification = {
     | Soft;
 
   type t =
-    | Specification(hardness, Pred.t, Pred.t, Atom.Range.t, Atom.Range.t);
+    | Specification(hardness, Pred.t, Pred.t, Atom.Range.t);
 
   let decodeHardness: decoder(hardness) =
     string
@@ -78,8 +78,7 @@ module Specification = {
         json |> field("specHardness", decodeHardness),
         json |> field("specPreCond", Pred.decode),
         json |> field("specPostCond", Pred.decode),
-        json |> field("specStartLoc", range),
-        json |> field("specEndLoc", range),
+        json |> field("specLoc", range),
       );
 };
 

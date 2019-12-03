@@ -102,7 +102,13 @@ let overlayError = (range: Atom.Range.t, instance: Type.instance) => {
 
 let markSpec = (spec: Response.Specification.t, instance: Type.instance) => {
   open Response.Specification;
-  let Specification(hardness, pre, post, start, end_) = spec;
+  open Atom;
+  let Specification(hardness, pre, post, range) = spec;
+
+  let start = Range.start(range);
+  let start = Range.make(start, Point.translate(Point.make(0, 2), start));
+  let end_ = Range.end_(range);
+  let end_ = Range.make(Point.translate(Point.make(0, -2), end_), end_);
 
   switch (hardness) {
   | Hard => markLineSpecHard(start, instance)
