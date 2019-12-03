@@ -18,7 +18,7 @@ module Lit = {
     json =>
       json
       |> Json.Decode.(
-           fields(
+           sum(
              fun
              | "Num" => Contents(int |> map(x => Num(x)))
              | "Bol" => Contents(bool |> map(x => Bool(x)))
@@ -45,7 +45,7 @@ module Expr = {
     json =>
       json
       |> Json.Decode.(
-           fields(
+           sum(
              fun
              | "VarE" => Contents(string |> map(x => Var(x)))
              | "ConstE" => Contents(string |> map(x => Const(x)))
@@ -131,7 +131,7 @@ let rec decode: Json.Decode.decoder(t) =
   json =>
     json
     |> Json.Decode.(
-         fields(
+         sum(
            fun
            | "Term" =>
              Contents(

@@ -11,7 +11,7 @@ module Error = {
       | Panic(string);
 
     let decode: decoder(t) =
-      fields(
+      sum(
         fun
         | "MissingBound" => Contents(json => MissingBound(json |> range))
         | "MissingAssertion" =>
@@ -42,7 +42,7 @@ module Error = {
     | TransformError(TransformError.t);
 
   let decode: decoder(t) =
-    fields(
+    sum(
       fun
       | "LexicalError" => Contents(json => LexicalError(json |> point))
       | "SyntacticError" =>
@@ -60,8 +60,13 @@ module Specification = {
     | Hard
     | Soft;
 
-  type t =
-    | Specification(hardness, Pred.t, Pred.t, Atom.Range.t);
+  type t = {
+    hardness,
+    pre: Pred.t,
+    post: Pred.t,
+    lastStmtRange: option(Atom.Range.t),
+    range: Atom.Range.t,
+  };
 
   let decodeHardness: decoder(hardness) =
     string
@@ -73,13 +78,13 @@ module Specification = {
        );
 
   let decode: decoder(t) =
-    json =>
-      Specification(
-        json |> field("specHardness", decodeHardness),
-        json |> field("specPreCond", Pred.decode),
-        json |> field("specPostCond", Pred.decode),
-        json |> field("specLoc", range),
-      );
+    json => {
+      hardness: json |> field("specHardness", decodeHardness),
+      pre: json |> field("specPreCond", Pred.decode),
+      post: json |> field("specPostCond", Pred.decode),
+      lastStmtRange: json |> field("specLastStmt", optional(range)),
+      range: json |> field("specLoc", range),
+    };
 };
 
 type t =
@@ -89,7 +94,7 @@ type t =
   | UnknownResponse(Js.Json.t);
 
 let decode: decoder(t) =
-  fields(
+  sum(
     fun
     | "Error" => Contents(Error.decode |> map(e => Error(e)))
     | "OK" =>
