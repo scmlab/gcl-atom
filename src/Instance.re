@@ -30,9 +30,9 @@ let destroy = instance => {
   instance.editor |> View.destroy;
 };
 
-let activate = instance => instance.Type.view.setActivation(true);
+let showView = instance => instance.Type.view.setActivation(true);
 
-let deactivate = instance => instance.Type.view.setActivation(false);
+let hideView = instance => instance.Type.view.setActivation(false);
 
 // connect if not connected yet
 let getConnection = instance =>
@@ -52,13 +52,13 @@ let getConnection = instance =>
 let rec dispatch = (request, instance) => {
   Command.(
     switch (request) {
-    | Activate =>
-      activate(instance) |> ignore;
+    | Toggle =>
+      showView(instance) |> ignore;
       // reconnect if already connected
       if (Connection.isConnected(instance.connection)) {
         instance.connection
         |> Connection.disconnect
-        |> thenOk(_ => dispatch(Activate, instance));
+        |> thenOk(_ => dispatch(Toggle, instance));
       } else {
         Connection.connect(instance.connection)
         |> thenError(error => {
@@ -69,7 +69,7 @@ let rec dispatch = (request, instance) => {
            })
         |> thenOk(_ => dispatch(Save, instance));
       };
-    | Deactivate => deactivate(instance)
+    // | Deactivate => deactivate(instance)
     | Save =>
       instance.decorations |> Array.forEach(Atom.Decoration.destroy);
       instance.editor

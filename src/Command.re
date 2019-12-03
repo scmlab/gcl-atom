@@ -1,11 +1,9 @@
 type t =
-  | Activate
-  | Deactivate
+  | Toggle
   | Save;
-let commandNames = [|"activate", "deactivate", "save"|];
+let commandNames = [|"toggle", "save"|];
 let parse =
   fun
-  | "activate" => Activate
-  | "deactivate" => Deactivate
+  | "toggle" => Toggle
   | "save" => Save
   | _ => Save;

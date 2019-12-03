@@ -73,13 +73,13 @@ let onEditorActivationChange = () => {
     /* decativate the previously activated editor */
     previous^
     |> Option.forEach(
-         Instances.getThen(x => x |> Instance.deactivate |> ignore),
+         Instances.getThen(x => x |> Instance.hideView |> ignore),
        );
     /* activate the next editor */
     switch (next) {
     | None => ()
     | Some(nextEditor) =>
-      nextEditor |> Instances.getThen(x => x |> Instance.activate |> ignore);
+      nextEditor |> Instances.getThen(x => x |> Instance.showView |> ignore);
       previous := Some(nextEditor);
     };
   })
