@@ -97,8 +97,17 @@ let markSpec = (spec: Response.Specification.t, instance: Type.instance) => {
   | Soft => markLineSpecSoft(start, instance)
   };
 
-  overlaySpec(Pred.toString(pre), start, instance);
-  overlaySpec(Pred.toString(post), end_, instance);
+  let trim = s =>
+    if (String.length(s) > 77) {
+      String.sub(~from=0, ~length=73, s) ++ " ...";
+    } else {
+      s;
+    };
+
+  let pre = trim(Pred.toString(pre));
+  let post = trim(Pred.toString(post));
+  overlaySpec(pre, start, instance);
+  overlaySpec(post, end_, instance);
   markLineSpecSoft(end_, instance);
 };
 
