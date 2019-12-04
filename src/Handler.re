@@ -42,11 +42,10 @@ let refine = (instance: Type.instance) => {
        | None => smallestHole := Some(spec)
        | Some(spec') =>
          if (Range.containsRange(spec.range, spec'.range)) {
-           smallestHole := Some(spec');
+           smallestHole := Some(spec);
          }
        }
      );
-
   // see if the targeting hole has any statements inside
   switch (smallestHole^) {
   | None => Async.resolve()
@@ -55,10 +54,7 @@ let refine = (instance: Type.instance) => {
     | None =>
       instance.editor
       |> TextEditor.getBuffer
-      |> TextBuffer.deleteRows(
-           Point.row(Range.start(spec.range)),
-           Point.row(Range.end_(spec.range)),
-         )
+      |> TextBuffer.setTextInRange(spec.range, "")
       |> ignore;
       Async.resolve();
     | Some(stmtRange) =>
