@@ -64,8 +64,12 @@ let refine = (instance: Type.instance) => {
       |> ignore;
       Async.resolve();
     | Some(stmtRange) =>
+      let indent =
+        Js.String.repeat(Point.column(Range.start(stmtRange)), " ");
       let stmt =
-        "\n" ++ TextEditor.getTextInBufferRange(stmtRange, instance.editor);
+        "\n"
+        ++ indent
+        ++ TextEditor.getTextInBufferRange(stmtRange, instance.editor);
       // paste rows
       let newRange =
         Range.make(Range.end_(spec.range), Range.end_(spec.range));
