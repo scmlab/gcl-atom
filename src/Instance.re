@@ -122,7 +122,9 @@ let rec dispatch = (request, instance) => {
            Response.decode(result) |> handle(instance);
          });
     | Refine =>
-      Handler.refine(instance) |> thenOk(() => dispatch(Save, instance))
+      dispatch(Save, instance)
+      |> thenOk(() => Handler.refine(instance))
+      |> thenOk(() => dispatch(Save, instance))
     }
   );
 }
