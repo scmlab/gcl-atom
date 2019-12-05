@@ -4,6 +4,7 @@ module View = {
     | Plain(string)
     | Error(string);
 
+  // Internal channels for facilitating communication with view components
   module Channels = {
     type t = {
       updateConnection:
@@ -21,6 +22,7 @@ module View = {
     };
   };
 
+  // Out facing interface of the view
   module Interface = {
     type t = {
       setActivation: bool => Async.t(unit, unit),
