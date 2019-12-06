@@ -34,15 +34,13 @@ let digHole = (range, instance: Type.instance) => {
   Async.resolve();
 };
 
-let refine = (instance: Type.instance) => {
+let getSpec = (pos, instance: Type.instance) => {
   open Atom;
   open Response.Specification;
-  let cursor = instance.editor |> TextEditor.getCursorBufferPosition;
-
   // find the smallest hole containing the cursor
   let smallestHole = ref(None);
   instance.specifications
-  |> Array.filter(spec => Range.containsPoint(cursor, spec.range))
+  |> Array.filter(spec => Range.containsPoint(pos, spec.range))
   |> Array.forEach(spec =>
        switch (smallestHole^) {
        | None => smallestHole := Some(spec)
@@ -52,45 +50,60 @@ let refine = (instance: Type.instance) => {
          }
        }
      );
-  // see if the targeting hole has any statements inside
-  switch (smallestHole^) {
-  | None => Async.resolve()
-  | Some(spec) =>
-    switch (spec.lastStmtRange) {
-    | None =>
-      instance.editor
-      |> TextEditor.getBuffer
-      |> TextBuffer.setTextInRange(spec.range, "")
-      |> ignore;
-      Async.resolve();
-    | Some(stmtRange) =>
-      let indent =
-        Js.String.repeat(Point.column(Range.start(stmtRange)), " ");
-      let stmt =
-        "\n"
-        ++ indent
-        ++ TextEditor.getTextInBufferRange(stmtRange, instance.editor);
-      // paste rows
-      let newRange =
-        Range.make(Range.end_(spec.range), Range.end_(spec.range));
-      instance.editor
-      |> TextEditor.getBuffer
-      |> TextBuffer.setTextInRange(newRange, stmt)
-      |> ignore;
-      // delete rows
-      instance.editor
-      |> TextEditor.getBuffer
-      |> TextBuffer.deleteRows(
-           Point.row(Range.start(stmtRange)),
-           Point.row(Range.end_(stmtRange)),
-         )
-      |> ignore;
-      // move the cursor up a bit
-      instance.editor |> TextEditor.moveLeft;
 
-      Async.resolve();
-    }
-  };
+  smallestHole^;
+};
+
+let getSpecPayload = (cursor, instance: Type.instance) => {
+  open Atom;
+  open Response.Specification;
+  ();
+  // return the text in the targeted hole
+  getSpec(cursor, instance)
+  |> Option.map(spec => {
+       let start =
+         Point.translate(Range.start(spec.range), Point.make(0, 2));
+       let end_ =
+         Point.translate(Range.end_(spec.range), Point.make(0, -2));
+       let innerRange = Range.make(start, end_);
+       instance.editor
+       |> TextEditor.getBuffer
+       |> TextBuffer.getTextInRange(innerRange);
+     });
+  // switch (spec.lastStmtRange) {
+  // | None =>
+  //   instance.editor
+  //   |> TextEditor.getBuffer
+  //   |> TextBuffer.setTextInRange(spec.range, "")
+  //   |> ignore;
+  //   Async.resolve();
+  // | Some(stmtRange) =>
+  //   let indent =
+  //     Js.String.repeat(Point.column(Range.start(stmtRange)), " ");
+  //   let stmt =
+  //     "\n"
+  //     ++ indent
+  //     ++ TextEditor.getTextInBufferRange(stmtRange, instance.editor);
+  //   // paste rows
+  //   let newRange =
+  //     Range.make(Range.end_(spec.range), Range.end_(spec.range));
+  //   instance.editor
+  //   |> TextEditor.getBuffer
+  //   |> TextBuffer.setTextInRange(newRange, stmt)
+  //   |> ignore;
+  //   // delete rows
+  //   instance.editor
+  //   |> TextEditor.getBuffer
+  //   |> TextBuffer.deleteRows(
+  //        Point.row(Range.start(stmtRange)),
+  //        Point.row(Range.end_(stmtRange)),
+  //      )
+  //   |> ignore;
+  //   // move the cursor up a bit
+  //   instance.editor |> TextEditor.moveLeft;
+  //
+  //   Async.resolve();
+  // }
 };
 
 let overlay =

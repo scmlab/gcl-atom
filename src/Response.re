@@ -64,7 +64,7 @@ module Specification = {
     hardness,
     pre: Pred.t,
     post: Pred.t,
-    lastStmtRange: option(Atom.Range.t),
+    // lastStmtRange: option(Atom.Range.t),
     range: Atom.Range.t,
   };
 
@@ -82,7 +82,7 @@ module Specification = {
       hardness: json |> field("specHardness", decodeHardness),
       pre: json |> field("specPreCond", Pred.decode),
       post: json |> field("specPostCond", Pred.decode),
-      lastStmtRange: json |> field("specLastStmt", optional(range)),
+      // lastStmtRange: json |> field("specLastStmt", optional(range)),
       range: json |> field("specLoc", range),
     };
 };

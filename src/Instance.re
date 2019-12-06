@@ -122,9 +122,17 @@ let rec dispatch = (request, instance) => {
            Response.decode(result) |> handle(instance);
          });
     | Refine =>
-      dispatch(Save, instance)
-      |> thenOk(() => Handler.refine(instance))
-      |> thenOk(() => dispatch(Save, instance))
+      let cursor = instance.editor |> Atom.TextEditor.getCursorBufferPosition;
+      Handler.getSpecPayload(cursor, instance)
+      |> Option.forEach(
+           payload => dispatch(Refine(cursor, payload), instance),
+           (),
+         );
+    // Handler.getSpecPayload(instance)
+    // |> Option.forEach((, payload) => dispatch(Refine(payload), instance))
+    // dispatch(Save, instance)
+    // |> thenOk(() => Handler.refine(instance))
+    // |> thenOk(() => dispatch(Save, instance))
     }
   );
 }
