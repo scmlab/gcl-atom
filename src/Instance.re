@@ -122,17 +122,30 @@ let rec dispatch = (request, instance) => {
            Response.decode(result) |> handle(instance);
          });
     | Refine =>
-      let cursor = instance.editor |> Atom.TextEditor.getCursorBufferPosition;
-      Handler.getSpecPayload(cursor, instance)
-      |> Option.forEach(
-           payload => dispatch(Refine(cursor, payload), instance),
-           (),
-         );
-    // Handler.getSpecPayload(instance)
-    // |> Option.forEach((, payload) => dispatch(Refine(payload), instance))
-    // dispatch(Save, instance)
-    // |> thenOk(() => Handler.refine(instance))
-    // |> thenOk(() => dispatch(Save, instance))
+      Handler.Spec.fromCursorPosition(instance)
+      |> Option.mapOr(
+           spec => {
+             open Response.Specification;
+             let payload = Handler.Spec.getPayload(spec, instance);
+             instance
+             |> getConnection
+             |> thenOk(
+                  Connection.send(Request.encode(Refine(spec.id, payload))),
+                )
+             |> Async.mapError(error => {
+                  let (header, body) = Connection.Error.toString(error);
+                  instance.view.setHeader(Error(header)) |> ignore;
+                  instance.view.setBody(Plain(body)) |> ignore;
+                  ();
+                })
+             |> thenOk(result => {
+                  Js.log2("[ received json ]", result);
+                  Js.log2("[ received value ]", result |> Response.decode);
+                  Response.decode(result) |> handle(instance);
+                });
+           },
+           resolve(),
+         )
     }
   );
 }
@@ -228,6 +241,11 @@ and handle = (instance: Type.instance) =>
       instance.view.setBody(ProofObligations(obligations)) |> ignore;
       specifications |> Array.forEach(Fn.flip(Handler.markSpec, instance));
       instance.specifications = specifications;
+      Async.resolve();
+    }
+  | Resolve(i) => {
+      Js.log("[ resolving ] " ++ string_of_int(i));
+      Handler.Spec.resolve(i, instance);
       Async.resolve();
     }
   | UnknownResponse(json) => {

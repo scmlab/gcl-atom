@@ -61,6 +61,7 @@ module Specification = {
     | Soft;
 
   type t = {
+    id: int,
     hardness,
     pre: Pred.t,
     post: Pred.t,
@@ -79,6 +80,7 @@ module Specification = {
 
   let decode: decoder(t) =
     json => {
+      id: json |> field("specID", int),
       hardness: json |> field("specHardness", decodeHardness),
       pre: json |> field("specPreCond", Pred.decode),
       post: json |> field("specPostCond", Pred.decode),
@@ -88,9 +90,9 @@ module Specification = {
 };
 
 type t =
-  // | ParseError(array((Atom.Point.t, string)))
   | Error(Error.t)
   | OK(array(Body.ProofObligation.t), array(Specification.t))
+  | Resolve(int)
   | UnknownResponse(Js.Json.t);
 
 let decode: decoder(t) =
@@ -105,5 +107,6 @@ let decode: decoder(t) =
         )
         |> map(((obs, specs)) => OK(obs, specs)),
       )
+    | "Resolve" => Contents(int |> map(i => Resolve(i)))
     | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
   );
