@@ -37,7 +37,7 @@ module Expr = {
     | Var(string)
     | Const(string)
     | Lit(Lit.t)
-    | Op(t, array(t))
+    | Ap(t, t)
     | Hole(int, array(subst))
   and subst = Js.Dict.t(t);
 
@@ -50,11 +50,8 @@ module Expr = {
              | "VarE" => Contents(string |> map(x => Var(x)))
              | "ConstE" => Contents(string |> map(x => Const(x)))
              | "LitE" => Contents(Lit.decode |> map(x => Lit(x)))
-             | "OpE" =>
-               Contents(
-                 pair(decode, array(decode))
-                 |> map(((x, xs)) => Op(x, xs)),
-               )
+             | "ApE" =>
+               Contents(pair(decode, decode) |> map(((x, y)) => Ap(x, y)))
              | "HoleE" =>
                Contents(
                  pair(int, array(decodeSubst))
@@ -81,8 +78,7 @@ module Expr = {
     | Var(s) => s
     | Const(s) => s
     | Lit(lit) => Lit.toString(lit)
-    | Op(x, xs) =>
-      toString(x) ++ "(" ++ intercalate(toString, ", ", xs) ++ ")"
+    | Ap(x, y) => toString(x) ++ " " ++ toString(y)
     | Hole(i, _substs) => "[" ++ string_of_int(i) ++ "]";
 };
 
