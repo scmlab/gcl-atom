@@ -1,8 +1,8 @@
 open Rebase;
-
+open Type.Instance;
 // Markers
 
-let mark = (type_, class_, range, instance: Type.instance) => {
+let mark = (type_, class_, range, instance) => {
   open Atom;
   let marker = instance.editor |> TextEditor.markBufferRange(range);
   let option = TextEditor.decorateMarkerOptions(~type_, ~class_, ());
@@ -17,7 +17,7 @@ let markLineSpecHard = mark("highlight", "highlight-spec-hard");
 let highlightError = mark("highlight", "line-number-error");
 
 // rewrite "?" to "{!!}"
-let digHole = (range, instance: Type.instance) => {
+let digHole = (range, instance) => {
   open Atom;
   let start = Range.start(range);
   // add indentation to the hole
@@ -35,10 +35,9 @@ let digHole = (range, instance: Type.instance) => {
 };
 
 module Spec = {
-  type instance = Type.instance;
-  open! Atom;
+  open Atom;
   open Response.Specification;
-  let fromCursorPosition = (instance: instance) => {
+  let fromCursorPosition = instance => {
     let cursor = instance.editor |> Atom.TextEditor.getCursorBufferPosition;
     // find the smallest hole containing the cursor
     let smallestHole = ref(None);
@@ -64,7 +63,7 @@ module Spec = {
     Range.make(start, end_);
   };
 
-  let getPayload = (spec, instance: instance) => {
+  let getPayload = (spec, instance) => {
     // return the text in the targeted hole
     let innerRange = getPayloadRange(spec);
     instance.editor
@@ -72,7 +71,7 @@ module Spec = {
     |> TextBuffer.getTextInRange(innerRange);
   };
 
-  let resolve = (i, instance: instance) => {
+  let resolve = (i, instance) => {
     let specs = instance.specifications |> Array.filter(spec => spec.id == i);
     specs[0]
     |> Option.forEach(spec => {
@@ -92,7 +91,7 @@ module Spec = {
   };
 };
 
-// let getSpecPayload = (cursor, instance: Type.instance) => {
+// let getSpecPayload = (cursor, instance) => {
 //   // switch (spec.lastStmtRange) {
 //   // | None =>
 //   //   instance.editor
@@ -136,7 +135,7 @@ let overlay =
       tail: bool,
       translation: (int, int),
       range: Atom.Range.t,
-      instance: Type.instance,
+      instance,
     ) => {
   open Atom;
   open Webapi.Dom;
@@ -176,11 +175,11 @@ let overlay =
   instance.decorations = Array.concat(instance.decorations, [|decoration|]);
 };
 
-let overlaySpec = (text, range: Atom.Range.t, instance: Type.instance) => {
+let overlaySpec = (text, range: Atom.Range.t, instance) => {
   overlay(text, "overlay-spec-text", false, (0, 1), range, instance);
 };
 
-let overlayError = (range: Atom.Range.t, instance: Type.instance) => {
+let overlayError = (range: Atom.Range.t, instance) => {
   let length =
     instance.editor
     |> Atom.TextEditor.getTextInBufferRange(range)
@@ -189,7 +188,7 @@ let overlayError = (range: Atom.Range.t, instance: Type.instance) => {
   overlay(text, "overlay-error", true, (0, 0), range, instance);
 };
 
-let markSpec = (spec: Response.Specification.t, instance: Type.instance) => {
+let markSpec = (spec: Response.Specification.t, instance) => {
   open Response.Specification;
   open Atom;
   // let {hardness, pre, post, _, range} = spec;

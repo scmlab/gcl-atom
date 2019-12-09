@@ -3,7 +3,7 @@ open Rebase;
 
 let activated: ref(bool) = ref(false);
 
-let instances: Js.Dict.t(Type.instance) = Js.Dict.empty();
+let instances: Js.Dict.t(Type.Instance.t) = Js.Dict.empty();
 
 module Instances = {
   let textEditorID = textEditor =>

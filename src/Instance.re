@@ -1,9 +1,10 @@
 open Rebase;
 open Async;
 
+open! Type.Instance;
 module Event = Event;
 
-let make = (editor: Atom.TextEditor.t): Type.instance => {
+let make = (editor: Atom.TextEditor.t): t => {
   // add "gcl" to the class-list
   editor
   |> Atom.Views.getView
@@ -25,7 +26,7 @@ let make = (editor: Atom.TextEditor.t): Type.instance => {
 
 let destroy = instance => {
   // remove "gcl" from the class-list of the editor
-  instance.Type.editor
+  instance.editor
   |> Atom.Views.getView
   |> Webapi.Dom.HtmlElement.classList
   |> Webapi.Dom.DomTokenList.remove("gcl");
@@ -37,13 +38,13 @@ let destroy = instance => {
   instance.editor |> View.destroy;
 };
 
-let showView = instance => instance.Type.view.setActivation(true) |> ignore;
+let showView = instance => instance.view.setActivation(true) |> ignore;
 
-let hideView = instance => instance.Type.view.setActivation(false) |> ignore;
+let hideView = instance => instance.view.setActivation(false) |> ignore;
 
 // connect if not connected yet
 let getConnection = instance =>
-  if (Connection.isConnected(instance.Type.connection)) {
+  if (Connection.isConnected(instance.connection)) {
     resolve(instance.connection);
   } else {
     Connection.connect(instance.connection)
@@ -60,7 +61,7 @@ let rec dispatch = (request, instance) => {
   Command.(
     switch (request) {
     | Toggle =>
-      if (instance.Type.toggle) {
+      if (instance.toggle) {
         instance.toggle = false;
         hideView(instance);
         // destroy all decorations
@@ -149,7 +150,7 @@ let rec dispatch = (request, instance) => {
     }
   );
 }
-and handle = (instance: Type.instance) =>
+and handle = instance =>
   fun
   | Error(LexicalError(point)) => {
       instance.view.setHeader(Error("Lexical Error")) |> ignore;

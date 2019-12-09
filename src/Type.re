@@ -37,11 +37,14 @@ module View = {
     };
   };
 };
-type instance = {
-  editor: Atom.TextEditor.t,
-  view: View.Interface.t,
-  mutable toggle: bool,
-  mutable connection: Connection.t,
-  mutable decorations: array(Atom.Decoration.t),
-  mutable specifications: array(Response.Specification.t),
+
+module Instance = {
+  type t = {
+    editor: Atom.TextEditor.t,
+    view: View.Interface.t,
+    mutable toggle: bool,
+    mutable connection: Connection.t,
+    mutable decorations: array(Atom.Decoration.t),
+    mutable specifications: array(Response.Specification.t),
+  };
 };
