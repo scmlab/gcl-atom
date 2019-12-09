@@ -116,7 +116,7 @@ let onTriggerCommand = () => {
          |> Option.flatMap(Instances.get)
          |> Option.forEach(instance =>
               instance
-              |> Instance.dispatch(Command.Raw(Command.Raw.parse(command)))
+              |> Instance.dispatchRaw(Command.Raw.parse(command))
               |> ignore
             )
        )

@@ -15,7 +15,6 @@ module Raw = {
 
 // elaborated command
 type t =
-  | Raw(Raw.t)
   | Activate
   | Deactivate
   | Update(string)

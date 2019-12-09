@@ -57,16 +57,16 @@ let getConnection = instance =>
     |> thenOk(_ => resolve(instance.connection));
   };
 
-let rec dispatch = (request, instance): Async.t(unit, unit) => {
-  Command.(
+let rec dispatchRaw = (request, instance): Async.t(unit, unit) => {
+  Command.Raw.(
     switch (request) {
-    | Raw(Toggle) =>
+    | Toggle =>
       if (instance.toggle) {
-        dispatch(Activate, instance);
+        dispatch(Command.Activate, instance);
       } else {
         dispatch(Deactivate, instance);
       }
-    | Raw(Save) =>
+    | Save =>
       instance.decorations |> Array.forEach(Atom.Decoration.destroy);
       instance.editor
       |> Atom.TextEditor.save
@@ -84,9 +84,15 @@ let rec dispatch = (request, instance): Async.t(unit, unit) => {
              reject();
            };
          });
-    | Raw(Refine) =>
+    | Refine =>
       Handler.Spec.fromCursorPosition(instance)
       |> Option.mapOr(spec => dispatch(Refine(spec), instance), resolve())
+    }
+  );
+}
+and dispatch = (request, instance): Async.t(unit, unit) => {
+  Command.(
+    switch (request) {
     | Activate =>
       instance.toggle = false;
       hideView(instance);
@@ -110,7 +116,7 @@ let rec dispatch = (request, instance): Async.t(unit, unit) => {
              instance.view.setBody(Plain(body)) |> ignore;
              resolve();
            })
-        |> thenOk(_ => dispatch(Raw(Save), instance));
+        |> thenOk(_ => dispatchRaw(Raw.Save, instance));
       };
     | Update(path) =>
       instance
@@ -221,7 +227,7 @@ and handle = instance =>
   | Error(TransformError(DigHole(range))) => {
       instance
       |> Handler.digHole(range)
-      |> Async.thenOk(() => dispatch(Raw(Save), instance));
+      |> Async.thenOk(() => dispatchRaw(Command.Raw.Save, instance));
     }
   | Error(TransformError(Panic(message))) => {
       instance.view.setHeader(Error("Panic")) |> ignore;
