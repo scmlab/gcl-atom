@@ -117,6 +117,7 @@ let onTriggerCommand = () => {
          |> Option.forEach(instance =>
               instance
               |> Instance.dispatchRaw(Command.Raw.parse(command))
+              |> Async.thenOk(Instance.run(instance))
               |> ignore
             )
        )

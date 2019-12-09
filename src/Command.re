@@ -19,3 +19,8 @@ type t =
   | Deactivate
   | Update(string)
   | Refine(Response.Specification.t);
+
+type output =
+  | Noop
+  | Dispatch(t)
+  | Display(Type.View.header, Body.t);

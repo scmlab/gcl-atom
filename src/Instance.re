@@ -57,14 +57,31 @@ let getConnection = instance =>
     |> thenOk(_ => resolve(instance.connection));
   };
 
-let rec dispatchRaw = (request, instance): Async.t(unit, unit) => {
-  Command.Raw.(
+let sendRequest = (request, instance) => {
+  instance
+  |> getConnection
+  |> thenOk(Connection.send(Request.encode(request)))
+  |> mapError(error => {
+       let (header, body) = Connection.Error.toString(error);
+       instance.view.setHeader(Error(header)) |> ignore;
+       instance.view.setBody(Plain(body)) |> ignore;
+       ();
+     })
+  |> mapOk(result => {
+       Js.log2("[ received json ]", result);
+       Js.log2("[ received value ]", result |> Response.decode);
+       Response.decode(result);
+     });
+};
+
+let rec dispatchRaw = (request, instance): Async.t(Command.output, unit) => {
+  Command.(
     switch (request) {
-    | Toggle =>
+    | Raw.Toggle =>
       if (instance.toggle) {
-        dispatch(Command.Activate, instance);
+        resolve(Dispatch(Activate));
       } else {
-        dispatch(Deactivate, instance);
+        resolve(Dispatch(Deactivate));
       }
     | Save =>
       instance.decorations |> Array.forEach(Atom.Decoration.destroy);
@@ -75,22 +92,26 @@ let rec dispatchRaw = (request, instance): Async.t(unit, unit) => {
       |> thenOk(_ => {
            let filepath = Atom.TextEditor.getPath(instance.editor);
            switch (filepath) {
-           | Some(path) => dispatch(Update(path), instance)
+           | Some(path) => resolve(Dispatch(Update(path)))
            | None =>
-             instance.view.setHeader(Error("Cannot read filepath "))
-             |> ignore;
-             instance.view.setBody(Plain("Please save the file first"))
-             |> ignore;
-             reject();
+             resolve(
+               Display(
+                 Error("Cannot read filepath"),
+                 Plain("Please save the file first"),
+               ),
+             )
            };
          });
     | Refine =>
       Handler.Spec.fromCursorPosition(instance)
-      |> Option.mapOr(spec => dispatch(Refine(spec), instance), resolve())
+      |> Option.mapOr(
+           spec => resolve(Dispatch(Refine(spec))),
+           resolve(Noop),
+         )
     }
   );
 }
-and dispatch = (request, instance): Async.t(unit, unit) => {
+and dispatch = (request, instance): Async.t(Command.output, unit) => {
   Command.(
     switch (request) {
     | Activate =>
@@ -101,13 +122,13 @@ and dispatch = (request, instance): Async.t(unit, unit) => {
       // destroy the connection
       instance.connection |> Connection.disconnect |> ignore;
 
-      resolve();
+      resolve(Noop);
     | Deactivate =>
       instance.toggle = true;
       showView(instance);
       // reconnect if already connected
       if (Connection.isConnected(instance.connection)) {
-        resolve();
+        resolve(Noop);
       } else {
         Connection.connect(instance.connection)
         |> thenError(error => {
@@ -120,141 +141,131 @@ and dispatch = (request, instance): Async.t(unit, unit) => {
       };
     | Update(path) =>
       instance
-      |> getConnection
-      |> thenOk(Connection.send(Request.encode(Request.Load(path))))
-      |> Async.mapError(error => {
-           let (header, body) = Connection.Error.toString(error);
-           instance.view.setHeader(Error(header)) |> ignore;
-           instance.view.setBody(Plain(body)) |> ignore;
-           ();
-         })
-      |> thenOk(result => {
-           Js.log2("[ received json ]", result);
-           Js.log2("[ received value ]", result |> Response.decode);
-           Response.decode(result) |> handle(instance);
-         })
+      |> sendRequest(Request.Load(path))
+      |> thenOk(handle(instance))
     | Refine(spec) =>
       open Response.Specification;
       let payload = Handler.Spec.getPayload(spec, instance);
       instance
-      |> getConnection
-      |> thenOk(Connection.send(Request.encode(Refine(spec.id, payload))))
-      |> Async.mapError(error => {
-           let (header, body) = Connection.Error.toString(error);
-           instance.view.setHeader(Error(header)) |> ignore;
-           instance.view.setBody(Plain(body)) |> ignore;
-           ();
-         })
-      |> thenOk(result => {
-           Js.log2("[ received json ]", result);
-           Js.log2("[ received value ]", result |> Response.decode);
-           Response.decode(result) |> handle(instance);
-         });
+      |> sendRequest(Refine(spec.id, payload))
+      |> thenOk(handle(instance));
     }
   );
 }
 and handle = instance =>
-  fun
-  | Error(LexicalError(point)) => {
-      instance.view.setHeader(Error("Lexical Error")) |> ignore;
-      instance.view.setBody(
-        Plain(
-          "at "
-          ++ string_of_int(Atom.Point.row(point))
-          ++ ","
-          ++ string_of_int(Atom.Point.column(point)),
-        ),
-      )
-      |> ignore;
+  Command.(
+    fun
+    | Error(LexicalError(point)) => {
+        instance.view.setHeader(Error("Lexical Error")) |> ignore;
+        instance.view.setBody(
+          Plain(
+            "at "
+            ++ string_of_int(Atom.Point.row(point))
+            ++ ","
+            ++ string_of_int(Atom.Point.column(point)),
+          ),
+        )
+        |> ignore;
 
-      instance |> Handler.markError(point);
+        instance |> Handler.markError(point);
 
-      Async.resolve();
-    }
-  | Error(SyntacticError(errors)) => {
-      // TODO: reporting only the first error now
-      switch (errors[0]) {
-      | None =>
-        instance.view.setHeader(AllGood) |> ignore;
-        instance.view.setBody(Nothing) |> ignore;
-        Async.resolve();
-      | Some({locations, message}) =>
-        instance.view.setHeader(Error("Parse Error")) |> ignore;
-        instance.view.setBody(Plain(message)) |> ignore;
-        locations
-        |> Array.forEach(range => instance |> Handler.markError'(range));
+        resolve(Noop);
+      }
+    | Error(SyntacticError(errors)) => {
+        // TODO: reporting only the first error now
+        switch (errors[0]) {
+        | None => resolve(Display(AllGood, Nothing))
+        | Some({locations, message}) =>
+          locations
+          |> Array.forEach(range => instance |> Handler.markError'(range));
+          resolve(Display(Error("Parse Error"), Plain(message)));
+        };
+      }
+    | Error(TransformError(MissingBound(range))) => {
+        instance |> Handler.highlightError(range);
+        resolve(
+          Display(
+            Error("Bound Missing"),
+            Plain(
+              "Bound missing at the end of the assertion before the DO construct \" , bnd : ... }\"",
+            ),
+          ),
+        );
+      }
+    | Error(TransformError(MissingAssertion(range))) => {
+        instance |> Handler.highlightError(range);
+        resolve(
+          Display(
+            Error("Assertion Missing"),
+            Plain("Assertion before the DO construct is missing"),
+          ),
+        );
+      }
+    | Error(TransformError(ExcessBound(range))) => {
+        instance |> Handler.highlightError(range);
+        resolve(
+          Display(
+            Error("Excess Bound"),
+            Plain("Unnecessary bound annotation at this assertion"),
+          ),
+        );
+      }
+    | Error(TransformError(MissingPostcondition)) => {
+        resolve(
+          Display(
+            Error("Postcondition Missing"),
+            Plain("The last statement of the program should be an assertion"),
+          ),
+        );
+      }
+    | Error(TransformError(DigHole(range))) => {
+        instance
+        |> Handler.digHole(range)
+        |> thenOk(() => dispatchRaw(Command.Raw.Save, instance));
+      }
+    | Error(TransformError(Panic(message))) => {
+        resolve(
+          Display(
+            Error("Panic"),
+            Plain(
+              "This should not have happened, please report this issue\n"
+              ++ message,
+            ),
+          ),
+        );
+      }
+    | OK(obligations, specifications) => {
+        specifications |> Array.forEach(Fn.flip(Handler.markSpec, instance));
+        instance.specifications = specifications;
+        resolve(
+          Display(
+            Plain("Proof Obligations"),
+            ProofObligations(obligations),
+          ),
+        );
+      }
+    | Resolve(i) => {
+        Handler.Spec.resolve(i, instance);
+        resolve(Noop);
+      }
+    | UnknownResponse(json) => {
+        resolve(
+          Display(
+            Error("Panic: unknown response from GCL"),
+            Plain(Js.Json.stringify(json)),
+          ),
+        );
+      }
+  );
 
-        Async.resolve();
-      };
-    }
-  | Error(TransformError(MissingBound(range))) => {
-      instance.view.setHeader(Error("Bound Missing")) |> ignore;
-      instance.view.setBody(
-        Plain(
-          "Bound missing at the end of the assertion before the DO construct \" , bnd : ... }\"",
-        ),
-      )
-      |> ignore;
-      instance |> Handler.highlightError(range);
-      Async.resolve();
-    }
-  | Error(TransformError(MissingAssertion(range))) => {
-      instance.view.setHeader(Error("Assertion Missing")) |> ignore;
-      instance.view.setBody(
-        Plain("Assertion before the DO construct is missing"),
-      )
-      |> ignore;
-      instance |> Handler.highlightError(range);
-      Async.resolve();
-    }
-  | Error(TransformError(ExcessBound(range))) => {
-      instance.view.setHeader(Error("Excess Bound")) |> ignore;
-      instance.view.setBody(
-        Plain("Unnecessary bound annotation at this assertion"),
-      )
-      |> ignore;
-      instance |> Handler.highlightError(range);
-      Async.resolve();
-    }
-  | Error(TransformError(MissingPostcondition)) => {
-      instance.view.setHeader(Error("Postcondition Missing")) |> ignore;
-      instance.view.setBody(
-        Plain("The last statement of the program should be an assertion"),
-      )
-      |> ignore;
-      Async.resolve();
-    }
-  | Error(TransformError(DigHole(range))) => {
-      instance
-      |> Handler.digHole(range)
-      |> Async.thenOk(() => dispatchRaw(Command.Raw.Save, instance));
-    }
-  | Error(TransformError(Panic(message))) => {
-      instance.view.setHeader(Error("Panic")) |> ignore;
-      instance.view.setBody(
-        Plain(
-          "This should not have happened, please report this issue\n"
-          ++ message,
-        ),
-      )
-      |> ignore;
-      Async.resolve();
-    }
-  | OK(obligations, specifications) => {
-      instance.view.setHeader(Plain("Proof Obligations")) |> ignore;
-      instance.view.setBody(ProofObligations(obligations)) |> ignore;
-      specifications |> Array.forEach(Fn.flip(Handler.markSpec, instance));
-      instance.specifications = specifications;
-      Async.resolve();
-    }
-  | Resolve(i) => {
-      Js.log("[ resolving ] " ++ string_of_int(i));
-      Handler.Spec.resolve(i, instance);
-      Async.resolve();
-    }
-  | UnknownResponse(json) => {
-      instance.view.setHeader(Error("Panic: unknown response from GCL"))
-      |> ignore;
-      instance.view.setBody(Plain(Js.Json.stringify(json))) |> ignore;
-      Async.resolve();
-    };
+let rec run = (instance: t, output: Command.output): Async.t(unit, unit) => {
+  switch (output) {
+  | Noop => resolve()
+  | Dispatch(command) =>
+    dispatch(command, instance) |> thenOk(run(instance))
+  | Display(header, body) =>
+    instance.view.setHeader(header) |> ignore;
+    instance.view.setBody(body) |> ignore;
+    resolve();
+  };
+};
