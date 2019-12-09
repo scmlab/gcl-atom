@@ -57,37 +57,16 @@ let getConnection = instance =>
     |> thenOk(_ => resolve(instance.connection));
   };
 
-let rec dispatch = (request, instance) => {
+let rec dispatch = (request, instance): Async.t(unit, unit) => {
   Command.(
     switch (request) {
-    | Toggle =>
+    | Raw(Toggle) =>
       if (instance.toggle) {
-        instance.toggle = false;
-        hideView(instance);
-        // destroy all decorations
-        instance.decorations |> Array.forEach(Atom.Decoration.destroy);
-        // destroy the connection
-        instance.connection |> Connection.disconnect |> ignore;
-
-        resolve();
+        dispatch(Activate, instance);
       } else {
-        instance.toggle = true;
-        showView(instance);
-        // reconnect if already connected
-        if (Connection.isConnected(instance.connection)) {
-          resolve();
-        } else {
-          Connection.connect(instance.connection)
-          |> thenError(error => {
-               let (header, body) = Connection.Error.toString(error);
-               instance.view.setHeader(Error(header)) |> ignore;
-               instance.view.setBody(Plain(body)) |> ignore;
-               resolve();
-             })
-          |> thenOk(_ => dispatch(Save, instance));
-        };
+        dispatch(Deactivate, instance);
       }
-    | Save =>
+    | Raw(Save) =>
       instance.decorations |> Array.forEach(Atom.Decoration.destroy);
       instance.editor
       |> Atom.TextEditor.save
@@ -95,20 +74,8 @@ let rec dispatch = (request, instance) => {
       |> mapError(_ => ())
       |> thenOk(_ => {
            let filepath = Atom.TextEditor.getPath(instance.editor);
-
            switch (filepath) {
-           | Some(path) =>
-             instance
-             |> getConnection
-             |> thenOk(
-                  Connection.send(Request.encode(Request.Load(path))),
-                )
-             |> Async.mapError(error => {
-                  let (header, body) = Connection.Error.toString(error);
-                  instance.view.setHeader(Error(header)) |> ignore;
-                  instance.view.setBody(Plain(body)) |> ignore;
-                  ();
-                })
+           | Some(path) => dispatch(Update(path), instance)
            | None =>
              instance.view.setHeader(Error("Cannot read filepath "))
              |> ignore;
@@ -116,37 +83,67 @@ let rec dispatch = (request, instance) => {
              |> ignore;
              reject();
            };
+         });
+    | Raw(Refine) =>
+      Handler.Spec.fromCursorPosition(instance)
+      |> Option.mapOr(spec => dispatch(Refine(spec), instance), resolve())
+    | Activate =>
+      instance.toggle = false;
+      hideView(instance);
+      // destroy all decorations
+      instance.decorations |> Array.forEach(Atom.Decoration.destroy);
+      // destroy the connection
+      instance.connection |> Connection.disconnect |> ignore;
+
+      resolve();
+    | Deactivate =>
+      instance.toggle = true;
+      showView(instance);
+      // reconnect if already connected
+      if (Connection.isConnected(instance.connection)) {
+        resolve();
+      } else {
+        Connection.connect(instance.connection)
+        |> thenError(error => {
+             let (header, body) = Connection.Error.toString(error);
+             instance.view.setHeader(Error(header)) |> ignore;
+             instance.view.setBody(Plain(body)) |> ignore;
+             resolve();
+           })
+        |> thenOk(_ => dispatch(Raw(Save), instance));
+      };
+    | Update(path) =>
+      instance
+      |> getConnection
+      |> thenOk(Connection.send(Request.encode(Request.Load(path))))
+      |> Async.mapError(error => {
+           let (header, body) = Connection.Error.toString(error);
+           instance.view.setHeader(Error(header)) |> ignore;
+           instance.view.setBody(Plain(body)) |> ignore;
+           ();
+         })
+      |> thenOk(result => {
+           Js.log2("[ received json ]", result);
+           Js.log2("[ received value ]", result |> Response.decode);
+           Response.decode(result) |> handle(instance);
+         })
+    | Refine(spec) =>
+      open Response.Specification;
+      let payload = Handler.Spec.getPayload(spec, instance);
+      instance
+      |> getConnection
+      |> thenOk(Connection.send(Request.encode(Refine(spec.id, payload))))
+      |> Async.mapError(error => {
+           let (header, body) = Connection.Error.toString(error);
+           instance.view.setHeader(Error(header)) |> ignore;
+           instance.view.setBody(Plain(body)) |> ignore;
+           ();
          })
       |> thenOk(result => {
            Js.log2("[ received json ]", result);
            Js.log2("[ received value ]", result |> Response.decode);
            Response.decode(result) |> handle(instance);
          });
-    | Refine =>
-      Handler.Spec.fromCursorPosition(instance)
-      |> Option.mapOr(
-           spec => {
-             open Response.Specification;
-             let payload = Handler.Spec.getPayload(spec, instance);
-             instance
-             |> getConnection
-             |> thenOk(
-                  Connection.send(Request.encode(Refine(spec.id, payload))),
-                )
-             |> Async.mapError(error => {
-                  let (header, body) = Connection.Error.toString(error);
-                  instance.view.setHeader(Error(header)) |> ignore;
-                  instance.view.setBody(Plain(body)) |> ignore;
-                  ();
-                })
-             |> thenOk(result => {
-                  Js.log2("[ received json ]", result);
-                  Js.log2("[ received value ]", result |> Response.decode);
-                  Response.decode(result) |> handle(instance);
-                });
-           },
-           resolve(),
-         )
     }
   );
 }
@@ -224,7 +221,7 @@ and handle = instance =>
   | Error(TransformError(DigHole(range))) => {
       instance
       |> Handler.digHole(range)
-      |> Async.thenOk(() => dispatch(Save, instance));
+      |> Async.thenOk(() => dispatch(Raw(Save), instance));
     }
   | Error(TransformError(Panic(message))) => {
       instance.view.setHeader(Error("Panic")) |> ignore;

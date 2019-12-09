@@ -107,7 +107,7 @@ let eventTargetEditor = (event: Webapi.Dom.Event.t): option(TextEditor.t) => {
 
 /* register keymap bindings and emit commands */
 let onTriggerCommand = () => {
-  Command.commandNames
+  Command.Raw.commandNames
   |> Array.forEach(command =>
        Commands.add(
          `CSSSelector("atom-text-editor"), "gcl-atom:" ++ command, event =>
@@ -115,7 +115,9 @@ let onTriggerCommand = () => {
          |> eventTargetEditor
          |> Option.flatMap(Instances.get)
          |> Option.forEach(instance =>
-              instance |> Instance.dispatch(Command.parse(command)) |> ignore
+              instance
+              |> Instance.dispatch(Command.Raw(Command.Raw.parse(command)))
+              |> ignore
             )
        )
        |> CompositeDisposable.add(subscriptions)
