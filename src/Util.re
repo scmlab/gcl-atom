@@ -35,3 +35,20 @@ module JsError = {
     "_e.toString()";
   };
 };
+
+module Result = {
+  type t('a, 'e) = result('a, 'e);
+  let every = (xs: array(t('a, 'e))): t(array('a), 'e) =>
+    Array.reduce(
+      (acc, x) =>
+        switch (acc, x) {
+        | (Ok(xs), Ok(v)) =>
+          xs |> Js.Array.push(v) |> ignore;
+          Ok(xs);
+        | (_, Error(e)) => Error(e)
+        | (Error(e), _) => Error(e)
+        },
+      Ok([||]),
+      xs,
+    );
+};

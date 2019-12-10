@@ -20,8 +20,8 @@ type t =
   | Update(string)
   | Refine(Response.Specification.t);
 
-type output =
-  | Noop
+type task =
+  | Others(Type.Instance.t => Async.t(list(task), unit))
   | Dispatch(t)
   | DispatchRaw(Raw.t)
   | SendRequest(Request.t)

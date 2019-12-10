@@ -74,14 +74,14 @@ let sendRequest = (request, instance) => {
      });
 };
 
-let dispatchRaw = (request, instance): Async.t(Command.output, unit) => {
+let dispatchRaw = (request, instance): Async.t(list(Command.task), unit) => {
   Command.(
     switch (request) {
     | Raw.Toggle =>
       if (instance.toggle) {
-        resolve(Dispatch(Activate));
+        resolve([Dispatch(Activate)]);
       } else {
-        resolve(Dispatch(Deactivate));
+        resolve([Dispatch(Deactivate)]);
       }
     | Save =>
       instance.decorations |> Array.forEach(Atom.Decoration.destroy);
@@ -92,27 +92,27 @@ let dispatchRaw = (request, instance): Async.t(Command.output, unit) => {
       |> thenOk(_ => {
            let filepath = Atom.TextEditor.getPath(instance.editor);
            switch (filepath) {
-           | Some(path) => resolve(Dispatch(Update(path)))
+           | Some(path) => resolve([Dispatch(Update(path))])
            | None =>
-             resolve(
+             resolve([
                Display(
                  Error("Cannot read filepath"),
                  Plain("Please save the file first"),
                ),
-             )
+             ])
            };
          });
     | Refine =>
       Handler.Spec.fromCursorPosition(instance)
       |> Option.mapOr(
-           spec => resolve(Dispatch(Refine(spec))),
-           resolve(Noop),
+           spec => resolve([Dispatch(Refine(spec))]),
+           resolve([]),
          )
     }
   );
 };
 
-let dispatch = (request, instance): Async.t(Command.output, unit) => {
+let dispatch = (request, instance): Async.t(list(Command.task), unit) => {
   Command.(
     switch (request) {
     | Activate =>
@@ -123,37 +123,42 @@ let dispatch = (request, instance): Async.t(Command.output, unit) => {
       // destroy the connection
       instance.connection |> Connection.disconnect |> ignore;
 
-      resolve(Noop);
+      resolve([]);
     | Deactivate =>
       instance.toggle = true;
       showView(instance);
       if (Connection.isConnected(instance.connection)) {
-        resolve(Noop);
+        resolve([]);
       } else {
         Connection.connect(instance.connection)
         |> Async.then_(
-             () => resolve(DispatchRaw(Raw.Save)),
+             () => resolve([DispatchRaw(Raw.Save)]),
              error => {
                let (header, body) = Connection.Error.toString(error);
-               resolve(Display(Error(header), Plain(body)));
+               resolve([Display(Error(header), Plain(body))]);
              },
            );
       };
-    | Update(path) => resolve(SendRequest(Load(path)))
+    | Update(path) => resolve([SendRequest(Load(path))])
     | Refine(spec) =>
       open Response.Specification;
       let payload = Handler.Spec.getPayload(spec, instance);
-      resolve(SendRequest(Refine(spec.id, payload)));
+      resolve([SendRequest(Refine(spec.id, payload))]);
     }
   );
 };
 
-let handle = instance =>
+let handle =
   Command.(
     fun
     | Response.Error(Response.Error.LexicalError(point)) => {
-        instance |> Handler.markError(point);
-        resolve(
+        resolve([
+          Others(
+            instance => {
+              instance |> Handler.markError(point);
+              resolve([]);
+            },
+          ),
           Display(
             Error("Lexical Error"),
             Plain(
@@ -163,63 +168,91 @@ let handle = instance =>
               ++ string_of_int(Atom.Point.column(point)),
             ),
           ),
-        );
+        ]);
       }
     | Error(SyntacticError(errors)) => {
         // TODO: reporting only the first error now
         switch (errors[0]) {
-        | None => resolve(Display(AllGood, Nothing))
+        | None => resolve([Display(AllGood, Nothing)])
         | Some({locations, message}) =>
-          locations
-          |> Array.forEach(range => instance |> Handler.markError'(range));
-
-          resolve(Display(Error("Parse Error"), Plain(message)));
+          resolve([
+            Others(
+              instance => {
+                locations
+                |> Array.forEach(range =>
+                     instance |> Handler.markError'(range)
+                   );
+                resolve([]);
+              },
+            ),
+            Display(Error("Parse Error"), Plain(message)),
+          ])
         };
       }
     | Error(TransformError(MissingBound(range))) => {
-        instance |> Handler.highlightError(range);
-        resolve(
+        resolve([
+          Others(
+            instance => {
+              instance |> Handler.highlightError(range);
+              resolve([]);
+            },
+          ),
           Display(
             Error("Bound Missing"),
             Plain(
               "Bound missing at the end of the assertion before the DO construct \" , bnd : ... }\"",
             ),
           ),
-        );
+        ]);
       }
     | Error(TransformError(MissingAssertion(range))) => {
-        instance |> Handler.highlightError(range);
-        resolve(
+        resolve([
+          Others(
+            instance => {
+              instance |> Handler.highlightError(range);
+              resolve([]);
+            },
+          ),
           Display(
             Error("Assertion Missing"),
             Plain("Assertion before the DO construct is missing"),
           ),
-        );
+        ]);
       }
     | Error(TransformError(ExcessBound(range))) => {
-        instance |> Handler.highlightError(range);
-        resolve(
+        resolve([
+          Others(
+            instance => {
+              instance |> Handler.highlightError(range);
+              resolve([]);
+            },
+          ),
           Display(
             Error("Excess Bound"),
             Plain("Unnecessary bound annotation at this assertion"),
           ),
-        );
+        ]);
       }
     | Error(TransformError(MissingPostcondition)) => {
-        resolve(
+        resolve([
           Display(
             Error("Postcondition Missing"),
             Plain("The last statement of the program should be an assertion"),
           ),
-        );
+        ]);
       }
     | Error(TransformError(DigHole(range))) => {
-        instance
-        |> Handler.digHole(range)
-        |> thenOk(() => resolve(DispatchRaw(Raw.Save)));
+        resolve([
+          Others(
+            instance =>
+              instance
+              |> Handler.digHole(range)
+              |> thenOk(() => resolve([DispatchRaw(Raw.Save)])),
+          ),
+        ]);
       }
     | Error(TransformError(Panic(message))) => {
-        resolve(
+        resolve([
           Display(
             Error("Panic"),
             Plain(
@@ -227,47 +260,70 @@ let handle = instance =>
               ++ message,
             ),
           ),
-        );
+        ]);
       }
     | OK(obligations, specifications) => {
-        specifications |> Array.forEach(Fn.flip(Handler.markSpec, instance));
-        instance.specifications = specifications;
-        resolve(
+        resolve([
+          Others(
+            instance => {
+              specifications
+              |> Array.forEach(Fn.flip(Handler.markSpec, instance));
+              instance.specifications = specifications;
+              resolve([]);
+            },
+          ),
           Display(
             Plain("Proof Obligations"),
             ProofObligations(obligations),
           ),
-        );
+        ]);
       }
     | Resolve(i) => {
-        Handler.Spec.resolve(i, instance);
-        resolve(Noop);
+        resolve([
+          Others(
+            instance => {
+              Handler.Spec.resolve(i, instance);
+              resolve([]);
+            },
+          ),
+        ]);
       }
     | UnknownResponse(json) => {
-        resolve(
+        resolve([
           Display(
             Error("Panic: unknown response from GCL"),
             Plain(Js.Json.stringify(json)),
           ),
-        );
+        ]);
       }
   );
 
-let rec run = (instance: t, output: Command.output): Async.t(unit, unit) => {
-  switch (output) {
-  | Noop => resolve()
-  | Dispatch(command) =>
-    dispatch(command, instance) |> thenOk(run(instance))
-  | DispatchRaw(command) =>
-    dispatchRaw(command, instance) |> thenOk(run(instance))
-  | SendRequest(request) =>
-    instance
-    |> sendRequest(request)
-    |> thenOk(handle(instance))
-    |> thenOk(run(instance))
-  | Display(header, body) =>
-    instance.view.setHeader(header) |> ignore;
-    instance.view.setBody(body) |> ignore;
-    resolve();
-  };
+let rec runTasks =
+        (instance: t, tasks: list(Command.task)): Async.t(unit, unit) => {
+  open Command;
+  let runTask =
+    fun
+    | Others(callback) => callback(instance) |> thenOk(runTasks(instance))
+    | Dispatch(command) =>
+      dispatch(command, instance) |> thenOk(runTasks(instance))
+    | DispatchRaw(command) =>
+      dispatchRaw(command, instance) |> thenOk(runTasks(instance))
+    | SendRequest(request) =>
+      instance
+      |> sendRequest(request)
+      |> thenOk(handle)
+      |> thenOk(runTasks(instance))
+    | Display(header, body) => {
+        instance.view.setHeader(header) |> ignore;
+        instance.view.setBody(body) |> ignore;
+        resolve();
+      };
+
+  tasks
+  |> List.map(runTask)
+  |> Array.fromList
+  |> Js.Promise.all
+  |> fromPromise
+  |> mapError(_ => ())
+  |> thenOk(_ => resolve());
 };
