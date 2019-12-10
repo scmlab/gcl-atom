@@ -74,7 +74,7 @@ let sendRequest = (request, instance) => {
      });
 };
 
-let rec dispatchRaw = (request, instance): Async.t(Command.output, unit) => {
+let dispatchRaw = (request, instance): Async.t(Command.output, unit) => {
   Command.(
     switch (request) {
     | Raw.Toggle =>
@@ -110,8 +110,9 @@ let rec dispatchRaw = (request, instance): Async.t(Command.output, unit) => {
          )
     }
   );
-}
-and dispatch = (request, instance): Async.t(Command.output, unit) => {
+};
+
+let dispatch = (request, instance): Async.t(Command.output, unit) => {
   Command.(
     switch (request) {
     | Activate =>
@@ -126,50 +127,43 @@ and dispatch = (request, instance): Async.t(Command.output, unit) => {
     | Deactivate =>
       instance.toggle = true;
       showView(instance);
-      // reconnect if already connected
       if (Connection.isConnected(instance.connection)) {
         resolve(Noop);
       } else {
         Connection.connect(instance.connection)
-        |> thenError(error => {
-             let (header, body) = Connection.Error.toString(error);
-             instance.view.setHeader(Error(header)) |> ignore;
-             instance.view.setBody(Plain(body)) |> ignore;
-             resolve();
-           })
-        |> thenOk(_ => dispatchRaw(Raw.Save, instance));
+        |> Async.then_(
+             () => resolve(DispatchRaw(Raw.Save)),
+             error => {
+               let (header, body) = Connection.Error.toString(error);
+               resolve(Display(Error(header), Plain(body)));
+             },
+           );
       };
-    | Update(path) =>
-      instance
-      |> sendRequest(Request.Load(path))
-      |> thenOk(handle(instance))
+    | Update(path) => resolve(SendRequest(Load(path)))
     | Refine(spec) =>
       open Response.Specification;
       let payload = Handler.Spec.getPayload(spec, instance);
-      instance
-      |> sendRequest(Refine(spec.id, payload))
-      |> thenOk(handle(instance));
+      resolve(SendRequest(Refine(spec.id, payload)));
     }
   );
-}
-and handle = instance =>
+};
+
+let handle = instance =>
   Command.(
     fun
-    | Error(LexicalError(point)) => {
-        instance.view.setHeader(Error("Lexical Error")) |> ignore;
-        instance.view.setBody(
-          Plain(
-            "at "
-            ++ string_of_int(Atom.Point.row(point))
-            ++ ","
-            ++ string_of_int(Atom.Point.column(point)),
-          ),
-        )
-        |> ignore;
-
+    | Response.Error(Response.Error.LexicalError(point)) => {
         instance |> Handler.markError(point);
-
-        resolve(Noop);
+        resolve(
+          Display(
+            Error("Lexical Error"),
+            Plain(
+              "at "
+              ++ string_of_int(Atom.Point.row(point))
+              ++ ","
+              ++ string_of_int(Atom.Point.column(point)),
+            ),
+          ),
+        );
       }
     | Error(SyntacticError(errors)) => {
         // TODO: reporting only the first error now
@@ -178,6 +172,7 @@ and handle = instance =>
         | Some({locations, message}) =>
           locations
           |> Array.forEach(range => instance |> Handler.markError'(range));
+
           resolve(Display(Error("Parse Error"), Plain(message)));
         };
       }
@@ -221,7 +216,7 @@ and handle = instance =>
     | Error(TransformError(DigHole(range))) => {
         instance
         |> Handler.digHole(range)
-        |> thenOk(() => dispatchRaw(Command.Raw.Save, instance));
+        |> thenOk(() => resolve(DispatchRaw(Raw.Save)));
       }
     | Error(TransformError(Panic(message))) => {
         resolve(
@@ -263,6 +258,13 @@ let rec run = (instance: t, output: Command.output): Async.t(unit, unit) => {
   | Noop => resolve()
   | Dispatch(command) =>
     dispatch(command, instance) |> thenOk(run(instance))
+  | DispatchRaw(command) =>
+    dispatchRaw(command, instance) |> thenOk(run(instance))
+  | SendRequest(request) =>
+    instance
+    |> sendRequest(request)
+    |> thenOk(handle(instance))
+    |> thenOk(run(instance))
   | Display(header, body) =>
     instance.view.setHeader(header) |> ignore;
     instance.view.setBody(body) |> ignore;

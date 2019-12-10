@@ -23,4 +23,6 @@ type t =
 type output =
   | Noop
   | Dispatch(t)
+  | DispatchRaw(Raw.t)
+  | SendRequest(Request.t)
   | Display(Type.View.header, Body.t);
