@@ -1,56 +1,84 @@
 open Json.Decode;
 open Decoder;
 module Error = {
-  module TransformError = {
+  module Syntax = {
+    module Transform = {
+      type t =
+        | MissingBound(Atom.Range.t)
+        | MissingAssertion(Atom.Range.t)
+        | ExcessBound(Atom.Range.t)
+        | MissingPostcondition
+        | DigHole(Atom.Range.t)
+        | Panic(string);
+
+      let decode: decoder(t) =
+        sum(
+          fun
+          | "MissingBound" => Contents(json => MissingBound(json |> range))
+          | "MissingAssertion" =>
+            Contents(json => MissingAssertion(json |> range))
+          | "ExcessBound" => Contents(json => ExcessBound(json |> range))
+          | "MissingPostcondition" => TagOnly(_ => MissingPostcondition)
+          | "DigHole" => Contents(json => DigHole(json |> range))
+          | "Panic" => Contents(json => Panic(json |> string))
+          | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
+        );
+    };
+
+    module Syntactic = {
+      type t = {
+        locations: array(Atom.Range.t),
+        message: string,
+      };
+
+      let decode: decoder(t) =
+        json => {
+          locations: json |> field("synErrLocations", array(range)),
+          message: json |> field("synErrMessage", string),
+        };
+    };
+
     type t =
-      | MissingBound(Atom.Range.t)
-      | MissingAssertion(Atom.Range.t)
-      | ExcessBound(Atom.Range.t)
-      | MissingPostcondition
-      | DigHole(Atom.Range.t)
-      | Panic(string);
+      | LexicalError(Atom.Point.t)
+      | SyntacticError(array(Syntactic.t))
+      | TransformError(Transform.t);
 
     let decode: decoder(t) =
       sum(
         fun
-        | "MissingBound" => Contents(json => MissingBound(json |> range))
-        | "MissingAssertion" =>
-          Contents(json => MissingAssertion(json |> range))
-        | "ExcessBound" => Contents(json => ExcessBound(json |> range))
-        | "MissingPostcondition" => TagOnly(_ => MissingPostcondition)
-        | "DigHole" => Contents(json => DigHole(json |> range))
-        | "Panic" => Contents(json => Panic(json |> string))
+        | "LexicalError" => Contents(json => LexicalError(json |> point))
+        | "SyntacticError" =>
+          Contents(
+            array(Syntactic.decode) |> map(pairs => SyntacticError(pairs)),
+          )
+        | "TransformError" =>
+          Contents(json => TransformError(json |> Transform.decode))
         | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
       );
   };
 
-  module SyntacticError = {
-    type t = {
-      locations: array(Atom.Range.t),
-      message: string,
-    };
+  module Site = {
+    type t =
+      | Global(Atom.Range.t)
+      | Local(Atom.Range.t, int);
 
     let decode: decoder(t) =
-      json => {
-        locations: json |> field("synErrLocations", array(range)),
-        message: json |> field("synErrMessage", string),
-      };
+      sum(
+        fun
+        | "Global" => Contents(json => Global(json |> range))
+        | "Local" =>
+          Contents(pair(range, int) |> map(((r, i)) => Local(r, i)))
+        | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
+      );
   };
+
   type t =
-    | LexicalError(Atom.Point.t)
-    | SyntacticError(array(SyntacticError.t))
-    | TransformError(TransformError.t);
+    | SyntaxError(Syntax.t);
 
   let decode: decoder(t) =
     sum(
       fun
-      | "LexicalError" => Contents(json => LexicalError(json |> point))
-      | "SyntacticError" =>
-        Contents(
-          array(SyntacticError.decode) |> map(pairs => SyntacticError(pairs)),
-        )
-      | "TransformError" =>
-        Contents(json => TransformError(json |> TransformError.decode))
+      | "SyntaxError" => Contents(json => SyntaxError(json |> Syntax.decode))
       | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
     );
 };
@@ -90,7 +118,7 @@ module Specification = {
 };
 
 type t =
-  | Error(Error.t)
+  | Error(array((Error.Site.t, Error.t)))
   | OK(array(Body.ProofObligation.t), array(Specification.t))
   | Resolve(int)
   | UnknownResponse(Js.Json.t);
@@ -98,7 +126,11 @@ type t =
 let decode: decoder(t) =
   sum(
     fun
-    | "Error" => Contents(Error.decode |> map(e => Error(e)))
+    | "Error" =>
+      Contents(
+        array(pair(Error.Site.decode, Error.decode))
+        |> map(pairs => Error(pairs)),
+      )
     | "OK" =>
       Contents(
         pair(

@@ -62,154 +62,144 @@ let destroy = instance => {
   instance |> View.destroy;
 };
 
-let handle =
-  Command.(
+let handle = (error): list(Command.task) => {
+  let handleSyntaxError = site => {
+    open Response.Error.Syntax;
+    open Command;
+    ();
     fun
-    | Response.Error(Response.Error.LexicalError(point)) => {
-        [
+    | LexicalError(point) => [
+        WithInstance(
+          instance => {
+            instance |> Decoration.markError(point);
+            resolve([]);
+          },
+        ),
+        Display(
+          Error("Lexical Error"),
+          Plain(
+            "at "
+            ++ string_of_int(Atom.Point.row(point))
+            ++ ","
+            ++ string_of_int(Atom.Point.column(point)),
+          ),
+        ),
+      ]
+    | SyntacticError(errors) =>
+      // TODO: reporting only the first error now
+      switch (errors[0]) {
+      | None => [Display(AllGood, Nothing)]
+      | Some({locations, message}) => [
           WithInstance(
             instance => {
-              instance |> Decoration.markError(point);
+              locations
+              |> Array.forEach(range =>
+                   instance |> Decoration.markError'(range)
+                 );
               resolve([]);
             },
           ),
-          Display(
-            Error("Lexical Error"),
-            Plain(
-              "at "
-              ++ string_of_int(Atom.Point.row(point))
-              ++ ","
-              ++ string_of_int(Atom.Point.column(point)),
-            ),
-          ),
-        ];
+          Display(Error("Parse Error"), Plain(message)),
+        ]
       }
-    | Error(SyntacticError(errors)) => {
-        // TODO: reporting only the first error now
-        switch (errors[0]) {
-        | None => [Display(AllGood, Nothing)]
-        | Some({locations, message}) => [
-            WithInstance(
-              instance => {
-                locations
-                |> Array.forEach(range =>
-                     instance |> Decoration.markError'(range)
-                   );
-                resolve([]);
-              },
-            ),
-            Display(Error("Parse Error"), Plain(message)),
-          ]
-        };
-      }
-    | Error(TransformError(MissingBound(range))) => {
-        [
-          WithInstance(
-            instance => {
-              instance |> Decoration.highlightError(range);
-              resolve([]);
-            },
+    | TransformError(MissingBound(range)) => [
+        WithInstance(
+          instance => {
+            instance |> Decoration.highlightError(range);
+            resolve([]);
+          },
+        ),
+        Display(
+          Error("Bound Missing"),
+          Plain(
+            "Bound missing at the end of the assertion before the DO construct \" , bnd : ... }\"",
           ),
-          Display(
-            Error("Bound Missing"),
-            Plain(
-              "Bound missing at the end of the assertion before the DO construct \" , bnd : ... }\"",
-            ),
+        ),
+      ]
+    | TransformError(MissingAssertion(range)) => [
+        WithInstance(
+          instance => {
+            instance |> Decoration.highlightError(range);
+            resolve([]);
+          },
+        ),
+        Display(
+          Error("Assertion Missing"),
+          Plain("Assertion before the DO construct is missing"),
+        ),
+      ]
+    | TransformError(ExcessBound(range)) => [
+        WithInstance(
+          instance => {
+            instance |> Decoration.highlightError(range);
+            resolve([]);
+          },
+        ),
+        Display(
+          Error("Excess Bound"),
+          Plain("Unnecessary bound annotation at this assertion"),
+        ),
+      ]
+    | TransformError(MissingPostcondition) => [
+        Display(
+          Error("Postcondition Missing"),
+          Plain("The last statement of the program should be an assertion"),
+        ),
+      ]
+    | TransformError(DigHole(range)) => [
+        WithInstance(
+          instance =>
+            instance
+            |> Decoration.digHole(range)
+            |> thenOk(() => resolve([DispatchLocal(Command.Save)])),
+        ),
+      ]
+    | TransformError(Panic(message)) => [
+        Display(
+          Error("Panic"),
+          Plain(
+            "This should not have happened, please report this issue\n"
+            ++ message,
           ),
-        ];
-      }
-    | Error(TransformError(MissingAssertion(range))) => {
-        [
-          WithInstance(
-            instance => {
-              instance |> Decoration.highlightError(range);
-              resolve([]);
-            },
-          ),
-          Display(
-            Error("Assertion Missing"),
-            Plain("Assertion before the DO construct is missing"),
-          ),
-        ];
-      }
-    | Error(TransformError(ExcessBound(range))) => {
-        [
-          WithInstance(
-            instance => {
-              instance |> Decoration.highlightError(range);
-              resolve([]);
-            },
-          ),
-          Display(
-            Error("Excess Bound"),
-            Plain("Unnecessary bound annotation at this assertion"),
-          ),
-        ];
-      }
-    | Error(TransformError(MissingPostcondition)) => {
-        [
-          Display(
-            Error("Postcondition Missing"),
-            Plain("The last statement of the program should be an assertion"),
-          ),
-        ];
-      }
-    | Error(TransformError(DigHole(range))) => {
-        [
-          WithInstance(
-            instance =>
-              instance
-              |> Decoration.digHole(range)
-              |> thenOk(() => resolve([DispatchLocal(Command.Save)])),
-          ),
-        ];
-      }
-    | Error(TransformError(Panic(message))) => {
-        [
-          Display(
-            Error("Panic"),
-            Plain(
-              "This should not have happened, please report this issue\n"
-              ++ message,
-            ),
-          ),
-        ];
-      }
-    | OK(obligations, specifications) => {
-        [
-          WithInstance(
-            instance => {
-              specifications
-              |> Array.forEach(Fn.flip(Decoration.markSpec, instance));
-              instance.specifications = specifications;
-              resolve([]);
-            },
-          ),
-          Display(
-            Plain("Proof Obligations"),
-            ProofObligations(obligations),
-          ),
-        ];
-      }
-    | Resolve(i) => {
-        [
-          WithInstance(
-            instance => {
-              Spec.resolve(i, instance);
-              resolve([]);
-            },
-          ),
-        ];
-      }
-    | UnknownResponse(json) => {
-        [
-          Display(
-            Error("Panic: unknown response from GCL"),
-            Plain(Js.Json.stringify(json)),
-          ),
-        ];
-      }
-  );
+        ),
+      ];
+  };
+
+  let handleError = ((site, error)) =>
+    switch (error) {
+    | Response.Error.SyntaxError(err) => handleSyntaxError(site, err)
+    };
+
+  switch (error) {
+  | Response.Error(pairs) =>
+    pairs |> Array.map(handleError) |> List.fromArray |> Js.List.flatten
+  | OK(obligations, specifications) => [
+      WithInstance(
+        instance => {
+          specifications
+          |> Array.forEach(Fn.flip(Decoration.markSpec, instance));
+          instance.specifications = specifications;
+          resolve([]);
+        },
+      ),
+      Display(Plain("Proof Obligations"), ProofObligations(obligations)),
+    ]
+  | Resolve(i) => [
+      WithInstance(
+        instance => {
+          Spec.resolve(i, instance);
+          resolve([]);
+        },
+      ),
+    ]
+  | UnknownResponse(json) => [
+      Display(
+        Error("Panic: unknown response from GCL"),
+        Plain(Js.Json.stringify(json)),
+      ),
+    ]
+  };
+};
 
 let rec runTasks =
         (instance: t, tasks: list(Command.task)): Async.t(unit, unit) => {
@@ -239,4 +229,4 @@ let rec runTasks =
   |> fromPromise
   |> mapError(_ => ())
   |> thenOk(_ => resolve());
-};
+} /*   */;
