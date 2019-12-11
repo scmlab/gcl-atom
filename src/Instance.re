@@ -5,73 +5,61 @@ open! Type.Instance;
 module Event = Event;
 
 let make = (editor: Atom.TextEditor.t): t => {
-  // add "gcl" to the class-list
-  editor
-  |> Atom.Views.getView
-  |> Webapi.Dom.HtmlElement.classList
-  |> Webapi.Dom.DomTokenList.add("gcl");
+  editor,
+  view: View.make(editor),
+  toggle: false,
+  connection: Connection.make(),
+  decorations: [||],
+  specifications: [||],
+};
 
-  let view = View.make(editor);
-  let connection = Connection.make();
+module View = {
+  // destroy the view
+  let destroy = instance => instance.editor |> View.destroy;
+  let show = instance => instance.view.setActivation(true) |> ignore;
+  let hide = instance => instance.view.setActivation(false) |> ignore;
 
-  {
-    editor,
-    view,
-    toggle: false,
-    connection,
-    decorations: [||],
-    specifications: [||],
+  let displayError = (header, body, instance) => {
+    instance.view.setHeader(Error(header)) |> ignore;
+    instance.view.setBody(Plain(body)) |> ignore;
+  };
+};
+
+module Connection = {
+  // destroy the connection
+  let disconnect = instance =>
+    Connection.disconnect(instance.connection) |> ignore;
+  // connect if not connected yet
+  let getConnection = (instance): Async.t(Connection.t, Connection.Error.t) => {
+    let isConnected = Connection.isConnected(instance.connection);
+    if (isConnected) {
+      resolve(instance.connection);
+    } else {
+      Connection.connect(instance.connection)
+      |> thenOk(() => resolve(instance.connection));
+    };
+  };
+
+  let sendRequest = (request, instance): Async.t(Response.t, unit) => {
+    instance
+    |> getConnection
+    |> thenOk(Connection.send(Request.encode(request)))
+    |> mapError(error => {
+         let (header, body) = Connection.Error.toString(error);
+         instance |> View.displayError(header, body);
+       })
+    |> mapOk(result => {
+         Js.log2("[ received json ]", result);
+         Js.log2("[ received value ]", result |> Response.decode);
+         Response.decode(result);
+       });
   };
 };
 
 let destroy = instance => {
-  // remove "gcl" from the class-list of the editor
-  instance.editor
-  |> Atom.Views.getView
-  |> Webapi.Dom.HtmlElement.classList
-  |> Webapi.Dom.DomTokenList.remove("gcl");
-  // destroy the connection
-  Connection.disconnect(instance.connection) |> ignore;
-  // destroy all decorations
-  instance.decorations |> Array.forEach(Atom.Decoration.destroy);
-  // destroy the view
-  instance.editor |> View.destroy;
-};
-
-let showView = instance => instance.view.setActivation(true) |> ignore;
-
-let hideView = instance => instance.view.setActivation(false) |> ignore;
-
-// connect if not connected yet
-let getConnection = instance =>
-  if (Connection.isConnected(instance.connection)) {
-    resolve(instance.connection);
-  } else {
-    Connection.connect(instance.connection)
-    |> thenError(error => {
-         let (header, body) = Connection.Error.toString(error);
-         instance.view.setHeader(Error(header)) |> ignore;
-         instance.view.setBody(Plain(body)) |> ignore;
-         resolve();
-       })
-    |> thenOk(_ => resolve(instance.connection));
-  };
-
-let sendRequest = (request, instance) => {
-  instance
-  |> getConnection
-  |> thenOk(Connection.send(Request.encode(request)))
-  |> mapError(error => {
-       let (header, body) = Connection.Error.toString(error);
-       instance.view.setHeader(Error(header)) |> ignore;
-       instance.view.setBody(Plain(body)) |> ignore;
-       ();
-     })
-  |> mapOk(result => {
-       Js.log2("[ received json ]", result);
-       Js.log2("[ received value ]", result |> Response.decode);
-       Response.decode(result);
-     });
+  instance |> Connection.disconnect;
+  instance |> Decoration.destroyAll;
+  instance |> View.destroy;
 };
 
 let handle =
@@ -81,7 +69,7 @@ let handle =
         [
           WithInstance(
             instance => {
-              instance |> Handler.markError(point);
+              instance |> Decoration.markError(point);
               resolve([]);
             },
           ),
@@ -105,7 +93,7 @@ let handle =
               instance => {
                 locations
                 |> Array.forEach(range =>
-                     instance |> Handler.markError'(range)
+                     instance |> Decoration.markError'(range)
                    );
                 resolve([]);
               },
@@ -118,7 +106,7 @@ let handle =
         [
           WithInstance(
             instance => {
-              instance |> Handler.highlightError(range);
+              instance |> Decoration.highlightError(range);
               resolve([]);
             },
           ),
@@ -134,7 +122,7 @@ let handle =
         [
           WithInstance(
             instance => {
-              instance |> Handler.highlightError(range);
+              instance |> Decoration.highlightError(range);
               resolve([]);
             },
           ),
@@ -148,7 +136,7 @@ let handle =
         [
           WithInstance(
             instance => {
-              instance |> Handler.highlightError(range);
+              instance |> Decoration.highlightError(range);
               resolve([]);
             },
           ),
@@ -171,8 +159,8 @@ let handle =
           WithInstance(
             instance =>
               instance
-              |> Handler.digHole(range)
-              |> thenOk(() => resolve([DispatchRaw(Command.Save)])),
+              |> Decoration.digHole(range)
+              |> thenOk(() => resolve([DispatchLocal(Command.Save)])),
           ),
         ];
       }
@@ -192,7 +180,7 @@ let handle =
           WithInstance(
             instance => {
               specifications
-              |> Array.forEach(Fn.flip(Handler.markSpec, instance));
+              |> Array.forEach(Fn.flip(Decoration.markSpec, instance));
               instance.specifications = specifications;
               resolve([]);
             },
@@ -207,7 +195,7 @@ let handle =
         [
           WithInstance(
             instance => {
-              Handler.Spec.resolve(i, instance);
+              Spec.resolve(i, instance);
               resolve([]);
             },
           ),
@@ -230,12 +218,13 @@ let rec runTasks =
     fun
     | WithInstance(callback) =>
       callback(instance) |> thenOk(runTasks(instance))
-    | Dispatch(command) =>
-      Elaborated.dispatch(command) |> runTasks(instance)
-    | DispatchRaw(command) => Raw.dispatch(command) |> runTasks(instance)
+    | DispatchRemote(command) =>
+      Remote.dispatch(command) |> runTasks(instance)
+    | DispatchLocal(command) =>
+      Local.dispatch(command) |> runTasks(instance)
     | SendRequest(request) =>
       instance
-      |> sendRequest(request)
+      |> Connection.sendRequest(request)
       |> thenOk(x => x |> handle |> runTasks(instance))
     | Display(header, body) => {
         instance.view.setHeader(header) |> ignore;

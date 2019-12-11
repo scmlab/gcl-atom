@@ -55,6 +55,12 @@ let make = (editor: Atom.TextEditor.t) => {
   open Webapi.Dom;
   let container = PanelContainer.make();
 
+  // add "gcl" to the class-list
+  editor
+  |> Atom.Views.getView
+  |> Webapi.Dom.HtmlElement.classList
+  |> Webapi.Dom.DomTokenList.add("gcl");
+
   // create a element to house the panel
   let element = document |> Document.createElement("article");
   element |> Element.classList |> DomTokenList.add("gcl-panel");
@@ -78,6 +84,8 @@ let make = (editor: Atom.TextEditor.t) => {
 
 let destroy = (editor: Atom.TextEditor.t) => {
   open Webapi.Dom;
+
+  // unmount the component
   let id = "gcl:" ++ string_of_int(Atom.TextEditor.id(editor));
   document
   |> Document.getElementById(id)
@@ -85,4 +93,10 @@ let destroy = (editor: Atom.TextEditor.t) => {
        ReactDOMRe.unmountComponentAtNode(element);
        Element.remove(element);
      });
+
+  // remove "gcl" from the class-list of the editor
+  editor
+  |> Atom.Views.getView
+  |> Webapi.Dom.HtmlElement.classList
+  |> Webapi.Dom.DomTokenList.remove("gcl");
 };

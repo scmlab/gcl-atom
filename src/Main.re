@@ -71,12 +71,12 @@ let onEditorActivationChange = () => {
   let previous = ref(Workspace.getActiveTextEditor());
   Workspace.onDidChangeActiveTextEditor(next => {
     /* decativate the previously activated editor */
-    previous^ |> Option.forEach(Instances.getThen(Instance.hideView));
+    previous^ |> Option.forEach(Instances.getThen(Instance.View.hide));
     /* activate the next editor */
     switch (next) {
     | None => ()
     | Some(nextEditor) =>
-      nextEditor |> Instances.getThen(Instance.showView);
+      nextEditor |> Instances.getThen(Instance.View.show);
       previous := Some(nextEditor);
     };
   })
@@ -107,7 +107,7 @@ let eventTargetEditor = (event: Webapi.Dom.Event.t): option(TextEditor.t) => {
 
 /* register keymap bindings and emit commands */
 let onTriggerCommand = () => {
-  Command.Raw.commandNames
+  Command.Local.commandNames
   |> Array.forEach(command =>
        Commands.add(
          `CSSSelector("atom-text-editor"), "gcl-atom:" ++ command, event =>
@@ -115,7 +115,7 @@ let onTriggerCommand = () => {
          |> eventTargetEditor
          |> Option.flatMap(Instances.get)
          |> Option.forEach(instance =>
-              Command.Raw.dispatch(Command.Raw.parse(command))
+              Command.Local.dispatch(Command.Local.parse(command))
               |> Instance.runTasks(instance)
               |> ignore
             )
