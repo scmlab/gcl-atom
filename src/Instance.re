@@ -63,8 +63,8 @@ let destroy = instance => {
 };
 
 let handle = (error): list(Command.task) => {
-  let handleSyntaxError = site => {
-    open Response.Error.Syntax;
+  let handleError = _site => {
+    open Response.Error;
     open Command;
     ();
     fun
@@ -85,24 +85,16 @@ let handle = (error): list(Command.task) => {
           ),
         ),
       ]
-    | SyntacticError(errors) =>
-      // TODO: reporting only the first error now
-      switch (errors[0]) {
-      | None => [Display(AllGood, Nothing)]
-      | Some({locations, message}) => [
-          WithInstance(
-            instance => {
-              locations
-              |> Array.forEach(range =>
-                   instance |> Decoration.markError'(range)
-                 );
-              resolve([]);
-            },
-          ),
-          Display(Error("Parse Error"), Plain(message)),
-        ]
-      }
-    | TransformError(MissingBound(range)) => [
+    | SyntacticError({location, message}) => [
+        WithInstance(
+          instance => {
+            instance |> Decoration.markError'(location);
+            resolve([]);
+          },
+        ),
+        Display(Error("Parse Error"), Plain(message)),
+      ]
+    | ConvertError(MissingBound(range)) => [
         WithInstance(
           instance => {
             instance |> Decoration.highlightError(range);
@@ -116,7 +108,7 @@ let handle = (error): list(Command.task) => {
           ),
         ),
       ]
-    | TransformError(MissingAssertion(range)) => [
+    | ConvertError(MissingAssertion(range)) => [
         WithInstance(
           instance => {
             instance |> Decoration.highlightError(range);
@@ -128,7 +120,7 @@ let handle = (error): list(Command.task) => {
           Plain("Assertion before the DO construct is missing"),
         ),
       ]
-    | TransformError(ExcessBound(range)) => [
+    | ConvertError(ExcessBound(range)) => [
         WithInstance(
           instance => {
             instance |> Decoration.highlightError(range);
@@ -140,13 +132,13 @@ let handle = (error): list(Command.task) => {
           Plain("Unnecessary bound annotation at this assertion"),
         ),
       ]
-    | TransformError(MissingPostcondition) => [
+    | ConvertError(MissingPostcondition) => [
         Display(
           Error("Postcondition Missing"),
           Plain("The last statement of the program should be an assertion"),
         ),
       ]
-    | TransformError(DigHole(range)) => [
+    | ConvertError(DigHole(range)) => [
         WithInstance(
           instance =>
             instance
@@ -154,7 +146,7 @@ let handle = (error): list(Command.task) => {
             |> thenOk(() => resolve([DispatchLocal(Command.Save)])),
         ),
       ]
-    | TransformError(Panic(message)) => [
+    | ConvertError(Panic(message)) => [
         Display(
           Error("Panic"),
           Plain(
@@ -165,14 +157,11 @@ let handle = (error): list(Command.task) => {
       ];
   };
 
-  let handleError = ((site, error)) =>
-    switch (error) {
-    | Response.Error.SyntaxError(err) => handleSyntaxError(site, err)
-    };
+  let handleError' = ((site, error)) => handleError(site, error);
 
   switch (error) {
   | Response.Error(pairs) =>
-    pairs |> Array.map(handleError) |> List.fromArray |> Js.List.flatten
+    pairs |> Array.map(handleError') |> List.fromArray |> Js.List.flatten
   | OK(obligations, specifications) => [
       WithInstance(
         instance => {
