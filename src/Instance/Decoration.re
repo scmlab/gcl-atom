@@ -13,7 +13,6 @@ let mark = (type_, class_, range, instance) => {
 
 let markLineSpecSoft = mark("highlight", "highlight-spec-soft");
 let markLineSpecHard = mark("highlight", "highlight-spec-hard");
-let highlightError = mark("highlight", "line-number-error");
 
 // rewrite "?" to "{!!}"
 let digHole = (range, instance) => {
@@ -121,22 +120,47 @@ let markSpec = (spec: Response.Specification.t, instance) => {
   overlaySpec(post, end_, instance);
   markLineSpecSoft(end_, instance);
 };
+//
+// let markError = (point, instance) => {
+//   let range =
+//     Atom.Range.make(
+//       point,
+//       Atom.Point.make(Atom.Point.row(point), Atom.Point.column(point) + 1),
+//     );
+//   overlayError(range, instance);
+//   mark("line-number", "line-number-error", range, instance);
+// };
 
-let markError = (point, instance) => {
-  let range =
-    Atom.Range.make(
-      point,
-      Atom.Point.make(Atom.Point.row(point), Atom.Point.column(point) + 1),
-    );
-  overlayError(range, instance);
-  mark("line-number", "line-number-error", range, instance);
+// let markError' = (range, instance) => {
+//   overlayError(range, instance);
+//   mark("line-number", "line-number-error", range, instance);
+// };
+
+let markSite = (site, instance) => {
+  Response.Error.Site.(
+    switch (site) {
+    | Global(range) =>
+      overlayError(range, instance);
+      mark("line-number", "line-number-error", range, instance);
+    | Local(range, _i) =>
+      overlayError(range, instance);
+      mark("line-number", "line-number-error", range, instance);
+    }
+  );
+  Async.resolve([]);
 };
-
-let markError' = (range, instance) => {
-  overlayError(range, instance);
-  mark("line-number", "line-number-error", range, instance);
-};
-
+//
+// let markSite2 = (site, instance) => {
+//   Response.Error.Site.(
+//     switch (site) {
+//     | Global(range) => highlightError(range, instance)
+//     // mark("line-number", "line-number-error", range, instance);
+//     | Local(range, _i) => highlightError(range, instance)
+//     // mark("line-number", "line-number-error", range, instance);
+//     }
+//   );
+//   Async.resolve([]);
+// };
 // destroy all decorations
 let destroyAll = instance =>
   instance.decorations |> Array.forEach(Atom.Decoration.destroy);

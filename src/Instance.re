@@ -63,44 +63,25 @@ let destroy = instance => {
 };
 
 let handle = (error): list(Command.task) => {
-  let handleError = _site => {
-    open Response.Error;
+  let handleError = error => {
     open Command;
+    let Response.Error.Error(site, kind) = error;
+    open Response.Error;
     ();
-    fun
-    | LexicalError(point) => [
-        WithInstance(
-          instance => {
-            instance |> Decoration.markError(point);
-            resolve([]);
-          },
-        ),
+    switch (kind) {
+    | LexicalError => [
+        WithInstance(Decoration.markSite(site)),
         Display(
           Error("Lexical Error"),
-          Plain(
-            "at "
-            ++ string_of_int(Atom.Point.row(point))
-            ++ ","
-            ++ string_of_int(Atom.Point.column(point)),
-          ),
+          Plain(Response.Error.Site.toString(site)),
         ),
       ]
-    | SyntacticError({location, message}) => [
-        WithInstance(
-          instance => {
-            instance |> Decoration.markError'(location);
-            resolve([]);
-          },
-        ),
+    | SyntacticError(message) => [
+        WithInstance(Decoration.markSite(site)),
         Display(Error("Parse Error"), Plain(message)),
       ]
-    | ConvertError(MissingBound(range)) => [
-        WithInstance(
-          instance => {
-            instance |> Decoration.highlightError(range);
-            resolve([]);
-          },
-        ),
+    | ConvertError(MissingBound) => [
+        WithInstance(Decoration.markSite(site)),
         Display(
           Error("Bound Missing"),
           Plain(
@@ -108,25 +89,15 @@ let handle = (error): list(Command.task) => {
           ),
         ),
       ]
-    | ConvertError(MissingAssertion(range)) => [
-        WithInstance(
-          instance => {
-            instance |> Decoration.highlightError(range);
-            resolve([]);
-          },
-        ),
+    | ConvertError(MissingAssertion) => [
+        WithInstance(Decoration.markSite(site)),
         Display(
           Error("Assertion Missing"),
           Plain("Assertion before the DO construct is missing"),
         ),
       ]
-    | ConvertError(ExcessBound(range)) => [
-        WithInstance(
-          instance => {
-            instance |> Decoration.highlightError(range);
-            resolve([]);
-          },
-        ),
+    | ConvertError(ExcessBound) => [
+        WithInstance(Decoration.markSite(site)),
         Display(
           Error("Excess Bound"),
           Plain("Unnecessary bound annotation at this assertion"),
@@ -138,11 +109,11 @@ let handle = (error): list(Command.task) => {
           Plain("The last statement of the program should be an assertion"),
         ),
       ]
-    | ConvertError(DigHole(range)) => [
+    | ConvertError(DigHole) => [
         WithInstance(
           instance =>
             instance
-            |> Decoration.digHole(range)
+            |> Decoration.digHole(Site.toRange(site))
             |> thenOk(() => resolve([DispatchLocal(Command.Save)])),
         ),
       ]
@@ -154,14 +125,13 @@ let handle = (error): list(Command.task) => {
             ++ message,
           ),
         ),
-      ];
+      ]
+    };
   };
 
-  let handleError' = ((site, error)) => handleError(site, error);
-
   switch (error) {
-  | Response.Error(pairs) =>
-    pairs |> Array.map(handleError') |> List.fromArray |> Js.List.flatten
+  | Response.Error(errors) =>
+    errors |> Array.map(handleError) |> List.fromArray |> Js.List.flatten
   | OK(obligations, specifications) => [
       WithInstance(
         instance => {

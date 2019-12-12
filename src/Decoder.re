@@ -36,10 +36,11 @@ let range: decoder(Atom.Range.t) =
           );
         },
       )
-    | _ =>
+    | "NoLoc" =>
       TagOnly(
         _ => Atom.Range.make(Atom.Point.make(0, 0), Atom.Point.make(0, 0)),
-      ),
+      )
+    | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
   );
 
 let maybe: decoder('a) => decoder(option('a)) =
