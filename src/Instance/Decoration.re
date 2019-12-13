@@ -142,9 +142,22 @@ let markSite = (site, instance) => {
     | Global(range) =>
       overlayError(range, instance);
       mark("line-number", "line-number-error", range, instance);
-    | Local(range, _i) =>
-      overlayError(range, instance);
-      mark("line-number", "line-number-error", range, instance);
+    | Local(range, i) =>
+      open Atom.Range;
+      open Response.Specification;
+      let specs =
+        instance.specifications |> Array.filter(spec => spec.id == i);
+
+      specs[0]
+      |> Option.forEach(spec => {
+           let range =
+             range
+             |> translate(start(spec.range), start(spec.range))
+             // down by 1 line
+             |> translate(Atom.Point.make(1, 0), Atom.Point.make(1, 0));
+           overlayError(range, instance);
+           mark("line-number", "line-number-error", range, instance);
+         });
     }
   );
   Async.resolve([]);
