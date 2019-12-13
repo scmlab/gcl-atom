@@ -14,9 +14,30 @@ let mark = (type_, class_, range, instance) => {
 let markLineSpecSoft = mark("highlight", "highlight-spec-soft");
 let markLineSpecHard = mark("highlight", "highlight-spec-hard");
 
+let siteRange = (site, instance) => {
+  switch (site) {
+  | Response.Error.Site.Global(range) => range
+  | Local(range, i) =>
+    open Atom.Range;
+    open Response.Specification;
+    let specs = instance.specifications |> Array.filter(spec => spec.id == i);
+
+    specs[0]
+    |> Option.mapOr(
+         spec =>
+           range
+           |> translate(start(spec.range), start(spec.range))
+           // down by 1 line
+           |> translate(Atom.Point.make(1, 0), Atom.Point.make(1, 0)),
+         range,
+       );
+  };
+};
+
 // rewrite "?" to "{!!}"
-let digHole = (range, instance) => {
+let digHole = (site, instance) => {
   open Atom;
+  let range = instance |> siteRange(site);
   let start = Range.start(range);
   // add indentation to the hole
   let indent = Js.String.repeat(Point.column(start), " ");
@@ -120,46 +141,11 @@ let markSpec = (spec: Response.Specification.t, instance) => {
   overlaySpec(post, end_, instance);
   markLineSpecSoft(end_, instance);
 };
-//
-// let markError = (point, instance) => {
-//   let range =
-//     Atom.Range.make(
-//       point,
-//       Atom.Point.make(Atom.Point.row(point), Atom.Point.column(point) + 1),
-//     );
-//   overlayError(range, instance);
-//   mark("line-number", "line-number-error", range, instance);
-// };
-
-// let markError' = (range, instance) => {
-//   overlayError(range, instance);
-//   mark("line-number", "line-number-error", range, instance);
-// };
 
 let markSite = (site, instance) => {
-  Response.Error.Site.(
-    switch (site) {
-    | Global(range) =>
-      overlayError(range, instance);
-      mark("line-number", "line-number-error", range, instance);
-    | Local(range, i) =>
-      open Atom.Range;
-      open Response.Specification;
-      let specs =
-        instance.specifications |> Array.filter(spec => spec.id == i);
-
-      specs[0]
-      |> Option.forEach(spec => {
-           let range =
-             range
-             |> translate(start(spec.range), start(spec.range))
-             // down by 1 line
-             |> translate(Atom.Point.make(1, 0), Atom.Point.make(1, 0));
-           overlayError(range, instance);
-           mark("line-number", "line-number-error", range, instance);
-         });
-    }
-  );
+  let range = instance |> siteRange(site);
+  overlayError(range, instance);
+  mark("line-number", "line-number-error", range, instance);
   Async.resolve([]);
 };
 //
