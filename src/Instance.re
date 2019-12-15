@@ -145,10 +145,9 @@ let handle = (error): list(Command.task) => {
     ]
   | Resolve(i) => [
       WithInstance(
-        instance => {
-          Spec.resolve(i, instance);
-          resolve([]);
-        },
+        instance =>
+          Spec.resolve(i, instance)
+          |> thenOk(() => resolve([Command.DispatchLocal(Command.Save)])),
       ),
     ]
   | UnknownResponse(json) => [

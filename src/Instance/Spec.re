@@ -54,6 +54,7 @@ let resolve = (i, instance) => {
        |> TextBuffer.deleteRow(startingRow)
        |> ignore;
      });
+  Async.resolve();
 };
 
 // let getSpecPayload = (cursor, instance) => {
