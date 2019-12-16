@@ -98,8 +98,8 @@ module Specification = {
   type t = {
     id: int,
     hardness,
-    pre: Pred.t,
-    post: Pred.t,
+    pre: Expr.t,
+    post: Expr.t,
     // lastStmtRange: option(Atom.Range.t),
     range: Atom.Range.t,
   };
@@ -117,8 +117,8 @@ module Specification = {
     json => {
       id: json |> field("specID", int),
       hardness: json |> field("specHardness", decodeHardness),
-      pre: json |> field("specPreCond", Pred.decode),
-      post: json |> field("specPostCond", Pred.decode),
+      pre: json |> field("specPreCond", Expr.decode),
+      post: json |> field("specPostCond", Expr.decode),
       // lastStmtRange: json |> field("specLastStmt", optional(range)),
       range: json |> field("specLoc", range),
     };

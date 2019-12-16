@@ -4,27 +4,27 @@ open React;
 
 module ProofObligation = {
   type t =
-    | ProofObligation(int, Pred.t, Pred.t);
+    | ProofObligation(int, Expr.t, Expr.t);
 
   [@react.component]
   let make = (~payload: t) => {
     let ProofObligation(_, p, q) = payload;
     <li className="gcl-body-item">
       <span className="gcl-proof-obligation-antecedent">
-        {string(Pred.toString(p))}
+        {string(Expr.toString(p))}
       </span>
       <span className="gcl-proof-obligation-arrow">
         {string({j|⇒|j})}
       </span>
       <span className="gcl-proof-obligation-consequent">
-        {string(Pred.toString(q))}
+        {string(Expr.toString(q))}
       </span>
     </li>;
   };
 
   open Json.Decode;
   let decode: decoder(t) =
-    tuple3(int, Pred.decode, Pred.decode)
+    tuple3(int, Expr.decode, Expr.decode)
     |> map(((i, p, q)) => ProofObligation(i, p, q));
 };
 

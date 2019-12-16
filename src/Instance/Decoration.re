@@ -135,8 +135,8 @@ let markSpec = (spec: Response.Specification.t, instance) => {
       s;
     };
 
-  let pre = trim(Pred.toString(spec.pre));
-  let post = trim(Pred.toString(spec.post));
+  let pre = trim(Expr.toString(spec.pre));
+  let post = trim(Expr.toString(spec.post));
   overlaySpec(pre, start, instance);
   overlaySpec(post, end_, instance);
   markLineSpecSoft(end_, instance);
