@@ -110,32 +110,18 @@ let rec decode: Json.Decode.decoder(t) =
 and decodeSubst: Json.Decode.decoder(subst) =
   json => json |> Json.Decode.dict(decode);
 
-// let intercalate = (toString, sep, xs) => {
-//   let rec intercalate' = xs =>
-//     switch (xs) {
-//     | [] => ""
-//     | [x] => toString(x)
-//     | [x, ...xs] => toString(x) ++ sep ++ intercalate'(xs)
-//     };
-//   intercalate'(List.fromArray(xs));
-// };
-
-// let rec toString =
-//   fun
-//   | Var(s) => s
-//   | Const(s) => s
-//   | Lit(lit) => Lit.toString(lit)
-//   | Op(op) => Op.toString(op)
-//   | App(x, y) => toString(x) ++ " " ++ toString(y)
-//   | Hole(i, _substs) => "[" ++ string_of_int(i) ++ "]";
-
 module Precedence = {
-  open Op;
   type partialOrdering =
     | Equal
     | GreaterThan
     | LessThan
     | CantCompare;
+
+  type stage =
+    | Expect(t => stage)
+    | Complete(string);
+
+  open! Op;
 
   module Sort = {
     type t =
@@ -162,7 +148,7 @@ module Precedence = {
       | Others => Others;
   };
 
-  type t =
+  type fixity =
     | InfixL(Sort.t)
     | InfixR(Sort.t)
     | Infix(Sort.t)
@@ -195,75 +181,97 @@ module Precedence = {
 
   let greaterThan = (x, y) => Sort.compare(x, y) == GreaterThan;
 
-  let rec binary = (n, op, p, q) =>
+  let rec handleOperator = (n, op) =>
     switch (classify(op)) {
     | InfixL(m) =>
-      parensIf(
-        greaterThan(n, m),
-        toString(m, p)
-        ++ " "
-        ++ Op.toString(op)
-        ++ " "
-        ++ toString(Sort.succ(m), q),
+      Expect(
+        p =>
+          Expect(
+            q =>
+              Complete(
+                parensIf(
+                  greaterThan(n, m),
+                  toString(m, p)
+                  ++ " "
+                  ++ Op.toString(op)
+                  ++ " "
+                  ++ toString(Sort.succ(m), q),
+                ),
+              ),
+          ),
       )
     | InfixR(m) =>
-      parensIf(
-        greaterThan(n, m),
-        toString(Sort.succ(m), p)
-        ++ " "
-        ++ Op.toString(op)
-        ++ " "
-        ++ toString(m, q),
+      Expect(
+        p =>
+          Expect(
+            q =>
+              Complete(
+                parensIf(
+                  greaterThan(n, m),
+                  toString(Sort.succ(m), p)
+                  ++ " "
+                  ++ Op.toString(op)
+                  ++ " "
+                  ++ toString(m, q),
+                ),
+              ),
+          ),
       )
     | Infix(m) =>
-      parensIf(
-        greaterThan(n, m),
-        toString(Sort.succ(m), p)
-        ++ " "
-        ++ Op.toString(op)
-        ++ " "
-        ++ toString(Sort.succ(m), q),
+      Expect(
+        p =>
+          Expect(
+            q =>
+              Complete(
+                parensIf(
+                  greaterThan(n, m),
+                  toString(Sort.succ(m), p)
+                  ++ " "
+                  ++ Op.toString(op)
+                  ++ " "
+                  ++ toString(Sort.succ(m), q),
+                ),
+              ),
+          ),
       )
-    | Prefix(_) =>
-      Op.toString(op) ++ " " ++ toString(n, p) ++ toString(n, q)
-    | Postfix(_) =>
-      toString(n, p) ++ toString(n, q) ++ " " ++ Op.toString(op)
+    | Prefix(m) =>
+      Expect(
+        p =>
+          Complete(
+            parensIf(
+              greaterThan(n, m),
+              Op.toString(op) ++ " " ++ toString(m, p),
+            ),
+          ),
+      )
+    | Postfix(m) =>
+      Expect(
+        p =>
+          Complete(
+            parensIf(
+              greaterThan(n, m),
+              toString(m, p) ++ " " ++ Op.toString(op),
+            ),
+          ),
+      )
     }
-
-  and toString = n =>
+  and handleExpr = n =>
     fun
-    | Var(s) => s
-    | Const(s) => s
-    | Lit(lit) => Lit.toString(lit)
-    | Op(op) => Op.toString(op)
-    // arity 2
-    | App(App(Op(op), p), q) => binary(n, op, p, q)
-    // arity 1
-    | App(Op(Neg), y) =>
-      parensIf(
-        greaterThan(n, Predicate(4)),
-        {j|¬ |j} ++ toString(Predicate(4), y),
-      )
-    | App(x, y) => toString(Others, x) ++ " " ++ toString(Others, y)
-    | Hole(i, _substs) => "[" ++ string_of_int(i) ++ "]";
+    | Var(s) => Complete(s)
+    | Const(s) => Complete(s)
+    | Lit(lit) => Complete(Lit.toString(lit))
+    | Op(op) => handleOperator(n, op)
+    | App(p, q) =>
+      switch (handleExpr(n, p)) {
+      | Expect(f) => f(q)
+      | Complete(s) => Complete(s)
+      }
+    | Hole(i, _substs) => Complete("[" ++ string_of_int(i) ++ "]")
+  and toString = (n, p) =>
+    switch (handleExpr(n, p)) {
+    | Expect(_) => ""
+    | Complete(s) => s
+    };
 };
-
-// | Disj(p, q) =>
-//   parensIf(n > 1, toStringPrec(1, p) ++ {j| ⋁ |j} ++ toStringPrec(2, q))
-// | Conj(p, q) =>
-//   parensIf(n > 2, toStringPrec(2, p) ++ {j| ⋀ |j} ++ toStringPrec(3, q))
-// | Term(rel, p, q) =>
-//   parensIf(
-//     n > 3,
-//     Expr.toString(p)
-//     ++ " "
-//     ++ BinRel.toString(rel)
-//     ++ " "
-//     ++ Expr.toString(q),
-//   )
-// | Neg(p) => parensIf(n > 4, {j|¬ |j} ++ toStringPrec(4, p))
-// | Lit(true) => "true"
-// | Lit(false) => "false"
-// | Hole(int) => "?" ++ string_of_int(int);
 
 let toString = Precedence.toString(Others);
