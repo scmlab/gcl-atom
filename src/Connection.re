@@ -20,9 +20,10 @@ module Error = {
     | IsNotGCL(string);
 
   type connection =
-    | ShellError(Js.Exn.t)
     | ClosedByProcess(int, string)
     | DisconnectedByUser
+    | ShellError(Js.Exn.t)
+    | ExitedByProcess(int, string)
     | NotEstablishedYet;
 
   type t =
@@ -67,10 +68,7 @@ module Error = {
         msg,
       )
     | ValidationError(_path, IsNotGCL(msg)) => ("This is not GCL", msg)
-    | ConnectionError(ShellError(error)) => (
-        "Socket error",
-        Util.JsError.toString(error),
-      )
+
     | ConnectionError(ClosedByProcess(code, signal)) => (
         "Socket closed by GCL",
         {j|code: $code
@@ -80,6 +78,16 @@ signal: $signal
     | ConnectionError(DisconnectedByUser) => (
         "Disconnected",
         "Connection disconnected by ourselves",
+      )
+    | ConnectionError(ShellError(error)) => (
+        "Socket error",
+        Util.JsError.toString(error),
+      )
+    | ConnectionError(ExitedByProcess(code, signal)) => (
+        "Socket exited by GCL",
+        {j|code: $code
+  signal: $signal
+  |j},
       )
     | ConnectionError(NotEstablishedYet) => (
         "Connection not established yet",
@@ -202,8 +210,39 @@ let connect = connection =>
           )
        |> ignore;
 
+       process
+       |> N.ChildProcess.stdin
+       |> N.Stream.Writable.on(
+            `close(() => disconnect(connection) |> ignore),
+          )
+       |> ignore;
+
        // on errors and anomalies
        process
+       |> ChildProcess.on(
+            `close(
+              (code, signal) => {
+                disconnect(connection) |> ignore;
+                connection.emitter
+                |> Event.emitError(
+                     Error.ConnectionError(
+                       Error.ClosedByProcess(code, signal),
+                     ),
+                   );
+              },
+            ),
+          )
+       |> ChildProcess.on(
+            `disconnect(
+              () => {
+                disconnect(connection) |> ignore;
+                connection.emitter
+                |> Event.emitError(
+                     Error.ConnectionError(Error.DisconnectedByUser),
+                   );
+              },
+            ),
+          )
        |> ChildProcess.on(
             `error(
               exn => {
@@ -216,13 +255,13 @@ let connect = connection =>
             ),
           )
        |> ChildProcess.on(
-            `close(
+            `exit(
               (code, signal) => {
                 disconnect(connection) |> ignore;
                 connection.emitter
                 |> Event.emitError(
                      Error.ConnectionError(
-                       Error.ClosedByProcess(code, signal),
+                       Error.ExitedByProcess(code, signal),
                      ),
                    );
               },

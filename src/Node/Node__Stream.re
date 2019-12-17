@@ -9,16 +9,37 @@ module Type = {
 
 module Writable = {
   type t = Type.Writable.t;
-  type listener = [
-    | `close(unit => unit)
-    | `drain(unit => unit)
-    | `error(Js.Exn.t => unit)
-    | `finish(unit => unit)
-    | `pipe(Type.Readable.t => unit)
-    | `unpipe(Type.Readable.t => unit)
-  ];
-  [@bs.send.pipe: t] external on: listener => t = "on";
-  [@bs.send.pipe: t] external once: listener => t = "once";
+
+  [@bs.send.pipe: t]
+  external on:
+    (
+    [@bs.string]
+    [
+      | `close(unit => unit)
+      | `drain(unit => unit)
+      | `error(Js.Exn.t => unit)
+      | `finish(unit => unit)
+      | `pipe(Type.Readable.t => unit)
+      | `unpipe(Type.Readable.t => unit)
+    ]
+    ) =>
+    t =
+    "on";
+  [@bs.send.pipe: t]
+  external once:
+    (
+    [@bs.string]
+    [
+      | `close(unit => unit)
+      | `drain(unit => unit)
+      | `error(Js.Exn.t => unit)
+      | `finish(unit => unit)
+      | `pipe(Type.Readable.t => unit)
+      | `unpipe(Type.Readable.t => unit)
+    ]
+    ) =>
+    t =
+    "once";
 
   [@bs.send.pipe: t] external cork: unit = "cork";
   [@bs.send.pipe: t] external destroy: unit = "destroy";
@@ -49,7 +70,9 @@ module Readable = {
       | `data(Node.Buffer.t => unit)
       | [@bs.as "end"] `end_(unit => unit)
       | `error(Js.Exn.t => unit)
+      | `pause(unit => unit)
       | `readable(unit => unit)
+      | `resume(unit => unit)
     ]
     ) =>
     t =
@@ -63,7 +86,9 @@ module Readable = {
       | `data(Node.Buffer.t => unit)
       | [@bs.as "end"] `end_(unit => unit)
       | `error(Js.Exn.t => unit)
+      | `pause(unit => unit)
       | `readable(unit => unit)
+      | `resume(unit => unit)
     ]
     ) =>
     t =
