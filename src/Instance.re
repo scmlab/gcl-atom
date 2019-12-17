@@ -113,7 +113,7 @@ let handle = (error): list(Command.task) => {
         WithInstance(
           instance =>
             instance
-            |> Decoration.digHole(site)
+            |> Spec.digHole(site)
             |> thenOk(() => resolve([DispatchLocal(Command.Save)])),
         ),
       ]

@@ -34,25 +34,6 @@ let siteRange = (site, instance) => {
   };
 };
 
-// rewrite "?" to "{!!}"
-let digHole = (site, instance) => {
-  open Atom;
-  let range = instance |> siteRange(site);
-  let start = Range.start(range);
-  // add indentation to the hole
-  let indent = Js.String.repeat(Point.column(start), " ");
-  let holeText = "{!\n" ++ indent ++ "\n" ++ indent ++ "!}";
-  let holeRange =
-    Range.make(start, Point.translate(start, Point.make(0, 1)));
-  instance.editor
-  |> TextEditor.setTextInBufferRange(holeRange, holeText)
-  |> ignore;
-  // set the cursor inside the hole
-  let cursorPos = Point.translate(start, Point.make(1, 0));
-  instance.editor |> TextEditor.setCursorBufferPosition(cursorPos);
-  Async.resolve();
-};
-
 let overlay =
     (
       text,
