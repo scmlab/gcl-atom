@@ -43,8 +43,8 @@ module Op = {
   let toString =
     fun
     | EQ => "="
-    | LTE => "<="
-    | GTE => ">="
+    | LTE => "≤"
+    | GTE => "≥"
     | LT => "<"
     | GT => ">"
     | Implies => {j|→|j}

@@ -1,6 +1,6 @@
 open Rebase;
 // open Type;
-open Type.View;
+open Types.View;
 
 module PanelContainer = {
   // get "article.gcl-panel-container", create one if not found

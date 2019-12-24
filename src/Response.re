@@ -1,7 +1,37 @@
 open Json.Decode;
 open Decoder;
 module Error = {
-  module Convert = {
+  module TypeError = {
+    type t =
+      | NotInScope(string)
+      | UnifyFailed(Type.t, Type.t)
+      | RecursiveType(int, Type.t)
+      | NotFunction(Type.t);
+
+    let decode: decoder(t) =
+      sum(
+        fun
+        | "NotInScope" =>
+          Contents(pair(string, range) |> map(((s, _)) => NotInScope(s)))
+        | "UnifyFailed" =>
+          Contents(
+            tuple3(Type.decode, Type.decode, range)
+            |> map(((s, t, _)) => UnifyFailed(s, t)),
+          )
+        | "RecursiveType" =>
+          Contents(
+            tuple3(int, Type.decode, range)
+            |> map(((s, t, _)) => RecursiveType(s, t)),
+          )
+        | "NotFunction" =>
+          Contents(
+            pair(Type.decode, range) |> map(((t, _)) => NotFunction(t)),
+          )
+        | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
+      );
+  };
+
+  module ConvertError = {
     type t =
       | MissingBound
       | MissingAssertion
@@ -67,7 +97,8 @@ module Error = {
   type kind =
     | LexicalError
     | SyntacticError(string)
-    | ConvertError(Convert.t);
+    | ConvertError(ConvertError.t)
+    | TypeError(TypeError.t);
 
   let decodeKind: decoder(kind) =
     sum(
@@ -78,7 +109,8 @@ module Error = {
           pair(range, string) |> map(((_, msg)) => SyntacticError(msg)),
         )
       | "ConvertError" =>
-        Contents(json => ConvertError(json |> Convert.decode))
+        Contents(json => ConvertError(json |> ConvertError.decode))
+      | "TypeError" => Contents(json => TypeError(json |> TypeError.decode))
       | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
     );
 

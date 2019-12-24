@@ -1,4 +1,4 @@
-open Type.View;
+open Types.View;
 
 [@react.component]
 let make = (~channels: Channels.t) => {

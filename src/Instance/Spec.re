@@ -1,5 +1,5 @@
 open Rebase;
-open Type.Instance;
+open Types.Instance;
 open Response.Specification;
 
 let fromCursorPosition = instance => {

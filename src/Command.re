@@ -9,11 +9,11 @@ and local =
   | Save
   | Refine
 and task =
-  | WithInstance(Type.Instance.t => Async.t(list(task), unit))
+  | WithInstance(Types.Instance.t => Async.t(list(task), unit))
   | DispatchRemote(remote)
   | DispatchLocal(local)
   | SendRequest(Request.t)
-  | Display(Type.View.header, Body.t);
+  | Display(Types.View.header, Body.t);
 
 module Local = {
   type t = local;

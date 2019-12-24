@@ -1,7 +1,7 @@
 open Rebase;
 open Async;
 
-open! Type.Instance;
+open! Types.Instance;
 module Event = Event;
 
 let make = (editor: Atom.TextEditor.t): t => {
@@ -123,6 +123,43 @@ let handle = (error): list(Command.task) => {
           Plain(
             "This should not have happened, please report this issue\n"
             ++ message,
+          ),
+        ),
+      ]
+    | TypeError(NotInScope(name)) => [
+        Display(
+          Error("Type Error"),
+          Plain("The definition " ++ name ++ " is not in scope"),
+        ),
+      ]
+    | TypeError(UnifyFailed(s, t)) => [
+        Display(
+          Error("Type Error"),
+          Plain(
+            "Cannot unify: "
+            ++ Type.toString(s)
+            ++ "\nwith        : "
+            ++ Type.toString(t),
+          ),
+        ),
+      ]
+    | TypeError(RecursiveType(var, t)) => [
+        Display(
+          Error("Type Error"),
+          Plain(
+            "Recursive type variable: "
+            ++ Type.toString(Type.Var(var))
+            ++ "\n"
+            ++ "in type             : "
+            ++ Type.toString(t),
+          ),
+        ),
+      ]
+    | TypeError(NotFunction(t)) => [
+        Display(
+          Error("Type Error"),
+          Plain(
+            "The type " ++ Type.toString(t) ++ " is not a function type",
           ),
         ),
       ]

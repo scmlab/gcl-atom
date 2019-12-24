@@ -1,5 +1,5 @@
 open Rebase;
-open Type.Instance;
+open Types.Instance;
 // Markers
 
 let mark = (type_, class_, range, instance) => {
