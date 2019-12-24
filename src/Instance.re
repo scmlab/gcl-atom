@@ -127,12 +127,14 @@ let handle = (error): list(Command.task) => {
         ),
       ]
     | TypeError(NotInScope(name)) => [
+        WithInstance(Decoration.markSite(site)),
         Display(
           Error("Type Error"),
           Plain("The definition " ++ name ++ " is not in scope"),
         ),
       ]
     | TypeError(UnifyFailed(s, t)) => [
+        WithInstance(Decoration.markSite(site)),
         Display(
           Error("Type Error"),
           Plain(
@@ -144,6 +146,7 @@ let handle = (error): list(Command.task) => {
         ),
       ]
     | TypeError(RecursiveType(var, t)) => [
+        WithInstance(Decoration.markSite(site)),
         Display(
           Error("Type Error"),
           Plain(
@@ -156,6 +159,7 @@ let handle = (error): list(Command.task) => {
         ),
       ]
     | TypeError(NotFunction(t)) => [
+        WithInstance(Decoration.markSite(site)),
         Display(
           Error("Type Error"),
           Plain(
