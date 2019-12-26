@@ -44,14 +44,20 @@ module Connection = {
   let sendRequest = (request, instance): Async.t(Response.t, unit) => {
     instance
     |> getConnection
-    |> thenOk(Connection.send(Request.encode(request)))
+    |> thenOk(conn => {
+         let value = Request.encode(request);
+         Js.log("=== Send ===");
+         Js.log2("[ json ]", value);
+         conn |> Connection.send(value);
+       })
     |> mapError(error => {
          let (header, body) = Connection.Error.toString(error);
          instance |> View.displayError(header, body);
        })
     |> mapOk(result => {
-         Js.log2("[ received json ]", result);
-         Js.log2("[ received value ]", result |> Response.decode);
+         Js.log("=== Recieved ===");
+         Js.log2("[ json ]", result);
+         Js.log2("[ value ]", result |> Response.decode);
          Response.decode(result);
        });
   };
@@ -112,10 +118,19 @@ let handle = (error): list(Command.task(Types.Instance.t)) => {
       ]
     | ConvertError(DigHole) => [
         WithInstance(
-          instance =>
+          instance => {
+            Js.log("dig!");
             instance
             |> Spec.digHole(site)
-            |> thenOk(() => resolve([DispatchLocal(Save)])),
+            |> thenOk(() =>
+                 switch (instance.history) {
+                 | Some(Types.Command.Refine(_)) =>
+                   Js.log("!!");
+                   resolve([DispatchLocal(Save), DispatchLocal(Refine)]);
+                 | _ => resolve([DispatchLocal(Save)])
+                 }
+               );
+          },
         ),
       ]
     | ConvertError(Panic(message)) => [
@@ -211,8 +226,10 @@ let rec runTasks =
     fun
     | WithInstance(callback) =>
       callback(instance) |> thenOk(runTasks(instance))
-    | DispatchRemote(command) =>
-      Remote.dispatch(command) |> runTasks(instance)
+    | DispatchRemote(command) => {
+        instance.history = Some(command);
+        Remote.dispatch(command) |> runTasks(instance);
+      }
     | DispatchLocal(command) =>
       Local.dispatch(command) |> runTasks(instance)
     | SendRequest(request) =>
@@ -225,11 +242,5 @@ let rec runTasks =
         resolve();
       };
 
-  tasks
-  |> List.map(runTask)
-  |> Array.fromList
-  |> Js.Promise.all
-  |> fromPromise
-  |> mapError(_ => ())
-  |> thenOk(_ => resolve());
-} /*   */;
+  tasks |> List.map((x, ()) => runTask(x)) |> each |> thenOk(_ => resolve());
+};

@@ -118,3 +118,11 @@ let flatten: (result('e, 'f) => 'g, t(result('a, 'e), 'f)) => t('a, 'g) =
 //   xs => {
 //     xs |> P.all |> P.then_(xs => xs |> Util.Result.every |> P.resolve);
 //   };
+
+// execute an array of promises, one by one, and return the results
+let rec each: list(unit => t('a, 'e)) => t(list('a), 'e) =
+  fun
+  | [] => resolve([])
+  | [x] => x() |> mapOk(x' => [x'])
+  | [x, ...xs] =>
+    x() |> thenOk(x' => each(xs) |> thenOk(xs' => resolve([x', ...xs'])));

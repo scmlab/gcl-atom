@@ -62,6 +62,6 @@ module Instance = {
     mutable connection: Connection.t,
     mutable decorations: array(Atom.Decoration.t),
     mutable specifications: array(Response.Specification.t),
-    mutable history: option(Command.local),
+    mutable history: option(Command.remote),
   };
 };

@@ -93,6 +93,7 @@ module Remote = {
           instance => {
             open Response.Specification;
             let payload = Spec.getPayload(spec, instance);
+            Js.log2("[refine]", spec.range);
             resolve([SendRequest(Refine(spec.id, payload))]);
           },
         ),
