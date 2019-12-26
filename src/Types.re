@@ -38,6 +38,22 @@ module View = {
   };
 };
 
+module Command = {
+  type remote =
+    | Load(string)
+    | Refine(Response.Specification.t)
+  and local =
+    | Toggle
+    | Save
+    | Refine
+  and task('a) =
+    | WithInstance('a => Async.t(list(task('a)), unit))
+    | DispatchRemote(remote)
+    | DispatchLocal(local)
+    | SendRequest(Request.t)
+    | Display(View.header, Body.t);
+};
+
 module Instance = {
   type t = {
     editor: Atom.TextEditor.t,
@@ -46,5 +62,6 @@ module Instance = {
     mutable connection: Connection.t,
     mutable decorations: array(Atom.Decoration.t),
     mutable specifications: array(Response.Specification.t),
+    mutable history: option(Command.local),
   };
 };

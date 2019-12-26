@@ -11,6 +11,7 @@ let make = (editor: Atom.TextEditor.t): t => {
   connection: Connection.make(),
   decorations: [||],
   specifications: [||],
+  history: None,
 };
 
 module View = {
@@ -62,9 +63,9 @@ let destroy = instance => {
   instance |> View.destroy;
 };
 
-let handle = (error): list(Command.task) => {
+let handle = (error): list(Command.task(Types.Instance.t)) => {
+  open Types.Command;
   let handleError = error => {
-    open Command;
     let Response.Error.Error(site, kind) = error;
     open Response.Error;
     ();
@@ -114,7 +115,7 @@ let handle = (error): list(Command.task) => {
           instance =>
             instance
             |> Spec.digHole(site)
-            |> thenOk(() => resolve([DispatchLocal(Command.Save)])),
+            |> thenOk(() => resolve([DispatchLocal(Save)])),
         ),
       ]
     | ConvertError(Panic(message)) => [
@@ -188,7 +189,7 @@ let handle = (error): list(Command.task) => {
       WithInstance(
         instance =>
           Spec.resolve(i, instance)
-          |> thenOk(() => resolve([Command.DispatchLocal(Command.Save)])),
+          |> thenOk(() => resolve([DispatchLocal(Save)])),
       ),
     ]
   | UnknownResponse(json) => [
@@ -201,8 +202,11 @@ let handle = (error): list(Command.task) => {
 };
 
 let rec runTasks =
-        (instance: t, tasks: list(Command.task)): Async.t(unit, unit) => {
+        (instance: t, tasks: list(Command.task(Types.Instance.t)))
+        : Async.t(unit, unit) => {
+  open Types.Command;
   open Command;
+
   let runTask =
     fun
     | WithInstance(callback) =>

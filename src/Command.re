@@ -1,22 +1,11 @@
 open Async;
 open Rebase;
 
-type remote =
-  | Load(string)
-  | Refine(Response.Specification.t)
-and local =
-  | Toggle
-  | Save
-  | Refine
-and task =
-  | WithInstance(Types.Instance.t => Async.t(list(task), unit))
-  | DispatchRemote(remote)
-  | DispatchLocal(local)
-  | SendRequest(Request.t)
-  | Display(Types.View.header, Body.t);
+type task('a) = Types.Command.task('a);
 
 module Local = {
-  type t = local;
+  open Types.Command;
+  type t = Types.Command.local;
   let commandNames = [|"toggle", "save", "refine"|];
   let parse =
     fun
@@ -29,7 +18,7 @@ module Local = {
     | Toggle => [
         WithInstance(
           instance =>
-            if (instance.toggle) {
+            if (instance.Types.Instance.toggle) {
               instance.toggle = false;
               instance.view.setActivation(false) |> ignore;
               // destroy all decorations
@@ -94,7 +83,8 @@ module Local = {
 };
 
 module Remote = {
-  type t = remote;
+  open Types.Command;
+  type t = Types.Command.remote;
   let dispatch =
     fun
     | Load(path) => [SendRequest(Load(path))]
