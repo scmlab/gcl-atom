@@ -23,19 +23,23 @@ let fromCursorPosition = instance => {
   smallestHole^;
 };
 
-let getPayloadRange = spec => {
+let getPayloadRange = (spec, instance) => {
   open Atom;
 
   // return the text in the targeted hole
   let start = Point.translate(Range.start(spec.range), Point.make(1, 0));
-  let end_ = Point.translate(Range.end_(spec.range), Point.make(0, -2));
+  let end_ =
+    instance.editor
+    |> TextEditor.getBuffer
+    |> TextBuffer.rangeForRow(Point.row(Range.end_(spec.range)) - 1, true)
+    |> Range.end_;
   Range.make(start, end_);
 };
 
 let getPayload = (spec, instance) => {
   open Atom;
   // return the text in the targeted hole
-  let innerRange = getPayloadRange(spec);
+  let innerRange = getPayloadRange(spec, instance);
   instance.editor
   |> TextEditor.getBuffer
   |> TextBuffer.getTextInRange(innerRange);
@@ -47,17 +51,17 @@ let resolve = (i, instance) => {
   let specs = instance.specifications |> Array.filter(spec => spec.id == i);
   specs[0]
   |> Option.forEach(spec => {
-       // delete the rows containing the hole boundaries
-       let startingRow = Point.row(Range.start(spec.range));
-       let endingRow = Point.row(Range.end_(spec.range));
+       let payload = getPayload(spec, instance);
+       let start = Range.start(spec.range);
 
        instance.editor
        |> TextEditor.getBuffer
-       |> TextBuffer.deleteRow(endingRow)
+       |> TextBuffer.delete(spec.range)
        |> ignore;
+
        instance.editor
        |> TextEditor.getBuffer
-       |> TextBuffer.deleteRow(startingRow)
+       |> TextBuffer.insert(start, Js.String.trim(payload))
        |> ignore;
      });
   Async.resolve();

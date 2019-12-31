@@ -43,8 +43,8 @@ module Op = {
   let toString =
     fun
     | EQ => "="
-    | LTE => "≤"
-    | GTE => "≥"
+    | LTE => {j|≤|j}
+    | GTE => {j|≥|j}
     | LT => "<"
     | GT => ">"
     | Implies => {j|→|j}
@@ -264,7 +264,15 @@ module Precedence = {
     | App(p, q) =>
       switch (handleExpr(n, p)) {
       | Expect(f) => f(q)
-      | Complete(s) => Complete(s)
+      | Complete(s) =>
+        switch (handleExpr(n, q)) {
+        | Expect(g) => Expect(g)
+        | Complete(t) =>
+          switch (q) {
+          | App(_, _) => Complete(s ++ " " ++ parensIf(true, t))
+          | _ => Complete(s ++ " " ++ t)
+          }
+        }
       }
     | Hole(i, _substs) => Complete("[" ++ string_of_int(i) ++ "]")
   and toString = (n, p) =>
