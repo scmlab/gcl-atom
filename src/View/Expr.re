@@ -35,8 +35,8 @@ module Op = {
     | Conj
     | Disj
     | Neg
-    | Plus
-    | Minus
+    | Add
+    | Sub
     | Mul
     | Div;
 
@@ -51,8 +51,8 @@ module Op = {
     | Disj => {j|⋁|j}
     | Conj => {j|⋀|j}
     | Neg => {j|¬|j}
-    | Plus => "+"
-    | Minus => "-"
+    | Add => "+"
+    | Sub => "-"
     | Mul => "*"
     | Div => "/";
 
@@ -70,8 +70,8 @@ module Op = {
          | "Conj" => Conj
          | "Disj" => Disj
          | "Neg" => Neg
-         | "Plus" => Plus
-         | "Minus" => Minus
+         | "Add" => Add
+         | "Sub" => Sub
          | "Mul" => Mul
          | "Div" => Div
          | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
@@ -168,8 +168,8 @@ module Precedence = {
     | GT => Infix(Predicate(5))
     | Mul => InfixL(Number(1))
     | Div => InfixL(Number(1))
-    | Plus => InfixL(Number(2))
-    | Minus => InfixL(Number(2));
+    | Add => InfixL(Number(2))
+    | Sub => InfixL(Number(2));
 
   // adds parentheses when True
   let parensIf = (p, s) =>
