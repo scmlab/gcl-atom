@@ -27,6 +27,7 @@ module Lit = {
 module Op = {
   type t =
     | EQ
+    | NEQ
     | LTE
     | GTE
     | LT
@@ -43,6 +44,7 @@ module Op = {
   let toString =
     fun
     | EQ => "="
+    | NEQ => {j|≠|j}
     | LTE => {j|≤|j}
     | GTE => {j|≥|j}
     | LT => "<"
@@ -62,6 +64,7 @@ module Op = {
     |> map(
          fun
          | "EQ" => EQ
+         | "NEQ" => NEQ
          | "LTE" => LTE
          | "GTE" => GTE
          | "LT" => LT
@@ -162,6 +165,7 @@ module Precedence = {
     | Conj => InfixL(Predicate(3))
     | Neg => Prefix(Predicate(4))
     | EQ => Infix(Predicate(5))
+    | NEQ => Infix(Predicate(5))
     | LTE => Infix(Predicate(5))
     | GTE => Infix(Predicate(5))
     | LT => Infix(Predicate(5))
