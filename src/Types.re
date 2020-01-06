@@ -41,17 +41,11 @@ module View = {
 module Command = {
   type remote =
     | Load(string)
-    | Refine(Response.Specification.t)
-  and local =
+    | Refine(Response.Specification.t);
+  type local =
     | Toggle
     | Save
-    | Refine
-  and task('a) =
-    | WithInstance('a => Async.t(list(task('a)), unit))
-    | DispatchRemote(remote)
-    | DispatchLocal(local)
-    | SendRequest(Request.t)
-    | Display(View.header, Body.t);
+    | Refine;
 };
 
 module Instance = {
@@ -64,4 +58,13 @@ module Instance = {
     mutable specifications: array(Response.Specification.t),
     mutable history: option(Command.remote),
   };
+};
+
+module Task = {
+  type t =
+    | WithInstance(Instance.t => Async.t(list(t), unit))
+    | DispatchRemote(Command.remote)
+    | DispatchLocal(Command.local)
+    | SendRequest(Request.t)
+    | Display(View.header, Body.t);
 };

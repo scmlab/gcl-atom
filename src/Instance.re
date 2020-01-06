@@ -69,8 +69,10 @@ let destroy = instance => {
   instance |> View.destroy;
 };
 
-let handle = (error): list(Command.task(Types.Instance.t)) => {
+// from GCL response to Task
+let handle = (response): list(Types.Task.t) => {
   open Types.Command;
+  open Types.Task;
   let handleError = error => {
     let Response.Error.Error(site, kind) = error;
     open Response.Error;
@@ -186,7 +188,7 @@ let handle = (error): list(Command.task(Types.Instance.t)) => {
     };
   };
 
-  switch (error) {
+  switch (response) {
   | Response.Error(errors) =>
     errors |> Array.map(handleError) |> List.fromArray |> Js.List.flatten
   | OK(obligations, specifications) => [
@@ -216,10 +218,10 @@ let handle = (error): list(Command.task(Types.Instance.t)) => {
   };
 };
 
+// run the Tasks
 let rec runTasks =
-        (instance: t, tasks: list(Command.task(Types.Instance.t)))
-        : Async.t(unit, unit) => {
-  open Types.Command;
+        (instance: t, tasks: list(Types.Task.t)): Async.t(unit, unit) => {
+  open Types.Task;
   open Command;
 
   let runTask =

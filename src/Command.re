@@ -1,10 +1,9 @@
 open Async;
 open Rebase;
 
-type task('a) = Types.Command.task('a);
-
 module Local = {
   open Types.Command;
+  open Types.Task;
   type t = Types.Command.local;
   let commandNames = [|"toggle", "save", "refine"|];
   let parse =
@@ -84,6 +83,7 @@ module Local = {
 
 module Remote = {
   open Types.Command;
+  open Types.Task;
   type t = Types.Command.remote;
   let dispatch =
     fun
