@@ -16,12 +16,6 @@ module Base = {
            | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
          )
     );
-  // sum(
-  //   fun
-  //   | "TInt" => TagOnly(_ => Int)
-  //   | "TBool" => TagOnly(_ => Bool)
-  //   | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
-  // )
 
   let toString =
     fun

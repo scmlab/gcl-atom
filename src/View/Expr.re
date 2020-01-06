@@ -39,7 +39,8 @@ module Op = {
     | Add
     | Sub
     | Mul
-    | Div;
+    | Div
+    | Mod;
 
   let toString =
     fun
@@ -56,7 +57,8 @@ module Op = {
     | Add => "+"
     | Sub => "-"
     | Mul => "*"
-    | Div => "/";
+    | Div => "/"
+    | Mod => "%";
 
   open Json.Decode;
   let decode: decoder(t) =
@@ -77,6 +79,7 @@ module Op = {
          | "Sub" => Sub
          | "Mul" => Mul
          | "Div" => Div
+         | "Mod" => Mod
          | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
        );
 };
@@ -170,10 +173,11 @@ module Precedence = {
     | GTE => Infix(Predicate(5))
     | LT => Infix(Predicate(5))
     | GT => Infix(Predicate(5))
-    | Mul => InfixL(Number(1))
-    | Div => InfixL(Number(1))
-    | Add => InfixL(Number(2))
-    | Sub => InfixL(Number(2));
+    | Mod => InfixL(Number(1))
+    | Mul => InfixL(Number(2))
+    | Div => InfixL(Number(2))
+    | Add => InfixL(Number(3))
+    | Sub => InfixL(Number(3));
 
   // adds parentheses when True
   let parensIf = (p, s) =>
