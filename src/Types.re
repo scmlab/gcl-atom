@@ -41,7 +41,7 @@ module View = {
 module Command = {
   type remote =
     | Load(string)
-    | Refine(Response.Specification.t);
+    | Refine(Specification.t);
   type local =
     | Toggle
     | Save
@@ -55,7 +55,7 @@ module Instance = {
     mutable toggle: bool,
     mutable connection: Connection.t,
     mutable decorations: array(Atom.Decoration.t),
-    mutable specifications: array(Response.Specification.t),
+    mutable specifications: array(Specification.t),
     mutable history: option(Command.remote),
   };
 };

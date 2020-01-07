@@ -12,6 +12,8 @@ module Local = {
     | "save" => Save
     | "refine" => Refine
     | _ => Save;
+
+  // from Editor Command to Tasks
   let dispatch =
     fun
     | Toggle => [
@@ -72,7 +74,7 @@ module Local = {
     | Refine => [
         WithInstance(
           instance =>
-            Spec.fromCursorPosition(instance)
+            Response.Spec.fromCursorPosition(instance)
             |> Option.mapOr(
                  spec => resolve([DispatchRemote(Refine(spec))]),
                  resolve([]),
@@ -85,14 +87,15 @@ module Remote = {
   open Types.Command;
   open Types.Task;
   type t = Types.Command.remote;
+  // from Editor Command to Tasks
   let dispatch =
     fun
     | Load(path) => [SendRequest(Load(path))]
     | Refine(spec) => [
         WithInstance(
           instance => {
-            open Response.Specification;
-            let payload = Spec.getPayload(spec, instance);
+            open Specification;
+            let payload = Response.Spec.getPayload(spec, instance);
             Js.log2("[refine]", spec.range);
             resolve([SendRequest(Refine(spec.id, payload))]);
           },
