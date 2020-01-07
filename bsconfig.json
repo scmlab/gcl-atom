@@ -23,6 +23,7 @@
     "@glennsl/rebase",
     "atom",
     "bs-webapi",
+    "reason-promise"
   ],
   "bsc-flags": ["-bs-g"]  ,
   "refmt": 3
