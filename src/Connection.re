@@ -226,7 +226,7 @@ let connect = connection => {
   // on data
   process
   |> N.ChildProcess.stdout
-  |> N.Stream.Readable.on(
+  |> Nd.Stream.Readable.on(
        `data(
          chunk => {
            // serialize the binary chunk into string
@@ -253,7 +253,7 @@ let connect = connection => {
 
   process
   |> N.ChildProcess.stdin
-  |> N.Stream.Writable.on(`close(() => disconnect(connection) |> ignore))
+  |> Nd.Stream.Writable.on(`close(() => disconnect(connection) |> ignore))
   |> ignore;
 
   // on errors and anomalies
@@ -322,7 +322,7 @@ let send = (request, connection): Promise.t(result(Js.Json.t, Error.t)) => {
     // write
     process
     |> N.ChildProcess.stdin
-    |> N.Stream.Writable.write(payload)
+    |> Nd.Stream.Writable.write(payload)
     |> ignore;
 
     promise;

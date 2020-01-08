@@ -1,6 +1,6 @@
 /* Node Child Process API */
 
-module Stream = Node__Stream;
+module Stream = Nd.Stream;
 
 type t;
 
