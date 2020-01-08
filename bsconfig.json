@@ -23,6 +23,7 @@
     "@glennsl/rebase",
     "atom",
     "bs-webapi",
+    "bs-nd",
     "reason-promise"
   ],
   "ppx-flags": ["bs-let/ppx"],

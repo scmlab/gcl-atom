@@ -98,21 +98,21 @@ signal: $signal
 
 module Emitter = {
   type t('a) = {
-    emitter: N.Events.t,
+    emitter: Nd.Events.t,
     emit: 'a => unit,
     once: unit => Promise.t('a),
     destroy: unit => unit,
   };
 
   let make = () => {
-    let emitter = N.Events.make();
+    let emitter = Nd.Events.make();
     {
       emitter,
-      emit: x => emitter |> N.Events.emit("data", x) |> ignore,
+      emit: x => emitter |> Nd.Events.emit("data", x) |> ignore,
       once: () => {
         let (promise, resolve) = Promise.pending();
         emitter
-        |> N.Events.once("data", x => {
+        |> Nd.Events.once("data", x => {
              Js.log(x);
              resolve(x);
            })
@@ -123,7 +123,7 @@ module Emitter = {
       // ->Promise.Js.fromBsPromise
       // ->Promise.Js.toResult
       // ->Promise.map(Option.fromResult),
-      destroy: () => N.Events.removeAllListeners(emitter) |> ignore,
+      destroy: () => Nd.Events.removeAllListeners(emitter) |> ignore,
     };
   };
 };
