@@ -21,7 +21,7 @@
     "reason-react",
     "@glennsl/bs-json",
     "@glennsl/rebase",
-    "atom",
+    "bs-atom2",
     "bs-webapi",
     "bs-nd",
     "reason-promise"
