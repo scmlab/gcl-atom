@@ -53,19 +53,31 @@ module Result = {
     );
 };
 
+// module Promise = {
+//   type t('a, 'e) = result('a, 'e);
+//   let every = (xs: array(t('a, 'e))): t(array('a), 'e) =>
+//     Array.reduce(
+//       (acc, x) =>
+//         switch (acc, x) {
+//         | (Ok(xs), Ok(v)) =>
+//           xs |> Js.Array.push(v) |> ignore;
+//           Ok(xs);
+//         | (_, Error(e)) => Error(e)
+//         | (Error(e), _) => Error(e)
+//         },
+//       Ok([||]),
+//       xs,
+//     );
+// };
+
+module Pm = Promise;
 module Promise = {
-  type t('a, 'e) = result('a, 'e);
-  let every = (xs: array(t('a, 'e))): t(array('a), 'e) =>
-    Array.reduce(
-      (acc, x) =>
-        switch (acc, x) {
-        | (Ok(xs), Ok(v)) =>
-          xs |> Js.Array.push(v) |> ignore;
-          Ok(xs);
-        | (_, Error(e)) => Error(e)
-        | (Error(e), _) => Error(e)
-        },
-      Ok([||]),
-      xs,
-    );
+  let rec each = (xs: list(Pm.t('a))): Pm.t(list('a)) =>
+    switch (xs) {
+    | [] => Pm.resolved([])
+    | [x, ...xs] =>
+      let%P x' = x;
+      let%P xs' = each(xs);
+      Pm.resolved([x', ...xs']);
+    };
 };

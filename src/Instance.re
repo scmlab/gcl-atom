@@ -1,5 +1,4 @@
-open Rebase;
-open Async;
+open! Rebase;
 
 open! Types.Instance;
 module Event = Event;
@@ -26,59 +25,53 @@ module View = {
   };
 };
 
-module Connection = {
+module Connection_ = {
   // destroy the connection
   let disconnect = instance =>
     Connection.disconnect(instance.connection) |> ignore;
   // connect if not connected yet
-  let getConnection = (instance): Async.t(Connection.t, Connection.Error.t) => {
+  let getConnection =
+      (instance): Promise.t(result(Connection.t, Connection.Error.t)) => {
     let isConnected = Connection.isConnected(instance.connection);
     if (isConnected) {
-      resolve(instance.connection);
+      Promise.resolved(Ok(instance.connection));
     } else {
       Connection.connect(instance.connection)
-      |> thenOk(() => resolve(instance.connection));
+      ->Promise.mapOk(() => instance.connection);
     };
   };
 
-  let sendRequest = (request, instance): Async.t(Response.t, unit) => {
-    instance
-    |> getConnection
-    |> thenOk(conn => {
-         let value = Request.encode(request);
-         Js.log("=== Send ===");
-         Js.log2("[ json ]", value);
-         conn |> Connection.send(value);
-       })
-    |> mapError(error => {
-         let (header, body) = Connection.Error.toString(error);
-         instance |> View.displayError(header, body);
-       })
-    |> mapOk(result => {
-         Js.log("=== Recieved ===");
-         Js.log2("[ json ]", result);
-         Js.log2("[ value ]", result |> Response.decode);
-         Response.decode(result);
-       });
+  let sendRequest =
+      (request, instance): Promise.t(result(Response.t, Connection.Error.t)) => {
+    let value = Request.encode(request);
+    Js.log("=== Send ===");
+    Js.log2("[ json ]", value);
+
+    let%Ok conn = instance->getConnection;
+    let%Ok result = Connection.send(value, conn);
+
+    Js.log("=== Recieved ===");
+    Js.log2("[ json ]", result);
+    Js.log2("[ value ]", result |> Response.decode);
+    Promise.resolved(Ok(Response.decode(result)));
   };
 };
 
 let destroy = instance => {
-  instance |> Connection.disconnect;
+  instance |> Connection_.disconnect;
   instance |> Response.Decoration.destroyAll;
   instance |> View.destroy;
 };
 
 // run the Tasks
-let rec runTasks =
-        (instance: t, tasks: list(Types.Task.t)): Async.t(unit, unit) => {
+let rec runTasks = (instance: t, tasks: list(Types.Task.t)): Promise.t(unit) => {
   open Types.Task;
   open Command;
 
   let runTask =
     fun
     | WithInstance(callback) =>
-      callback(instance) |> thenOk(runTasks(instance))
+      callback(instance)->Promise.flatMap(runTasks(instance))
     | DispatchRemote(command) => {
         instance.history = Some(command);
         Remote.dispatch(command) |> runTasks(instance);
@@ -86,14 +79,21 @@ let rec runTasks =
     | DispatchLocal(command) =>
       Local.dispatch(command) |> runTasks(instance)
     | SendRequest(request) =>
-      instance
-      |> Connection.sendRequest(request)
-      |> thenOk(x => x |> Response.handle |> runTasks(instance))
+      Connection_.sendRequest(request, instance)
+      ->Promise.flatMap(
+          fun
+          | Error(error) => {
+              let (header, body) = Connection.Error.toString(error);
+              instance |> View.displayError(header, body);
+              Promise.resolved();
+            }
+          | Ok(x) => x |> Response.handle |> runTasks(instance),
+        )
     | Display(header, body) => {
         instance.view.setHeader(header) |> ignore;
         instance.view.setBody(body) |> ignore;
-        resolve();
+        Promise.resolved();
       };
 
-  tasks |> List.map((x, ()) => runTask(x)) |> each |> thenOk(_ => resolve());
+  (tasks |> List.map(runTask) |> Util.Promise.each)->Promise.map(_ => ());
 };

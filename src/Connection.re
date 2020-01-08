@@ -1,4 +1,4 @@
-open Rebase;
+open! Rebase;
 
 module Error = {
   type autoSearch =
@@ -98,7 +98,7 @@ signal: $signal
 type t = {
   mutable path: option(string),
   mutable process: option(N.ChildProcess.t),
-  emitter: Event.t(Js.Json.t, Error.t),
+  emitter: Event.t(result(Js.Json.t, Error.t)),
 };
 
 let disconnect = connection => {
@@ -106,7 +106,7 @@ let disconnect = connection => {
   connection.process |> Option.forEach(N.ChildProcess.kill("SIGTERM"));
   connection.process = None;
 
-  Async.resolve();
+  Promise.resolved();
 };
 
 let isConnected = connection =>
@@ -117,14 +117,17 @@ let isConnected = connection =>
 
 let make = (): t => {path: None, process: None, emitter: Event.make()};
 
-let autoSearch = (name): Async.t(string, Error.t) =>
-  Async.make((resolve, reject) => {
-    /* reject if the process hasn't responded for more than 1 second */
+let autoSearch = (name): Promise.t(result(string, Error.t)) =>
+  {
+    let (promise, resolve) = Promise.pending();
+
+    // reject if the process hasn't responded for more than 1 second
     let hangTimeout =
       Js.Global.setTimeout(
-        () => reject(ProcessHanging(name): Error.autoSearch),
+        () => resolve(Error(ProcessHanging(name): Error.autoSearch)),
         1000,
       );
+
     let commandName =
       switch (N.OS.type_()) {
       | "Linux"
@@ -134,7 +137,7 @@ let autoSearch = (name): Async.t(string, Error.t) =>
       };
 
     switch (commandName) {
-    | Error(os) => reject(NotSupported(os))
+    | Error(os) => resolve(Error(NotSupported(os)))
     | Ok(commandName') =>
       N.ChildProcess.exec(
         commandName' ++ " " ++ name,
@@ -146,135 +149,131 @@ let autoSearch = (name): Async.t(string, Error.t) =>
           switch (error |> Js.Nullable.toOption) {
           | None => ()
           | Some(err) =>
-            reject(
-              NotFound(name, err |> Js.Exn.message |> Option.getOr("")),
+            resolve(
+              Error(
+                NotFound(name, err |> Js.Exn.message |> Option.getOr("")),
+              ),
             )
           };
 
           /* stderr */
           let stderr' = stderr |> Node.Buffer.toString;
           if (stderr' |> String.isEmpty |> (!)) {
-            reject(NotFound(name, stderr'));
+            resolve(Error(NotFound(name, stderr')));
           };
 
           /* stdout */
           let stdout' = stdout |> Node.Buffer.toString;
           if (stdout' |> String.isEmpty) {
-            reject(NotFound(name, ""));
+            resolve(Error(NotFound(name, "")));
           } else {
-            resolve(stdout');
+            resolve(Ok(stdout'));
           };
         },
       )
       |> ignore
     };
-  })
-  |> Async.mapError(e => Error.AutoSearchError(e));
 
-let connect = connection =>
-  autoSearch("gcl")
-  |> Async.thenOk(path => {
-       open N;
-       let process = ChildProcess.spawn(path, [||], {"shell": true});
-       connection.path = Some(path);
-       connection.process = Some(process);
+    promise;
+  }
+  ->Promise.mapError(e => Error.AutoSearchError(e));
 
-       // for incremental parsing
-       let unfinishedMsg = ref(None);
+let connect = connection => {
+  let%Ok path = autoSearch("gcl");
+  open N;
+  let process = ChildProcess.spawn(path, [||], {"shell": true});
+  connection.path = Some(path);
+  connection.process = Some(process);
 
-       // on data
-       process
-       |> N.ChildProcess.stdout
-       |> N.Stream.Readable.on(
-            `data(
-              chunk => {
-                // serialize the binary chunk into string
-                let string = Node.Buffer.toString(chunk);
+  // for incremental parsing
+  let unfinishedMsg = ref(None);
 
-                // for incremental parsing
-                let augmented =
-                  switch (unfinishedMsg^) {
-                  | None => string
-                  | Some(unfinished) => unfinished ++ string
-                  };
+  // on data
+  process
+  |> N.ChildProcess.stdout
+  |> N.Stream.Readable.on(
+       `data(
+         chunk => {
+           // serialize the binary chunk into string
+           let string = Node.Buffer.toString(chunk);
 
-                // try parsing the string as JSON value
-                switch (Json.parse(augmented)) {
-                | None => unfinishedMsg := Some(augmented)
-                | Some(result) =>
-                  unfinishedMsg := None;
-                  connection.emitter |> Event.emitOk(result);
-                };
-              },
-            ),
-          )
-       |> ignore;
+           // for incremental parsing
+           let augmented =
+             switch (unfinishedMsg^) {
+             | None => string
+             | Some(unfinished) => unfinished ++ string
+             };
 
-       process
-       |> N.ChildProcess.stdin
-       |> N.Stream.Writable.on(
-            `close(() => disconnect(connection) |> ignore),
-          )
-       |> ignore;
+           // try parsing the string as JSON value
+           switch (Json.parse(augmented)) {
+           | None => unfinishedMsg := Some(augmented)
+           | Some(result) =>
+             unfinishedMsg := None;
+             connection.emitter |> Event.emitOk(result);
+           };
+         },
+       ),
+     )
+  |> ignore;
 
-       // on errors and anomalies
-       process
-       |> ChildProcess.on(
-            `close(
-              (code, signal) => {
-                disconnect(connection) |> ignore;
-                connection.emitter
-                |> Event.emitError(
-                     Error.ConnectionError(
-                       Error.ClosedByProcess(code, signal),
-                     ),
-                   );
-              },
-            ),
-          )
-       |> ChildProcess.on(
-            `disconnect(
-              () => {
-                disconnect(connection) |> ignore;
-                connection.emitter
-                |> Event.emitError(
-                     Error.ConnectionError(Error.DisconnectedByUser),
-                   );
-              },
-            ),
-          )
-       |> ChildProcess.on(
-            `error(
-              exn => {
-                disconnect(connection) |> ignore;
-                connection.emitter
-                |> Event.emitError(
-                     Error.ConnectionError(Error.ShellError(exn)),
-                   );
-              },
-            ),
-          )
-       |> ChildProcess.on(
-            `exit(
-              (code, signal) => {
-                disconnect(connection) |> ignore;
-                connection.emitter
-                |> Event.emitError(
-                     Error.ConnectionError(
-                       Error.ExitedByProcess(code, signal),
-                     ),
-                   );
-              },
-            ),
-          )
-       |> ignore;
+  process
+  |> N.ChildProcess.stdin
+  |> N.Stream.Writable.on(`close(() => disconnect(connection) |> ignore))
+  |> ignore;
 
-       Async.resolve();
-     });
+  // on errors and anomalies
+  process
+  |> ChildProcess.on(
+       `close(
+         (code, signal) => {
+           disconnect(connection) |> ignore;
+           connection.emitter
+           |> Event.emitError(
+                Error.ConnectionError(Error.ClosedByProcess(code, signal)),
+              );
+         },
+       ),
+     )
+  |> ChildProcess.on(
+       `disconnect(
+         () => {
+           disconnect(connection) |> ignore;
+           connection.emitter
+           |> Event.emitError(
+                Error.ConnectionError(Error.DisconnectedByUser),
+              );
+         },
+       ),
+     )
+  |> ChildProcess.on(
+       `error(
+         exn => {
+           disconnect(connection) |> ignore;
+           connection.emitter
+           |> Event.emitError(Error.ConnectionError(Error.ShellError(exn)));
+         },
+       ),
+     )
+  |> ChildProcess.on(
+       `exit(
+         (code, signal) => {
+           disconnect(connection) |> ignore;
+           connection.emitter
+           |> Event.emitError(
+                Error.ConnectionError(Error.ExitedByProcess(code, signal)),
+              );
+         },
+       ),
+     )
+  |> ignore;
 
-let send = (request, connection): Async.t(Js.Json.t, Error.t) => {
+  Promise.resolved(Ok());
+};
+
+let send = (request, connection): Promise.t(result(Js.Json.t, Error.t)) => {
   switch (connection.process) {
-  | None => Async.reject(Error.ConnectionError(Error.NotEstablishedYet))
+  | None =>
+    Promise.resolved(Error(Error.ConnectionError(Error.NotEstablishedYet)))
   | Some(process) =>
     let promise = connection.emitter |> Event.once;
 

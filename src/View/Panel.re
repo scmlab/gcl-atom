@@ -1,4 +1,4 @@
-open Types.View;
+open! Types.View;
 
 [@react.component]
 let make = (~channels: Channels.t) => {
@@ -7,10 +7,13 @@ let make = (~channels: Channels.t) => {
   let (body, setBody) = Hook.useState(Body.Nothing);
   let (activated, setActivation) = Hook.useState(false);
 
-  Hook.useChannel(x => x |> setHeader |> Async.resolve, channels.setHeader);
-  Hook.useChannel(x => x |> setBody |> Async.resolve, channels.setBody);
   Hook.useChannel(
-    x => x |> setActivation |> Async.resolve,
+    x => x |> setHeader |> Promise.resolved,
+    channels.setHeader,
+  );
+  Hook.useChannel(x => x |> setBody |> Promise.resolved, channels.setBody);
+  Hook.useChannel(
+    x => x |> setActivation |> Promise.resolved,
     channels.setActivation,
   );
 

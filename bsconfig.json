@@ -25,6 +25,7 @@
     "bs-webapi",
     "reason-promise"
   ],
+  "ppx-flags": ["bs-let/ppx"],
   "bsc-flags": ["-bs-g"]  ,
   "refmt": 3
 }

@@ -1,44 +1,36 @@
 /* open Async; */
-open Rebase;
+open! Rebase;
 
 module Listener = {
-  type t('a, 'e) = {
-    resolve: result('a, 'e) => unit,
+  type t('a) = {
+    resolve: 'a => unit,
     id: int,
   };
-  let make = (resolve, id): t('a, 'e) => {resolve, id};
-  // Listener(B, F) -> Listener(A, E)
-  let contraMap =
-      (f: result('a, 'e) => result('b, 'f), listener: t('b, 'f))
-      : t('a, 'e) => {
-    resolve: (event: result('a, 'e)) => listener.resolve(f(event)),
-    id: listener.id,
-  };
-  let contraMap_ =
-      (f: result('a, 'e) => array(result('b, 'f)), listener: t('b, 'f))
-      : t('a, 'e) => {
-    resolve: x => f(x) |> Array.forEach(listener.resolve),
+  let make = (resolve, id): t('a) => {resolve, id};
+  // Listener(B) -> Listener(A)
+  let contraMap = (f: 'a => 'b, listener: t('b)): t('a) => {
+    resolve: (event: 'a) => listener.resolve(f(event)),
     id: listener.id,
   };
 };
 
-type t('a, 'e) = {
+type t('a) = {
   counter: ref(int),
-  listeners: Js.Dict.t(Listener.t('a, 'e)),
+  listeners: Js.Dict.t(Listener.t('a)),
 };
 
 let make = () => {counter: ref(0), listeners: Js.Dict.empty()};
 
-let removeListener = (_id: int, _self: t('a, 'e)) => {
+let removeListener = (_id: int, _self: t('a)) => {
   %raw
   "delete _self[1][String(_id)]";
 };
 
-let removeListener' = (_id: string, _self: t('a, 'e)) => {
+let removeListener' = (_id: string, _self: t('a)) => {
   %raw
   "delete _self[1][_id]";
 };
-let removeAllListeners = (self: t('a, 'e)) => {
+let removeAllListeners = (self: t('a)) => {
   self.listeners
   |> Js.Dict.keys
   |> Array.forEach(id => removeListener'(id, self))
@@ -46,8 +38,7 @@ let removeAllListeners = (self: t('a, 'e)) => {
 };
 let destroy = removeAllListeners;
 
-let listen =
-    (callback: result('a, 'e) => unit, self: t('a, 'e)): (unit => unit) => {
+let listen = (callback: 'a => unit, self: t('a)): (unit => unit) => {
   /* get and update the ID counter  */
   let id: int = self.counter^ + 1;
   self.counter := id;
@@ -70,20 +61,12 @@ let destroyWhen =
 /* alias of `listen` */
 let on = listen;
 
-let contraMap =
-    (f: result('a, 'e) => result('b, 'f), x: t('b, 'f)): t('a, 'e) => {
+let contraMap = (f: 'a => 'b, x: t('b)): t('a) => {
   counter: x.counter,
   listeners: x.listeners |> Js.Dict.map((. l) => l |> Listener.contraMap(f)),
 };
 
-let contraMap_ =
-    (f: result('a, 'e) => array(result('b, 'f)), x: t('b, 'f)): t('a, 'e) => {
-  counter: x.counter,
-  listeners:
-    x.listeners |> Js.Dict.map((. l) => l |> Listener.contraMap_(f)),
-};
-
-let onOk: ('a => unit, t('a, 'e), unit) => unit =
+let onOk: ('a => unit, t(result('a, 'e)), unit) => unit =
   callback =>
     on(
       fun
@@ -91,7 +74,7 @@ let onOk: ('a => unit, t('a, 'e), unit) => unit =
       | Error(_) => (),
     );
 
-let onError: ('e => unit, t('a, 'e), unit) => unit =
+let onError: ('e => unit, t(result('a, 'e)), unit) => unit =
   callback =>
     on(
       fun
@@ -99,53 +82,43 @@ let onError: ('e => unit, t('a, 'e), unit) => unit =
       | Error(e) => callback(e),
     );
 
-let once = (self: t('a, 'e)): Async.t('a, 'e) => {
-  /* get and update the ID counter  */
+let once = (self: t('a)): Promise.t('a) => {
+  // get and update the ID counter
   let id: int = self.counter^ + 1;
   self.counter := id;
-  /* makes a new promise */
-  Async.make((resolve, reject) => {
-    let callback =
-      fun
-      | Ok(a) => {
-          resolve(a);
-          removeListener(id, self);
-        }
-      | Error(e) => {
-          reject(e);
-          removeListener(id, self);
-        };
+  // makes a new promise
+  let (promise, resolve) = Promise.pending();
 
-    let listener = Listener.make(callback, id);
-    Js.Dict.set(self.listeners, string_of_int(id), listener);
-  });
+  let callback = a => {
+    resolve(a);
+    removeListener(id, self);
+  };
+
+  let listener = Listener.make(callback, id);
+  Js.Dict.set(self.listeners, string_of_int(id), listener);
+
+  promise;
 };
 
 /* generic emit */
-let emit = (x: result('a, 'e), self: t('a, 'e)): unit => {
+let emit = (x: 'a, self: t('a)): unit => {
   self.listeners
   |> Js.Dict.values
-  |> Array.forEach((listener: Listener.t('a, 'e)) => listener.resolve(x));
+  |> Array.forEach((listener: Listener.t('a)) => listener.resolve(x));
 };
 /* successful emit */
-let emitOk = (x: 'a, self: t('a, 'e)): unit => emit(Ok(x), self);
+let emitOk = (x: 'a, self: t(result('a, 'e))): unit => emit(Ok(x), self);
+
 /* failed emit */
-let emitError = (e: 'e, self: t('a, 'e)): unit => emit(Error(e), self);
+let emitError = (e: 'e, self: t(result('a, 'e))): unit =>
+  emit(Error(e), self);
 
 /* from |> pipe(to_) */
-let pipe = (to_: t('a, 'e), from: t('a, 'e)): (unit => unit) =>
+let pipe =
+    (to_: t(result('a, 'e)), from: t(result('a, 'e))): (unit => unit) =>
   from
   |> on(
        fun
        | Ok(ok) => to_ |> emitOk(ok)
        | Error(err) => to_ |> emitError(err),
      );
-
-let pipeMap =
-    (
-      to_: t('b, 'e),
-      f: result('a, 'e) => array(result('b, 'f)),
-      from: t('a, 'e),
-    )
-    : (unit => unit) =>
-  from |> on(a => f(a) |> Array.forEach(x => to_ |> emit(x)));

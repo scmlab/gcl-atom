@@ -171,7 +171,7 @@ module Decoration = {
     let range = instance |> Site.toRange(site);
     overlayError(range, instance);
     mark("line-number", "line-number-error", range, instance);
-    Async.resolve([]);
+    Promise.resolved([]);
   };
 
   // destroy all decorations
@@ -248,7 +248,7 @@ module Spec = {
          |> TextBuffer.insert(start, Js.String.trim(payload))
          |> ignore;
        });
-    Async.resolve();
+    Promise.resolved();
   };
 
   // rewrite "?" to "{!!}"
@@ -267,7 +267,7 @@ module Spec = {
     // set the cursor inside the hole
     let cursorPos = Point.translate(start, Point.make(1, 0));
     instance.editor |> TextEditor.setCursorBufferPosition(cursorPos);
-    Async.resolve();
+    Promise.resolved();
   };
 };
 
@@ -354,7 +354,6 @@ module Error = {
   let handle = error => {
     let Error(site, kind) = error;
     open Types.Task;
-    open Async;
     ();
     switch (kind) {
     | LexicalError => [
@@ -398,16 +397,17 @@ module Error = {
         WithInstance(
           instance => {
             Js.log("dig!");
-            instance
-            |> Spec.digHole(site)
-            |> thenOk(() =>
-                 switch (instance.history) {
-                 | Some(Types.Command.Refine(_)) =>
-                   Js.log("!!");
-                   resolve([DispatchLocal(Save), DispatchLocal(Refine)]);
-                 | _ => resolve([DispatchLocal(Save)])
-                 }
-               );
+            let%P _ = instance |> Spec.digHole(site);
+
+            switch (instance.history) {
+            | Some(Types.Command.Refine(_)) =>
+              Js.log("!!");
+              Promise.resolved([
+                DispatchLocal(Save),
+                DispatchLocal(Refine),
+              ]);
+            | _ => Promise.resolved([DispatchLocal(Save)])
+            };
           },
         ),
       ]
@@ -490,44 +490,40 @@ let decode: decoder(t) =
 
 // from GCL response to Task
 let handle = (response): list(Types.Task.t) => {
-  Async.(
-    Types.Command.(
-      Types.Task.(
-        switch (response) {
-        | Error(errors) =>
-          errors
-          |> Array.map(Error.handle)
-          |> List.fromArray
-          |> Js.List.flatten
-        | OK(obligations, specifications) => [
-            WithInstance(
-              instance => {
-                specifications
-                |> Array.forEach(Fn.flip(Decoration.markSpec, instance));
-                instance.specifications = specifications;
-                resolve([]);
-              },
-            ),
-            Display(
-              Plain("Proof Obligations"),
-              ProofObligations(obligations),
-            ),
-          ]
-        | Resolve(i) => [
-            WithInstance(
-              instance =>
-                Spec.resolve(i, instance)
-                |> thenOk(() => resolve([DispatchLocal(Save)])),
-            ),
-          ]
-        | UnknownResponse(json) => [
-            Display(
-              Error("Panic: unknown response from GCL"),
-              Plain(Js.Json.stringify(json)),
-            ),
-          ]
-        }
-      )
+  Types.Command.(
+    Types.Task.(
+      switch (response) {
+      | Error(errors) =>
+        errors |> Array.map(Error.handle) |> List.fromArray |> Js.List.flatten
+      | OK(obligations, specifications) => [
+          WithInstance(
+            instance => {
+              specifications
+              |> Array.forEach(Fn.flip(Decoration.markSpec, instance));
+              instance.specifications = specifications;
+              Promise.resolved([]);
+            },
+          ),
+          Display(
+            Plain("Proof Obligations"),
+            ProofObligations(obligations),
+          ),
+        ]
+      | Resolve(i) => [
+          WithInstance(
+            instance => {
+              let%P _ = Spec.resolve(i, instance);
+              Promise.resolved([DispatchLocal(Save)]);
+            },
+          ),
+        ]
+      | UnknownResponse(json) => [
+          Display(
+            Error("Panic: unknown response from GCL"),
+            Plain(Js.Json.stringify(json)),
+          ),
+        ]
+      }
     )
   );
 };

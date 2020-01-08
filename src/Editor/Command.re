@@ -1,5 +1,4 @@
-open Async;
-open Rebase;
+open! Rebase;
 
 module Local = {
   open Types.Command;
@@ -27,22 +26,25 @@ module Local = {
               // destroy the connection
               instance.connection |> Connection.disconnect |> ignore;
 
-              resolve([]);
+              Promise.resolved([]);
             } else {
               instance.toggle = true;
               instance.view.setActivation(true) |> ignore;
 
               if (Connection.isConnected(instance.connection)) {
-                resolve([]);
+                Promise.resolved([]);
               } else {
-                Connection.connect(instance.connection)
-                |> Async.then_(
-                     () => resolve([DispatchLocal(Save)]),
-                     error => {
-                       let (header, body) = Connection.Error.toString(error);
-                       resolve([Display(Error(header), Plain(body))]);
-                     },
-                   );
+                instance.connection
+                ->Connection.connect
+                ->Promise.map(
+                    fun
+                    | Ok () => [DispatchLocal(Save)]
+                    | Error(error) => {
+                        let (header, body) =
+                          Connection.Error.toString(error);
+                        [Display(Error(header), Plain(body))];
+                      },
+                  );
               };
             },
         ),
@@ -52,22 +54,21 @@ module Local = {
           instance => {
             instance.decorations |> Array.forEach(Atom.Decoration.destroy);
             instance.editor
-            |> Atom.TextEditor.save
-            |> fromPromise
-            |> mapError(_ => ())
-            |> thenOk(_ => {
-                 let filepath = Atom.TextEditor.getPath(instance.editor);
-                 switch (filepath) {
-                 | Some(path) => resolve([DispatchRemote(Load(path))])
-                 | None =>
-                   resolve([
-                     Display(
-                       Error("Cannot read filepath"),
-                       Plain("Please save the file first"),
-                     ),
-                   ])
-                 };
-               });
+            ->Atom.TextEditor.save
+            ->Promise.Js.fromBsPromise
+            ->Promise.Js.catch(_ => Promise.resolved())
+            ->Promise.map(() => {
+                let filepath = Atom.TextEditor.getPath(instance.editor);
+                switch (filepath) {
+                | Some(path) => [DispatchRemote(Load(path))]
+                | None => [
+                    Display(
+                      Error("Cannot read filepath"),
+                      Plain("Please save the file first"),
+                    ),
+                  ]
+                };
+              });
           },
         ),
       ]
@@ -76,8 +77,8 @@ module Local = {
           instance =>
             Response.Spec.fromCursorPosition(instance)
             |> Option.mapOr(
-                 spec => resolve([DispatchRemote(Refine(spec))]),
-                 resolve([]),
+                 spec => Promise.resolved([DispatchRemote(Refine(spec))]),
+                 Promise.resolved([]),
                ),
         ),
       ];
@@ -97,7 +98,7 @@ module Remote = {
             open Specification;
             let payload = Response.Spec.getPayload(spec, instance);
             Js.log2("[refine]", spec.range);
-            resolve([SendRequest(Refine(spec.id, payload))]);
+            Promise.resolved([SendRequest(Refine(spec.id, payload))]);
           },
         ),
       ];

@@ -8,10 +8,10 @@ module View = {
   module Channels = {
     type t = {
       updateConnection:
-        Channel.t((Connection.t, option(Connection.Error.t)), unit, unit),
-      setActivation: Channel.t(bool, unit, unit),
-      setHeader: Channel.t(header, unit, unit),
-      setBody: Channel.t(Body.t, unit, unit),
+        Channel.t((Connection.t, option(Connection.Error.t)), unit),
+      setActivation: Channel.t(bool, unit),
+      setHeader: Channel.t(header, unit),
+      setBody: Channel.t(Body.t, unit),
     };
 
     let make = () => {
@@ -25,9 +25,9 @@ module View = {
   // Out facing interface of the view
   module Interface = {
     type t = {
-      setActivation: bool => Async.t(unit, unit),
-      setHeader: header => Async.t(unit, unit),
-      setBody: Body.t => Async.t(unit, unit),
+      setActivation: bool => Promise.t(unit),
+      setHeader: header => Promise.t(unit),
+      setBody: Body.t => Promise.t(unit),
     };
 
     let make = (channels: Channels.t) => {
@@ -62,7 +62,7 @@ module Instance = {
 
 module Task = {
   type t =
-    | WithInstance(Instance.t => Async.t(list(t), unit))
+    | WithInstance(Instance.t => Promise.t(list(t)))
     | DispatchRemote(Command.remote)
     | DispatchLocal(Command.local)
     | SendRequest(Request.t)
