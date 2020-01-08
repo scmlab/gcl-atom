@@ -12,7 +12,7 @@ type listener3('a, 'b, 'c) = ('a, 'b, 'c) => unit;
 // Class: EventEmitter
 //
 
-[@bs.module "events"] [@bs.new] external make: string => t = "EventEmitter";
+[@bs.module "events"] [@bs.new] external make: unit => t = "EventEmitter";
 
 //
 // Event: 'newListener'
@@ -230,11 +230,11 @@ external rawListeners3: eventName => array(listener3('a, 'b, 'c)) =
 // events.once(emitter, name)
 //
 
-[@bs.val] [@bs.scope "EventEmitter"]
+[@bs.module "events"]
 external oncePromise: (t, string) => Js.Promise.t('a) = "once";
 
-[@bs.val] [@bs.scope "EventEmitter"]
+[@bs.module "events"]
 external oncePromise2: (t, string) => Js.Promise.t(('a, 'b)) = "once";
 
-[@bs.val] [@bs.scope "EventEmitter"]
+[@bs.module "events"]
 external oncePromise3: (t, string) => Js.Promise.t(('a, 'b, 'c)) = "once";

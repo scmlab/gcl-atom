@@ -1,7 +1,6 @@
 open! Rebase;
 
 open! Types.Instance;
-module Event = Event;
 
 let make = (editor: Atom.TextEditor.t): t => {
   editor,

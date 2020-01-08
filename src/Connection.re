@@ -79,6 +79,7 @@ signal: $signal
         "Disconnected",
         "Connection disconnected by ourselves",
       )
+    // | ConnectionError(EmitterError) => ("Emitter Error", "")
     | ConnectionError(ShellError(error)) => (
         "Socket error",
         Util.JsError.toString(error),
@@ -95,14 +96,46 @@ signal: $signal
       );
 };
 
+module Emitter = {
+  type t('a) = {
+    emitter: N.Events.t,
+    emit: 'a => unit,
+    once: unit => Promise.t('a),
+    destroy: unit => unit,
+  };
+
+  let make = () => {
+    let emitter = N.Events.make();
+    {
+      emitter,
+      emit: x => emitter |> N.Events.emit("data", x) |> ignore,
+      once: () => {
+        let (promise, resolve) = Promise.pending();
+        emitter
+        |> N.Events.once("data", x => {
+             Js.log(x);
+             resolve(x);
+           })
+        |> ignore;
+        promise;
+      },
+      // N.Events.oncePromise(emitter, "data")
+      // ->Promise.Js.fromBsPromise
+      // ->Promise.Js.toResult
+      // ->Promise.map(Option.fromResult),
+      destroy: () => N.Events.removeAllListeners(emitter) |> ignore,
+    };
+  };
+};
+
 type t = {
   mutable path: option(string),
   mutable process: option(N.ChildProcess.t),
-  emitter: Event.t(result(Js.Json.t, Error.t)),
+  emitter: Emitter.t(result(Js.Json.t, Error.t)),
 };
 
 let disconnect = connection => {
-  connection.emitter |> Event.destroy;
+  connection.emitter.destroy();
   connection.process |> Option.forEach(N.ChildProcess.kill("SIGTERM"));
   connection.process = None;
 
@@ -115,7 +148,9 @@ let isConnected = connection =>
   | Some(_) => true
   };
 
-let make = (): t => {path: None, process: None, emitter: Event.make()};
+let make = (): t => {
+  {path: None, process: None, emitter: Emitter.make()};
+};
 
 let autoSearch = (name): Promise.t(result(string, Error.t)) =>
   {
@@ -209,7 +244,7 @@ let connect = connection => {
            | None => unfinishedMsg := Some(augmented)
            | Some(result) =>
              unfinishedMsg := None;
-             connection.emitter |> Event.emitOk(result);
+             connection.emitter.emit(Ok(result)) |> ignore;
            };
          },
        ),
@@ -227,10 +262,12 @@ let connect = connection => {
        `close(
          (code, signal) => {
            disconnect(connection) |> ignore;
-           connection.emitter
-           |> Event.emitError(
-                Error.ConnectionError(Error.ClosedByProcess(code, signal)),
-              );
+           connection.emitter.emit(
+             Error(
+               Error.ConnectionError(Error.ClosedByProcess(code, signal)),
+             ),
+           )
+           |> ignore;
          },
        ),
      )
@@ -238,10 +275,10 @@ let connect = connection => {
        `disconnect(
          () => {
            disconnect(connection) |> ignore;
-           connection.emitter
-           |> Event.emitError(
-                Error.ConnectionError(Error.DisconnectedByUser),
-              );
+           connection.emitter.emit(
+             Error(Error.ConnectionError(Error.DisconnectedByUser)),
+           )
+           |> ignore;
          },
        ),
      )
@@ -249,8 +286,10 @@ let connect = connection => {
        `error(
          exn => {
            disconnect(connection) |> ignore;
-           connection.emitter
-           |> Event.emitError(Error.ConnectionError(Error.ShellError(exn)));
+           connection.emitter.emit(
+             Error(Error.ConnectionError(Error.ShellError(exn))),
+           )
+           |> ignore;
          },
        ),
      )
@@ -258,10 +297,12 @@ let connect = connection => {
        `exit(
          (code, signal) => {
            disconnect(connection) |> ignore;
-           connection.emitter
-           |> Event.emitError(
-                Error.ConnectionError(Error.ExitedByProcess(code, signal)),
-              );
+           connection.emitter.emit(
+             Error(
+               Error.ConnectionError(Error.ExitedByProcess(code, signal)),
+             ),
+           )
+           |> ignore;
          },
        ),
      )
@@ -275,7 +316,7 @@ let send = (request, connection): Promise.t(result(Js.Json.t, Error.t)) => {
   | None =>
     Promise.resolved(Error(Error.ConnectionError(Error.NotEstablishedYet)))
   | Some(process) =>
-    let promise = connection.emitter |> Event.once;
+    let promise = connection.emitter.once();
 
     let payload = Node.Buffer.fromString(request ++ "\n");
     // write
