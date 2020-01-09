@@ -115,7 +115,7 @@ let onTriggerCommand = () => {
          |> eventTargetEditor
          |> Option.flatMap(Instances.get)
          |> Option.forEach(instance =>
-              Command.Local.dispatch(Command.Local.parse(command))
+              Instance.Command_.Local.dispatch(Command.Local.parse(command))
               |> Instance.runTasks(instance)
               |> ignore
             )

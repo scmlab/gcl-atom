@@ -41,11 +41,13 @@ module View = {
 module Command = {
   type remote =
     | Load(string)
-    | Refine(Specification.t);
+    | Refine(Specification.t)
+    | Debug;
   type local =
     | Toggle
     | Save
-    | Refine;
+    | Refine
+    | Debug;
 };
 
 module Instance = {

@@ -101,6 +101,7 @@ module Emitter = {
     emitter: Nd.Events.t,
     emit: 'a => unit,
     once: unit => Promise.t('a),
+    on: ('a => unit) => unit,
     destroy: unit => unit,
   };
 
@@ -111,18 +112,12 @@ module Emitter = {
       emit: x => emitter |> Nd.Events.emit("data", x) |> ignore,
       once: () => {
         let (promise, resolve) = Promise.pending();
-        emitter
-        |> Nd.Events.once("data", x => {
-             Js.log(x);
-             resolve(x);
-           })
-        |> ignore;
+        emitter |> Nd.Events.once("data", resolve) |> ignore;
         promise;
       },
-      // N.Events.oncePromise(emitter, "data")
-      // ->Promise.Js.fromBsPromise
-      // ->Promise.Js.toResult
-      // ->Promise.map(Option.fromResult),
+      on: callback => {
+        emitter |> Nd.Events.on("data", callback) |> ignore;
+      },
       destroy: () => Nd.Events.removeAllListeners(emitter) |> ignore,
     };
   };
@@ -261,48 +256,48 @@ let connect = connection => {
   |> ChildProcess.on(
        `close(
          (code, signal) => {
-           disconnect(connection) |> ignore;
            connection.emitter.emit(
              Error(
                Error.ConnectionError(Error.ClosedByProcess(code, signal)),
              ),
            )
            |> ignore;
+           disconnect(connection) |> ignore;
          },
        ),
      )
   |> ChildProcess.on(
        `disconnect(
          () => {
-           disconnect(connection) |> ignore;
            connection.emitter.emit(
              Error(Error.ConnectionError(Error.DisconnectedByUser)),
            )
            |> ignore;
+           disconnect(connection) |> ignore;
          },
        ),
      )
   |> ChildProcess.on(
        `error(
          exn => {
-           disconnect(connection) |> ignore;
            connection.emitter.emit(
              Error(Error.ConnectionError(Error.ShellError(exn))),
            )
            |> ignore;
+           disconnect(connection) |> ignore;
          },
        ),
      )
   |> ChildProcess.on(
        `exit(
          (code, signal) => {
-           disconnect(connection) |> ignore;
            connection.emitter.emit(
              Error(
                Error.ConnectionError(Error.ExitedByProcess(code, signal)),
              ),
            )
            |> ignore;
+           disconnect(connection) |> ignore;
          },
        ),
      )

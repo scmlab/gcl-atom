@@ -1,6 +1,7 @@
 type t =
   | Load(string)
-  | Refine(int, string);
+  | Refine(int, string)
+  | Debug;
 
 module Encode = {
   open Json.Encode;
@@ -13,7 +14,8 @@ module Encode = {
       object_([
         ("tag", string("Refine")),
         ("contents", (id, payload) |> pair(int, string)),
-      ]);
+      ])
+    | Debug => object_([("tag", string("Debug"))]);
 };
 
 let encode: t => string = x => x |> Encode.request |> Json.stringify;
