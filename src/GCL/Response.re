@@ -33,14 +33,13 @@ module Error = {
       );
   };
 
-  module ConvertError = {
+  module StructError = {
     type t =
       | MissingBound
       | MissingAssertion
       | ExcessBound
       | MissingPostcondition
-      | DigHole
-      | Panic(string);
+      | DigHole;
 
     let decode: decoder(t) =
       sum(
@@ -50,7 +49,6 @@ module Error = {
         | "ExcessBound" => Contents(_ => ExcessBound)
         | "MissingPostcondition" => TagOnly(_ => MissingPostcondition)
         | "DigHole" => Contents(_ => DigHole)
-        | "Panic" => Contents(json => Panic(json |> string))
         | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
       );
   };
@@ -58,7 +56,7 @@ module Error = {
   type kind =
     | LexicalError
     | SyntacticError(string)
-    | ConvertError(ConvertError.t)
+    | StructError(StructError.t)
     | TypeError(TypeError.t);
 
   let decodeKind: decoder(kind) =
@@ -69,8 +67,8 @@ module Error = {
         Contents(
           pair(range, string) |> map(((_, msg)) => SyntacticError(msg)),
         )
-      | "ConvertError" =>
-        Contents(json => ConvertError(json |> ConvertError.decode))
+      | "StructError" =>
+        Contents(json => StructError(json |> StructError.decode))
       | "TypeError" => Contents(json => TypeError(json |> TypeError.decode))
       | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
     );
@@ -95,7 +93,7 @@ module Error = {
         AddDecorations(Decoration.markSite(site)),
         Display(Error("Parse Error"), Plain(message)),
       ]
-    | ConvertError(MissingBound) => [
+    | StructError(MissingBound) => [
         AddDecorations(Decoration.markSite(site)),
         Display(
           Error("Bound Missing"),
@@ -104,27 +102,27 @@ module Error = {
           ),
         ),
       ]
-    | ConvertError(MissingAssertion) => [
+    | StructError(MissingAssertion) => [
         AddDecorations(Decoration.markSite(site)),
         Display(
           Error("Assertion Missing"),
           Plain("Assertion before the DO construct is missing"),
         ),
       ]
-    | ConvertError(ExcessBound) => [
+    | StructError(ExcessBound) => [
         AddDecorations(Decoration.markSite(site)),
         Display(
           Error("Excess Bound"),
           Plain("Unnecessary bound annotation at this assertion"),
         ),
       ]
-    | ConvertError(MissingPostcondition) => [
+    | StructError(MissingPostcondition) => [
         Display(
           Error("Postcondition Missing"),
           Plain("The last statement of the program should be an assertion"),
         ),
       ]
-    | ConvertError(DigHole) => [
+    | StructError(DigHole) => [
         WithInstance(
           instance => {
             let%P _ = instance |> Spec.digHole(site);
@@ -136,15 +134,15 @@ module Error = {
           },
         ),
       ]
-    | ConvertError(Panic(message)) => [
-        Display(
-          Error("Panic"),
-          Plain(
-            "This should not have happened, please report this issue\n"
-            ++ message,
-          ),
-        ),
-      ]
+    // | StructError(Panic(message)) => [
+    //     Display(
+    //       Error("Panic"),
+    //       Plain(
+    //         "This should not have happened, please report this issue\n"
+    //         ++ message,
+    //       ),
+    //     ),
+    //   ]
     | TypeError(NotInScope(name)) => [
         AddDecorations(Decoration.markSite(site)),
         Display(
