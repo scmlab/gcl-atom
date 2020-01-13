@@ -50,7 +50,12 @@ module Connection_ = {
     let%Ok result = Connection.send(value, conn);
 
     Js.log2(">>>", result);
-    Promise.resolved(Ok(Response.decode(result)));
+    // catching exceptions occured when decoding JSON values
+    switch (Response.decode(result)) {
+    | value => Promise.resolved(Ok(value))
+    | exception (Json.Decode.DecodeError(msg)) =>
+      Promise.resolved(Error(Connection.Error.DecodeError(msg)))
+    };
   };
 };
 
