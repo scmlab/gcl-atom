@@ -65,6 +65,11 @@ module Instance = {
 module Task = {
   type t =
     | WithInstance(Instance.t => Promise.t(list(t)))
+    | SetSpecifications(array(Specification.t))
+    | AddDecoration(
+        (array(Specification.t), Atom.TextEditor.t) =>
+        array(Atom.Decoration.t),
+      )
     | DispatchRemote(Command.remote)
     | DispatchLocal(Command.local)
     | SendRequest(Request.t)

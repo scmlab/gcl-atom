@@ -2,183 +2,6 @@ open Json.Decode;
 open Decoder;
 open Rebase;
 
-module Site = {
-  type t =
-    | Global(Atom.Range.t)
-    | Local(Atom.Range.t, int);
-
-  let decode: decoder(t) =
-    sum(
-      fun
-      | "Global" => Contents(json => Global(json |> range))
-      | "Local" =>
-        Contents(pair(range, int) |> map(((r, i)) => Local(r, i)))
-      | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
-    );
-
-  let toRange = (site, instance) => {
-    switch (site) {
-    | Global(range) => range
-    | Local(range, i) =>
-      open Atom.Range;
-      open Specification;
-      open Types.Instance;
-      let specs =
-        instance.specifications |> Array.filter(spec => spec.id == i);
-
-      specs[0]
-      |> Option.mapOr(
-           spec =>
-             range
-             |> translate(start(spec.range), start(spec.range))
-             // down by 1 line
-             |> translate(Atom.Point.make(1, 0), Atom.Point.make(1, 0)),
-           range,
-         );
-    };
-  };
-
-  let toString = site => {
-    let rangeToString = range => {
-      Atom.Range.(
-        Atom.Point.(
-          string_of_int(row(start(range)))
-          ++ ":"
-          ++ string_of_int(column(start(range)))
-          ++ "-"
-          ++ string_of_int(row(end_(range)))
-          ++ ":"
-          ++ string_of_int(column(end_(range)))
-        )
-      );
-    };
-    switch (site) {
-    | Global(range) => "at " ++ rangeToString(range)
-    | Local(range, i) =>
-      "at " ++ rangeToString(range) ++ " in #" ++ string_of_int(i)
-    };
-  };
-};
-
-module Decoration = {
-  open Types.Instance;
-  // Markers
-
-  let mark = (type_, class_, range, instance) => {
-    open Atom;
-    let marker = instance.editor |> TextEditor.markBufferRange(range);
-    let option = TextEditor.decorateMarkerOptions(~type_, ~class_, ());
-    let decoration =
-      instance.editor |> Atom.TextEditor.decorateMarker(marker, option);
-    instance.decorations =
-      Array.concat(instance.decorations, [|decoration|]);
-  };
-
-  let markLineSpecSoft = mark("highlight", "highlight-spec-soft");
-  let markLineSpecHard = mark("highlight", "highlight-spec-hard");
-
-  let overlay =
-      (
-        text,
-        class_,
-        tail: bool,
-        translation: (int, int),
-        range: Atom.Range.t,
-        instance,
-      ) => {
-    open Atom;
-    open Webapi.Dom;
-    // create an element for the overlay
-    let element = Webapi.Dom.document |> Document.createElement("div");
-    Element.setInnerHTML(element, text);
-    element |> Element.classList |> DomTokenList.add(class_);
-
-    // adjusting the position of the overlay
-    // setStyle is not supported by Reason Webapi for the moment, so we use setAttribute instead
-
-    let (y, x) = translation;
-    let left = x;
-    let top = float_of_int(y - 1) *. 1.5;
-
-    element
-    |> Element.setAttribute(
-         "style",
-         "left: "
-         ++ string_of_int(left)
-         ++ "ex; top: "
-         ++ Js.Float.toString(top)
-         ++ "em",
-       );
-
-    // decorate
-    let marker = instance.editor |> TextEditor.markBufferRange(range);
-    let option =
-      TextEditor.decorateMarkerOptions(
-        ~type_="overlay",
-        ~position=tail ? "tail" : "head",
-        ~item=Element.unsafeAsHtmlElement(element),
-        (),
-      );
-    let decoration =
-      instance.editor |> TextEditor.decorateMarker(marker, option);
-    instance.decorations =
-      Array.concat(instance.decorations, [|decoration|]);
-  };
-
-  let overlaySpec = (text, range: Atom.Range.t, instance) => {
-    overlay(text, "overlay-spec-text", false, (0, 1), range, instance);
-  };
-
-  let overlayError = (range: Atom.Range.t, instance) => {
-    let length =
-      instance.editor
-      |> Atom.TextEditor.getTextInBufferRange(range)
-      |> Js.String.length;
-    let text = Js.String.repeat(length, "&nbsp;");
-    overlay(text, "overlay-error", true, (0, 0), range, instance);
-  };
-
-  let markSpec = (spec: Specification.t, instance) => {
-    open Specification;
-    open Atom;
-    // let {hardness, pre, post, _, range} = spec;
-
-    let start = Range.start(spec.range);
-    let start = Range.make(start, Point.translate(Point.make(0, 2), start));
-    let end_ = Range.end_(spec.range);
-    let end_ = Range.make(Point.translate(Point.make(0, -2), end_), end_);
-
-    switch (spec.hardness) {
-    | Hard => markLineSpecHard(start, instance)
-    | Soft => markLineSpecSoft(start, instance)
-    };
-
-    let trim = s =>
-      if (String.length(s) > 77) {
-        String.sub(~from=0, ~length=73, s) ++ " ...";
-      } else {
-        s;
-      };
-
-    let pre = trim(Expr.toString(spec.pre));
-    let post = trim(Expr.toString(spec.post));
-    overlaySpec(pre, start, instance);
-    overlaySpec(post, end_, instance);
-    markLineSpecSoft(end_, instance);
-  };
-
-  let markSite = (site, instance) => {
-    let range = instance |> Site.toRange(site);
-    overlayError(range, instance);
-    mark("line-number", "line-number-error", range, instance);
-    Promise.resolved([]);
-  };
-
-  // destroy all decorations
-  let destroyAll = instance =>
-    instance.decorations |> Array.forEach(Atom.Decoration.destroy);
-};
-
 module Spec = {
   open Types.Instance;
   open Specification;
@@ -253,7 +76,7 @@ module Spec = {
 
   // rewrite "?" to "{!!}"
   let digHole = (site, instance) => {
-    let range = instance |> Site.toRange(site);
+    let range = instance.specifications |> Decoration.Site.toRange(site);
     open Atom;
     let start = Range.start(range);
     // add indentation to the hole
@@ -345,10 +168,10 @@ module Error = {
     );
 
   type t =
-    | Error(Site.t, kind);
+    | Error(Decoration.Site.t, kind);
 
   let decode: decoder(t) =
-    pair(Site.decode, decodeKind)
+    pair(Decoration.Site.decode, decodeKind)
     |> map(((site, kind)) => Error(site, kind));
 
   let handle = error => {
@@ -357,15 +180,18 @@ module Error = {
     ();
     switch (kind) {
     | LexicalError => [
-        WithInstance(Decoration.markSite(site)),
-        Display(Error("Lexical Error"), Plain(Site.toString(site))),
+        AddDecoration(Decoration.markSite(site)),
+        Display(
+          Error("Lexical Error"),
+          Plain(Decoration.Site.toString(site)),
+        ),
       ]
     | SyntacticError(message) => [
-        WithInstance(Decoration.markSite(site)),
+        AddDecoration(Decoration.markSite(site)),
         Display(Error("Parse Error"), Plain(message)),
       ]
     | ConvertError(MissingBound) => [
-        WithInstance(Decoration.markSite(site)),
+        AddDecoration(Decoration.markSite(site)),
         Display(
           Error("Bound Missing"),
           Plain(
@@ -374,14 +200,14 @@ module Error = {
         ),
       ]
     | ConvertError(MissingAssertion) => [
-        WithInstance(Decoration.markSite(site)),
+        AddDecoration(Decoration.markSite(site)),
         Display(
           Error("Assertion Missing"),
           Plain("Assertion before the DO construct is missing"),
         ),
       ]
     | ConvertError(ExcessBound) => [
-        WithInstance(Decoration.markSite(site)),
+        AddDecoration(Decoration.markSite(site)),
         Display(
           Error("Excess Bound"),
           Plain("Unnecessary bound annotation at this assertion"),
@@ -421,14 +247,14 @@ module Error = {
         ),
       ]
     | TypeError(NotInScope(name)) => [
-        WithInstance(Decoration.markSite(site)),
+        AddDecoration(Decoration.markSite(site)),
         Display(
           Error("Type Error"),
           Plain("The definition " ++ name ++ " is not in scope"),
         ),
       ]
     | TypeError(UnifyFailed(s, t)) => [
-        WithInstance(Decoration.markSite(site)),
+        AddDecoration(Decoration.markSite(site)),
         Display(
           Error("Type Error"),
           Plain(
@@ -440,7 +266,7 @@ module Error = {
         ),
       ]
     | TypeError(RecursiveType(var, t)) => [
-        WithInstance(Decoration.markSite(site)),
+        AddDecoration(Decoration.markSite(site)),
         Display(
           Error("Type Error"),
           Plain(
@@ -453,7 +279,7 @@ module Error = {
         ),
       ]
     | TypeError(NotFunction(t)) => [
-        WithInstance(Decoration.markSite(site)),
+        AddDecoration(Decoration.markSite(site)),
         Display(
           Error("Type Error"),
           Plain(
@@ -496,13 +322,15 @@ let handle = (response): list(Types.Task.t) => {
       | Error(errors) =>
         errors |> Array.map(Error.handle) |> List.fromArray |> Js.List.flatten
       | OK(obligations, specifications) => [
-          WithInstance(
-            instance => {
+          SetSpecifications(specifications),
+          AddDecoration(
+            (specifications, editor) =>
               specifications
-              |> Array.forEach(Fn.flip(Decoration.markSpec, instance));
-              instance.specifications = specifications;
-              Promise.resolved([]);
-            },
+              |> Array.map(Fn.flip(Decoration.markSpec, editor))
+              |> Array.map(List.fromArray)
+              |> List.fromArray
+              |> Js.List.flatten
+              |> Array.fromList,
           ),
           Display(
             Plain("Proof Obligations"),

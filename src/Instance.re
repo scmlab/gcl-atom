@@ -59,7 +59,7 @@ module Connection_ = {
 
 let destroy = instance => {
   instance |> Connection_.disconnect;
-  instance |> Response.Decoration.destroyAll;
+  instance.decorations |> Array.forEach(Atom.Decoration.destroy);
   instance |> View.destroy;
 };
 //
@@ -176,6 +176,18 @@ let rec runTasks = (instance: t, tasks: list(Types.Task.t)): Promise.t(unit) => 
     fun
     | WithInstance(callback) =>
       callback(instance)->Promise.flatMap(runTasks(instance))
+    | AddDecoration(callback) => {
+        instance.decorations =
+          Array.concat(
+            callback(instance.specifications, instance.editor),
+            instance.decorations,
+          );
+        Promise.resolved();
+      }
+    | SetSpecifications(specs) => {
+        instance.specifications = specs;
+        Promise.resolved();
+      }
     | DispatchRemote(command) => {
         instance.history = Some(command);
         Command_.Remote.dispatch(command) |> runTasks(instance);
