@@ -139,7 +139,7 @@ module Command_ = {
       | Refine => [
           WithInstance(
             instance =>
-              Response.Spec.fromCursorPosition(instance)
+              Spec.fromCursorPosition(instance)
               |> Option.mapOr(
                    spec => Promise.resolved([DispatchRemote(Refine(spec))]),
                    Promise.resolved([]),
@@ -158,7 +158,7 @@ module Command_ = {
           WithInstance(
             instance => {
               open Specification;
-              let payload = Response.Spec.getPayload(spec, instance);
+              let payload = Spec.getPayload(spec, instance);
               Js.log2("[refine]", spec.range);
               Promise.resolved([SendRequest(Refine(spec.id, payload))]);
             },
@@ -176,7 +176,7 @@ let rec runTasks = (instance: t, tasks: list(Types.Task.t)): Promise.t(unit) => 
     fun
     | WithInstance(callback) =>
       callback(instance)->Promise.flatMap(runTasks(instance))
-    | AddDecoration(callback) => {
+    | AddDecorations(callback) => {
         instance.decorations =
           Array.concat(
             callback(instance.specifications, instance.editor),

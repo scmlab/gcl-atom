@@ -12,9 +12,3 @@ module Local = {
     | "debug" => Debug
     | _ => Save;
 };
-
-module Remote = {
-  open Types.Command;
-  open Types.Task;
-  type t = Types.Command.remote;
-};

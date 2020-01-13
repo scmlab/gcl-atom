@@ -71,7 +71,7 @@ module Error = {
 
     | ConnectionError(ClosedByProcess(code, signal)) => (
         "Socket closed by GCL",
-        {j|code: $code
+        {j|exited with code: $code
 signal: $signal
 |j},
       )
@@ -85,8 +85,8 @@ signal: $signal
         Util.JsError.toString(error),
       )
     | ConnectionError(ExitedByProcess(code, signal)) => (
-        "Socket exited by GCL",
-        {j|code: $code
+        "GCL has crashed",
+        {j|exited with code: $code
   signal: $signal
   |j},
       )

@@ -2,98 +2,6 @@ open Json.Decode;
 open Decoder;
 open Rebase;
 
-module Spec = {
-  open Types.Instance;
-  open Specification;
-
-  let fromCursorPosition = instance => {
-    open Atom;
-
-    let cursor = instance.editor |> Atom.TextEditor.getCursorBufferPosition;
-    // find the smallest hole containing the cursor
-    let smallestHole = ref(None);
-    instance.specifications
-    |> Array.filter(spec => Range.containsPoint(cursor, spec.range))
-    |> Array.forEach(spec =>
-         switch (smallestHole^) {
-         | None => smallestHole := Some(spec)
-         | Some(spec') =>
-           if (Range.containsRange(spec.range, spec'.range)) {
-             smallestHole := Some(spec);
-           }
-         }
-       );
-
-    smallestHole^;
-  };
-
-  let getPayloadRange = (spec, instance) => {
-    open Atom;
-
-    // return the text in the targeted hole
-    let start = Point.translate(Range.start(spec.range), Point.make(1, 0));
-    let end_ =
-      instance.editor
-      |> TextEditor.getBuffer
-      |> TextBuffer.rangeForRow(
-           Point.row(Range.end_(spec.range)) - 1,
-           true,
-         )
-      |> Range.end_;
-    Range.make(start, end_);
-  };
-
-  let getPayload = (spec, instance) => {
-    open Atom;
-    // return the text in the targeted hole
-    let innerRange = getPayloadRange(spec, instance);
-    instance.editor
-    |> TextEditor.getBuffer
-    |> TextBuffer.getTextInRange(innerRange);
-  };
-
-  let resolve = (i, instance) => {
-    open Atom;
-
-    let specs = instance.specifications |> Array.filter(spec => spec.id == i);
-    specs[0]
-    |> Option.forEach(spec => {
-         let payload = getPayload(spec, instance);
-         let start = Range.start(spec.range);
-
-         instance.editor
-         |> TextEditor.getBuffer
-         |> TextBuffer.delete(spec.range)
-         |> ignore;
-
-         instance.editor
-         |> TextEditor.getBuffer
-         |> TextBuffer.insert(start, Js.String.trim(payload))
-         |> ignore;
-       });
-    Promise.resolved();
-  };
-
-  // rewrite "?" to "{!!}"
-  let digHole = (site, instance) => {
-    let range = instance.specifications |> Decoration.Site.toRange(site);
-    open Atom;
-    let start = Range.start(range);
-    // add indentation to the hole
-    let indent = Js.String.repeat(Point.column(start), " ");
-    let holeText = "{!\n" ++ indent ++ "\n" ++ indent ++ "!}";
-    let holeRange =
-      Range.make(start, Point.translate(start, Point.make(0, 1)));
-    instance.editor
-    |> TextEditor.setTextInBufferRange(holeRange, holeText)
-    |> ignore;
-    // set the cursor inside the hole
-    let cursorPos = Point.translate(start, Point.make(1, 0));
-    instance.editor |> TextEditor.setCursorBufferPosition(cursorPos);
-    Promise.resolved();
-  };
-};
-
 module Error = {
   module TypeError = {
     type t =
@@ -168,10 +76,10 @@ module Error = {
     );
 
   type t =
-    | Error(Decoration.Site.t, kind);
+    | Error(ErrorSite.t, kind);
 
   let decode: decoder(t) =
-    pair(Decoration.Site.decode, decodeKind)
+    pair(ErrorSite.decode, decodeKind)
     |> map(((site, kind)) => Error(site, kind));
 
   let handle = error => {
@@ -180,18 +88,15 @@ module Error = {
     ();
     switch (kind) {
     | LexicalError => [
-        AddDecoration(Decoration.markSite(site)),
-        Display(
-          Error("Lexical Error"),
-          Plain(Decoration.Site.toString(site)),
-        ),
+        AddDecorations(Decoration.markSite(site)),
+        Display(Error("Lexical Error"), Plain(ErrorSite.toString(site))),
       ]
     | SyntacticError(message) => [
-        AddDecoration(Decoration.markSite(site)),
+        AddDecorations(Decoration.markSite(site)),
         Display(Error("Parse Error"), Plain(message)),
       ]
     | ConvertError(MissingBound) => [
-        AddDecoration(Decoration.markSite(site)),
+        AddDecorations(Decoration.markSite(site)),
         Display(
           Error("Bound Missing"),
           Plain(
@@ -200,14 +105,14 @@ module Error = {
         ),
       ]
     | ConvertError(MissingAssertion) => [
-        AddDecoration(Decoration.markSite(site)),
+        AddDecorations(Decoration.markSite(site)),
         Display(
           Error("Assertion Missing"),
           Plain("Assertion before the DO construct is missing"),
         ),
       ]
     | ConvertError(ExcessBound) => [
-        AddDecoration(Decoration.markSite(site)),
+        AddDecorations(Decoration.markSite(site)),
         Display(
           Error("Excess Bound"),
           Plain("Unnecessary bound annotation at this assertion"),
@@ -222,16 +127,11 @@ module Error = {
     | ConvertError(DigHole) => [
         WithInstance(
           instance => {
-            Js.log("dig!");
             let%P _ = instance |> Spec.digHole(site);
 
             switch (instance.history) {
             | Some(Types.Command.Refine(_)) =>
-              Js.log("!!");
-              Promise.resolved([
-                DispatchLocal(Save),
-                DispatchLocal(Refine),
-              ]);
+              Promise.resolved([DispatchLocal(Save), DispatchLocal(Refine)])
             | _ => Promise.resolved([DispatchLocal(Save)])
             };
           },
@@ -247,14 +147,14 @@ module Error = {
         ),
       ]
     | TypeError(NotInScope(name)) => [
-        AddDecoration(Decoration.markSite(site)),
+        AddDecorations(Decoration.markSite(site)),
         Display(
           Error("Type Error"),
           Plain("The definition " ++ name ++ " is not in scope"),
         ),
       ]
     | TypeError(UnifyFailed(s, t)) => [
-        AddDecoration(Decoration.markSite(site)),
+        AddDecorations(Decoration.markSite(site)),
         Display(
           Error("Type Error"),
           Plain(
@@ -266,7 +166,7 @@ module Error = {
         ),
       ]
     | TypeError(RecursiveType(var, t)) => [
-        AddDecoration(Decoration.markSite(site)),
+        AddDecorations(Decoration.markSite(site)),
         Display(
           Error("Type Error"),
           Plain(
@@ -279,7 +179,7 @@ module Error = {
         ),
       ]
     | TypeError(NotFunction(t)) => [
-        AddDecoration(Decoration.markSite(site)),
+        AddDecorations(Decoration.markSite(site)),
         Display(
           Error("Type Error"),
           Plain(
@@ -323,7 +223,7 @@ let handle = (response): list(Types.Task.t) => {
         errors |> Array.map(Error.handle) |> List.fromArray |> Js.List.flatten
       | OK(obligations, specifications) => [
           SetSpecifications(specifications),
-          AddDecoration(
+          AddDecorations(
             (specifications, editor) =>
               specifications
               |> Array.map(Fn.flip(Decoration.markSpec, editor))
