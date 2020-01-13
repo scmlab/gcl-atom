@@ -69,15 +69,3 @@ module Result = {
 //       xs,
 //     );
 // };
-
-module Pm = Promise;
-module Promise = {
-  let rec each = (xs: list(Pm.t('a))): Pm.t(list('a)) =>
-    switch (xs) {
-    | [] => Pm.resolved([])
-    | [x, ...xs] =>
-      let%P x' = x;
-      let%P xs' = each(xs);
-      Pm.resolved([x', ...xs']);
-    };
-};

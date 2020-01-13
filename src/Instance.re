@@ -44,15 +44,12 @@ module Connection_ = {
   let sendRequest =
       (request, instance): Promise.t(result(Response.t, Connection.Error.t)) => {
     let value = Request.encode(request);
-    Js.log("=== Send ===");
-    Js.log2("[ json ]", value);
+    Js.log2("<<<", value);
 
     let%Ok conn = instance->getConnection;
     let%Ok result = Connection.send(value, conn);
 
-    Js.log("=== Recieved ===");
-    Js.log2("[ json ]", result);
-    Js.log2("[ value ]", result |> Response.decode);
+    Js.log2(">>>", result);
     Promise.resolved(Ok(Response.decode(result)));
   };
 };
@@ -159,7 +156,6 @@ module Command_ = {
             instance => {
               open Specification;
               let payload = Spec.getPayload(spec, instance);
-              Js.log2("[refine]", spec.range);
               Promise.resolved([SendRequest(Refine(spec.id, payload))]);
             },
           ),
@@ -172,29 +168,31 @@ module Command_ = {
 let rec runTasks = (instance: t, tasks: list(Types.Task.t)): Promise.t(unit) => {
   open Types.Task;
 
-  let runTask =
-    fun
+  let runTask = task =>
+    switch (task) {
     | WithInstance(callback) =>
       callback(instance)->Promise.flatMap(runTasks(instance))
-    | AddDecorations(callback) => {
-        instance.decorations =
-          Array.concat(
-            callback(instance.specifications, instance.editor),
-            instance.decorations,
-          );
-        Promise.resolved();
-      }
-    | SetSpecifications(specs) => {
-        instance.specifications = specs;
-        Promise.resolved();
-      }
-    | DispatchRemote(command) => {
-        instance.history = Some(command);
-        Command_.Remote.dispatch(command) |> runTasks(instance);
-      }
+    | AddDecorations(callback) =>
+      Js.log("[ add decorations ]");
+      instance.decorations =
+        Array.concat(
+          callback(instance.specifications, instance.editor),
+          instance.decorations,
+        );
+      Promise.resolved();
+    | SetSpecifications(specs) =>
+      Js.log("[ set specifications ]");
+      instance.specifications = specs;
+      Promise.resolved();
+    | DispatchRemote(command) =>
+      Js.log2("[ dispatch remote ]", command);
+      instance.history = Some(command);
+      Command_.Remote.dispatch(command) |> runTasks(instance);
     | DispatchLocal(command) =>
-      Command_.Local.dispatch(command) |> runTasks(instance)
+      Js.log2("[ dispatch local ]", command);
+      Command_.Local.dispatch(command) |> runTasks(instance);
     | SendRequest(request) =>
+      Js.log("[ send ]");
       Connection_.sendRequest(request, instance)
       ->Promise.flatMap(
           fun
@@ -204,12 +202,20 @@ let rec runTasks = (instance: t, tasks: list(Types.Task.t)): Promise.t(unit) => 
               Promise.resolved();
             }
           | Ok(x) => x |> Response.handle |> runTasks(instance),
-        )
-    | Display(header, body) => {
-        instance.view.setHeader(header) |> ignore;
-        instance.view.setBody(body) |> ignore;
+        );
+    | Display(header, body) =>
+      instance.view.setHeader(header) |> ignore;
+      instance.view.setBody(body) |> ignore;
+      Promise.resolved();
+    };
+
+  let rec runEach =
+    fun
+    | [] => Promise.resolved()
+    | [x, ...xs] => {
+        let%P () = runTask(x);
+        let%P () = runEach(xs);
         Promise.resolved();
       };
-
-  (tasks |> List.map(runTask) |> Util.Promise.each)->Promise.map(_ => ());
+  runEach(tasks);
 };

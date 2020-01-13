@@ -127,11 +127,15 @@ module Error = {
     | ConvertError(DigHole) => [
         WithInstance(
           instance => {
+            Js.log("Dig!!!!!!!!");
             let%P _ = instance |> Spec.digHole(site);
-
             switch (instance.history) {
             | Some(Types.Command.Refine(_)) =>
-              Promise.resolved([DispatchLocal(Save), DispatchLocal(Refine)])
+              Js.log("\n\n!!!!!!!!\n\n");
+              Promise.resolved([
+                DispatchLocal(Save),
+                DispatchLocal(Refine),
+              ]);
             | _ => Promise.resolved([DispatchLocal(Save)])
             };
           },
