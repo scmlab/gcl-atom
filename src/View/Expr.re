@@ -142,10 +142,10 @@ module Precedence = {
     | GTE => Infix(6)
     | LT => Infix(6)
     | GT => Infix(6)
-    | Mul => InfixL(7)
-    | Div => InfixL(7)
-    | Add => InfixL(8)
-    | Sub => InfixL(8)
+    | Add => InfixL(7)
+    | Sub => InfixL(7)
+    | Mul => InfixL(8)
+    | Div => InfixL(8)
     | Mod => InfixL(9);
 
   // adds parentheses when True
@@ -158,6 +158,23 @@ module Precedence = {
 
   let rec handleOperator = (n, op) =>
     switch (classify(op)) {
+    | Infix(m) =>
+      Expect(
+        p =>
+          Expect(
+            q =>
+              Complete(
+                parensIf(
+                  n > m,
+                  toString(m + 1, p)
+                  ++ " "
+                  ++ Op.toString(op)
+                  ++ " "
+                  ++ toString(m + 1, q),
+                ),
+              ),
+          ),
+      )
     | InfixL(m) =>
       Expect(
         p =>
@@ -188,23 +205,6 @@ module Precedence = {
                   ++ Op.toString(op)
                   ++ " "
                   ++ toString(m, q),
-                ),
-              ),
-          ),
-      )
-    | Infix(m) =>
-      Expect(
-        p =>
-          Expect(
-            q =>
-              Complete(
-                parensIf(
-                  n > m,
-                  toString(m + 1, p)
-                  ++ " "
-                  ++ Op.toString(op)
-                  ++ " "
-                  ++ toString(m + 1, q),
                 ),
               ),
           ),
