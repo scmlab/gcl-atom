@@ -1,5 +1,7 @@
 open! Rebase;
 
+type range = Atom.Range.t;
+
 module React = {
   open ReasonReact;
 

@@ -54,7 +54,7 @@ module Connection_ = {
     switch (Response.decode(result)) {
     | value => Promise.resolved(Ok(value))
     | exception (Json.Decode.DecodeError(msg)) =>
-      Promise.resolved(Error(Connection.Error.DecodeError(msg)))
+      Promise.resolved(Error(Connection.Error.DecodeError(msg, result)))
     };
   };
 };

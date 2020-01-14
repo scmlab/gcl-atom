@@ -27,14 +27,17 @@ module Error = {
     | NotEstablishedYet;
 
   type t =
-    | DecodeError(string)
+    | DecodeError(string, Js.Json.t)
     | AutoSearchError(autoSearch)
     | ValidationError(string, validation)
     | ConnectionError(connection);
 
   let toString =
     fun
-    | DecodeError(msg) => ({js|JSON Decode Error|js}, msg)
+    | DecodeError(msg, json) => (
+        {js|JSON Decode Error|js},
+        msg ++ "\n" ++ "JSON from GCL: \n" ++ Js.Json.stringify(json),
+      )
     | AutoSearchError(ProcessHanging(name)) => (
         "Process not responding when looking for \"" ++ name ++ "\"",
         {j|Please restart the process|j},
