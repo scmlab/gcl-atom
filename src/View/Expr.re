@@ -117,67 +117,36 @@ and decodeSubst: Json.Decode.decoder(subst) =
   json => json |> Json.Decode.dict(decode);
 
 module Precedence = {
-  type partialOrdering =
-    | Equal
-    | GreaterThan
-    | LessThan
-    | CantCompare;
-
   type stage =
     | Expect(t => stage)
     | Complete(string);
 
   open! Op;
 
-  module Sort = {
-    type t =
-      | Predicate(int)
-      | Number(int)
-      | Others;
-    let compareInt = (x, y) =>
-      switch (compare(x, y)) {
-      | (-1) => LessThan
-      | 0 => Equal
-      | _ => GreaterThan
-      };
-    let compare = (x, y) =>
-      switch (x, y) {
-      | (Predicate(m), Predicate(n)) => compareInt(m, n)
-      | (Number(m), Number(n)) => compareInt(m, n)
-      | _ => CantCompare
-      };
-
-    let succ =
-      fun
-      | Predicate(n) => Predicate(n + 1)
-      | Number(n) => Number(n + 1)
-      | Others => Others;
-  };
-
   type fixity =
-    | InfixL(Sort.t)
-    | InfixR(Sort.t)
-    | Infix(Sort.t)
-    | Prefix(Sort.t)
-    | Postfix(Sort.t);
+    | InfixL(int)
+    | InfixR(int)
+    | Infix(int)
+    | Prefix(int)
+    | Postfix(int);
 
   let classify =
     fun
-    | Implies => InfixR(Predicate(1))
-    | Disj => InfixL(Predicate(2))
-    | Conj => InfixL(Predicate(3))
-    | Neg => Prefix(Predicate(4))
-    | EQ => Infix(Predicate(5))
-    | NEQ => Infix(Predicate(5))
-    | LTE => Infix(Predicate(5))
-    | GTE => Infix(Predicate(5))
-    | LT => Infix(Predicate(5))
-    | GT => Infix(Predicate(5))
-    | Mod => InfixL(Number(1))
-    | Mul => InfixL(Number(2))
-    | Div => InfixL(Number(2))
-    | Add => InfixL(Number(3))
-    | Sub => InfixL(Number(3));
+    | Implies => InfixR(1)
+    | Disj => InfixL(2)
+    | Conj => InfixL(3)
+    | Neg => Prefix(4)
+    | EQ => Infix(5)
+    | NEQ => Infix(6)
+    | LTE => Infix(6)
+    | GTE => Infix(6)
+    | LT => Infix(6)
+    | GT => Infix(6)
+    | Mul => InfixL(7)
+    | Div => InfixL(7)
+    | Add => InfixL(8)
+    | Sub => InfixL(8)
+    | Mod => InfixL(9);
 
   // adds parentheses when True
   let parensIf = (p, s) =>
@@ -186,8 +155,6 @@ module Precedence = {
     } else {
       s;
     };
-
-  let greaterThan = (x, y) => Sort.compare(x, y) == GreaterThan;
 
   let rec handleOperator = (n, op) =>
     switch (classify(op)) {
@@ -198,12 +165,12 @@ module Precedence = {
             q =>
               Complete(
                 parensIf(
-                  greaterThan(n, m),
+                  n > m,
                   toString(m, p)
                   ++ " "
                   ++ Op.toString(op)
                   ++ " "
-                  ++ toString(Sort.succ(m), q),
+                  ++ toString(m + 1, q),
                 ),
               ),
           ),
@@ -215,8 +182,8 @@ module Precedence = {
             q =>
               Complete(
                 parensIf(
-                  greaterThan(n, m),
-                  toString(Sort.succ(m), p)
+                  n > m,
+                  toString(m + 1, p)
                   ++ " "
                   ++ Op.toString(op)
                   ++ " "
@@ -232,12 +199,12 @@ module Precedence = {
             q =>
               Complete(
                 parensIf(
-                  greaterThan(n, m),
-                  toString(Sort.succ(m), p)
+                  n > m,
+                  toString(m + 1, p)
                   ++ " "
                   ++ Op.toString(op)
                   ++ " "
-                  ++ toString(Sort.succ(m), q),
+                  ++ toString(m + 1, q),
                 ),
               ),
           ),
@@ -246,20 +213,14 @@ module Precedence = {
       Expect(
         p =>
           Complete(
-            parensIf(
-              greaterThan(n, m),
-              Op.toString(op) ++ " " ++ toString(m, p),
-            ),
+            parensIf(n > m, Op.toString(op) ++ " " ++ toString(m, p)),
           ),
       )
     | Postfix(m) =>
       Expect(
         p =>
           Complete(
-            parensIf(
-              greaterThan(n, m),
-              toString(m, p) ++ " " ++ Op.toString(op),
-            ),
+            parensIf(n > m, toString(m, p) ++ " " ++ Op.toString(op)),
           ),
       )
     }
@@ -290,4 +251,4 @@ module Precedence = {
     };
 };
 
-let toString = Precedence.toString(Others);
+let toString = Precedence.toString(0);
