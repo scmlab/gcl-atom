@@ -2,6 +2,22 @@ open! Rebase;
 open Decoder;
 open Util;
 
+module VarArg = {
+  type t('a, 'b) =
+    | Expect('a => t('a, 'b))
+    | Complete('b);
+
+  let return = x => Complete(x);
+  let rec flatMap = (x, f) =>
+    switch (x) {
+    | Expect(g) => Expect(x => flatMap(g(x), f))
+    | Complete(x) => f(x)
+    };
+  let let_ = flatMap;
+
+  let var = Expect(x => Complete(x));
+};
+
 module Lit = {
   type t =
     | Num(int)
@@ -154,22 +170,6 @@ module Expr = {
     json => json |> Json.Decode.dict(decode);
 
   module Precedence = {
-    module VarArg = {
-      type t('a, 'b) =
-        | Expect('a => t('a, 'b))
-        | Complete('b);
-
-      let return = x => Complete(x);
-      let rec flatMap = (x, f) =>
-        switch (x) {
-        | Expect(g) => Expect(x => flatMap(g(x), f))
-        | Complete(x) => f(x)
-        };
-      let let_ = flatMap;
-
-      let var = Expect(x => Complete(x));
-    };
-
     open VarArg;
 
     open! Op;

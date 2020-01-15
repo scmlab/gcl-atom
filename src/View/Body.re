@@ -50,13 +50,13 @@ module ProofObligation = {
     let ProofObligation(_, p, q, _) = payload;
     <li className="gcl-body-item">
       <span className="gcl-proof-obligation-antecedent">
-        {string(Syntax.Expr.toString(p))}
+        <Expr expr=p />
       </span>
       <span className="gcl-proof-obligation-arrow">
         {string({j|⇒|j})}
       </span>
       <span className="gcl-proof-obligation-consequent">
-        {string(Syntax.Expr.toString(q))}
+        <Expr expr=q />
       </span>
     </li>;
   };
