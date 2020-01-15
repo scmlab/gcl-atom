@@ -1,5 +1,6 @@
 open! Rebase;
 open Decoder;
+open Util;
 
 module Lit = {
   type t =
@@ -84,13 +85,34 @@ module Op = {
        );
 };
 
+module Upper = {
+  type t =
+    | Upper(string, range);
+  open Json.Decode;
+  let decode: decoder(t) =
+    pair(string, range) |> map(((x, r)) => Upper(x, r));
+  let toString =
+    fun
+    | Upper(x, _) => x;
+};
+
+module Lower = {
+  type t =
+    | Lower(string, range);
+  open Json.Decode;
+  let decode: decoder(t) =
+    pair(string, range) |> map(((x, r)) => Lower(x, r));
+  let toString =
+    fun
+    | Lower(x, _) => x;
+};
 type t =
-  | Var(string)
-  | Const(string)
-  | Lit(Lit.t)
-  | Op(Op.t)
-  | App(t, t)
-  | Hole(int, array(subst))
+  | Var(string, range)
+  | Const(string, range)
+  | Lit(Lit.t, range)
+  | Op(Op.t, range)
+  | App(t, t, range)
+  | Hole(range)
 and subst = Js.Dict.t(t);
 
 let rec decode: Json.Decode.decoder(t) =
@@ -99,17 +121,28 @@ let rec decode: Json.Decode.decoder(t) =
     |> Json.Decode.(
          sum(
            fun
-           | "Var" => Contents(string |> map(x => Var(x)))
-           | "Const" => Contents(string |> map(x => Const(x)))
-           | "Lit" => Contents(Lit.decode |> map(x => Lit(x)))
-           | "Op" => Contents(Op.decode |> map(x => Op(x)))
-           | "App" =>
-             Contents(pair(decode, decode) |> map(((x, y)) => App(x, y)))
-           | "Hole" =>
+           | "Var" =>
              Contents(
-               pair(int, array(decodeSubst))
-               |> map(((x, xs)) => Hole(x, xs)),
+               pair(Lower.decode, range)
+               |> map(((x, r)) => Var(Lower.toString(x), r)),
              )
+           | "Const" =>
+             Contents(
+               pair(Upper.decode, range)
+               |> map(((x, r)) => Const(Upper.toString(x), r)),
+             )
+           | "Lit" =>
+             Contents(
+               pair(Lit.decode, range) |> map(((x, r)) => Lit(x, r)),
+             )
+           | "Op" =>
+             Contents(pair(Op.decode, range) |> map(((x, r)) => Op(x, r)))
+           | "App" =>
+             Contents(
+               tuple3(decode, decode, range)
+               |> map(((x, y, r)) => App(x, y, r)),
+             )
+           | "Hole" => Contents(range |> map(r => Hole(r)))
            | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
          )
        )
@@ -221,11 +254,11 @@ module Precedence = {
     }
   and handleExpr = n =>
     fun
-    | Var(s) => Complete(s)
-    | Const(s) => Complete(s)
-    | Lit(lit) => Complete(Lit.toString(lit))
-    | Op(op) => handleOperator(n, op)
-    | App(p, q) =>
+    | Var(s, _) => Complete(s)
+    | Const(s, _) => Complete(s)
+    | Lit(lit, _) => Complete(Lit.toString(lit))
+    | Op(op, _) => handleOperator(n, op)
+    | App(p, q, _) =>
       switch (handleExpr(n, p)) {
       | Expect(f) => f(q)
       | Complete(s) =>
@@ -233,12 +266,13 @@ module Precedence = {
         | Expect(g) => Expect(g)
         | Complete(t) =>
           switch (q) {
-          | App(_, _) => Complete(s ++ " " ++ parensIf(true, t))
+          | App(_, _, _) => Complete(s ++ " " ++ parensIf(true, t))
           | _ => Complete(s ++ " " ++ t)
           }
         }
       }
-    | Hole(i, _substs) => Complete("[" ++ string_of_int(i) ++ "]")
+    | Hole(_) => Complete("[?]")
+  // | Hole(_) => Complete("[" ++ string_of_int(i) ++ "]")
   and toString = (n, p) =>
     switch (handleExpr(n, p)) {
     | Expect(_) => ""
