@@ -82,8 +82,8 @@ let markSpec = (spec: Specification.t, editor): array(Atom.Decoration.t) => {
       s;
     };
 
-  let pre = trim(Expr.toString(spec.pre));
-  let post = trim(Expr.toString(spec.post));
+  let pre = trim(Syntax.Expr.toString(spec.pre));
+  let post = trim(Syntax.Expr.toString(spec.post));
 
   Js.List.flatten([
     overlaySpec(pre, start, editor),

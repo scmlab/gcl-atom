@@ -3,15 +3,15 @@ open Decoder;
 
 type t = {
   id: int,
-  pre: Expr.t,
-  post: Expr.t,
+  pre: Syntax.Expr.t,
+  post: Syntax.Expr.t,
   range: Atom.Range.t,
 };
 
 let decode: decoder(t) =
   json => {
     id: json |> field("specID", int),
-    pre: json |> field("specPreCond", Expr.decode),
-    post: json |> field("specPostCond", Expr.decode),
+    pre: json |> field("specPreCond", Syntax.Expr.decode),
+    post: json |> field("specPostCond", Syntax.Expr.decode),
     range: json |> field("specLoc", range),
   };
