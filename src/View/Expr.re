@@ -117,9 +117,23 @@ and decodeSubst: Json.Decode.decoder(subst) =
   json => json |> Json.Decode.dict(decode);
 
 module Precedence = {
-  type stage =
-    | Expect(t => stage)
-    | Complete(string);
+  module VarArg = {
+    type t('a, 'b) =
+      | Expect('a => t('a, 'b))
+      | Complete('b);
+
+    let return = x => Complete(x);
+    let rec flatMap = (x, f) =>
+      switch (x) {
+      | Expect(g) => Expect(x => flatMap(g(x), f))
+      | Complete(x) => f(x)
+      };
+    let let_ = flatMap;
+
+    let var = Expect(x => Complete(x));
+  };
+
+  open VarArg;
 
   open! Op;
 
@@ -159,70 +173,51 @@ module Precedence = {
   let rec handleOperator = (n, op) =>
     switch (classify(op)) {
     | Infix(m) =>
-      Expect(
-        p =>
-          Expect(
-            q =>
-              Complete(
-                parensIf(
-                  n > m,
-                  toString(m + 1, p)
-                  ++ " "
-                  ++ Op.toString(op)
-                  ++ " "
-                  ++ toString(m + 1, q),
-                ),
-              ),
-          ),
-      )
+      let%VarArg p = var;
+      let%VarArg q = var;
+      Complete(
+        parensIf(
+          n > m,
+          toString(m + 1, p)
+          ++ " "
+          ++ Op.toString(op)
+          ++ " "
+          ++ toString(m + 1, q),
+        ),
+      );
     | InfixL(m) =>
-      Expect(
-        p =>
-          Expect(
-            q =>
-              Complete(
-                parensIf(
-                  n > m,
-                  toString(m, p)
-                  ++ " "
-                  ++ Op.toString(op)
-                  ++ " "
-                  ++ toString(m + 1, q),
-                ),
-              ),
-          ),
-      )
+      let%VarArg p = var;
+      let%VarArg q = var;
+
+      Complete(
+        parensIf(
+          n > m,
+          toString(m, p)
+          ++ " "
+          ++ Op.toString(op)
+          ++ " "
+          ++ toString(m + 1, q),
+        ),
+      );
     | InfixR(m) =>
-      Expect(
-        p =>
-          Expect(
-            q =>
-              Complete(
-                parensIf(
-                  n > m,
-                  toString(m + 1, p)
-                  ++ " "
-                  ++ Op.toString(op)
-                  ++ " "
-                  ++ toString(m, q),
-                ),
-              ),
-          ),
-      )
+      let%VarArg p = var;
+      let%VarArg q = var;
+      Complete(
+        parensIf(
+          n > m,
+          toString(m + 1, p)
+          ++ " "
+          ++ Op.toString(op)
+          ++ " "
+          ++ toString(m, q),
+        ),
+      );
     | Prefix(m) =>
-      Expect(
-        p =>
-          Complete(
-            parensIf(n > m, Op.toString(op) ++ " " ++ toString(m, p)),
-          ),
-      )
+      let%VarArg p = var;
+      Complete(parensIf(n > m, Op.toString(op) ++ " " ++ toString(m, p)));
     | Postfix(m) =>
-      Expect(
-        p =>
-          Complete(
-            parensIf(n > m, toString(m, p) ++ " " ++ Op.toString(op)),
-          ),
-      )
+      let%VarArg p = var;
+      Complete(parensIf(n > m, toString(m, p) ++ " " ++ Op.toString(op)));
     }
   and handleExpr = n =>
     fun
