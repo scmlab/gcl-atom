@@ -190,7 +190,10 @@ let connect = connection => {
     Nd.ChildProcess.spawn_(
       path,
       [||],
-      Nd.ChildProcess.spawnOption(~shell=`Bool(true), ()),
+      Nd.ChildProcess.spawnOption(
+        ~shell=Nd.ChildProcess.Shell.bool(true),
+        (),
+      ),
     );
   connection.path = Some(path);
   connection.process = Some(process);
