@@ -1,4 +1,5 @@
 open! Rebase;
+open Rebase.Fn;
 
 module Error = {
   type autoSearch =
@@ -99,13 +100,14 @@ signal: $signal
 
 type t = {
   mutable path: option(string),
-  mutable process: option(N.ChildProcess.t),
+  mutable process: option(Nd.ChildProcess.t),
   emitter: Event.t(result(Js.Json.t, Error.t)),
 };
 
 let disconnect = connection => {
   connection.emitter.destroy();
-  connection.process |> Option.forEach(N.ChildProcess.kill("SIGTERM"));
+  connection.process
+  |> Option.forEach(Nd.ChildProcess.kill_("SIGTERM") >> ignore);
   connection.process = None;
 
   Promise.resolved();
@@ -143,7 +145,7 @@ let autoSearch = (name): Promise.t(result(string, Error.t)) =>
     switch (commandName) {
     | Error(os) => resolve(Error(NotSupported(os)))
     | Ok(commandName') =>
-      N.ChildProcess.exec(
+      Nd.ChildProcess.exec(
         commandName' ++ " " ++ name,
         (error, stdout, stderr) => {
           /* clear timeout as the process has responded */
@@ -184,8 +186,12 @@ let autoSearch = (name): Promise.t(result(string, Error.t)) =>
 
 let connect = connection => {
   let%Ok path = autoSearch("gcl");
-  open N;
-  let process = ChildProcess.spawn(path, [||], {"shell": true});
+  let process =
+    Nd.ChildProcess.spawn_(
+      path,
+      [||],
+      Nd.ChildProcess.spawnOption(~shell=`Bool(true), ()),
+    );
   connection.path = Some(path);
   connection.process = Some(process);
 
@@ -194,7 +200,7 @@ let connect = connection => {
 
   // on data
   process
-  |> N.ChildProcess.stdout
+  |> Nd.ChildProcess.stdout
   |> Nd.Stream.Readable.on(
        `data(
          chunk => {
@@ -221,13 +227,13 @@ let connect = connection => {
   |> ignore;
 
   process
-  |> N.ChildProcess.stdin
+  |> Nd.ChildProcess.stdin
   |> Nd.Stream.Writable.on(`close(() => disconnect(connection) |> ignore))
   |> ignore;
 
   // on errors and anomalies
   process
-  |> ChildProcess.on(
+  |> Nd.ChildProcess.on(
        `close(
          (code, signal) => {
            connection.emitter.emit(
@@ -240,7 +246,7 @@ let connect = connection => {
          },
        ),
      )
-  |> ChildProcess.on(
+  |> Nd.ChildProcess.on(
        `disconnect(
          () => {
            connection.emitter.emit(
@@ -251,7 +257,7 @@ let connect = connection => {
          },
        ),
      )
-  |> ChildProcess.on(
+  |> Nd.ChildProcess.on(
        `error(
          exn => {
            connection.emitter.emit(
@@ -262,7 +268,7 @@ let connect = connection => {
          },
        ),
      )
-  |> ChildProcess.on(
+  |> Nd.ChildProcess.on(
        `exit(
          (code, signal) => {
            connection.emitter.emit(
@@ -290,7 +296,7 @@ let send = (request, connection): Promise.t(result(Js.Json.t, Error.t)) => {
     let payload = Node.Buffer.fromString(request ++ "\n");
     // write
     process
-    |> N.ChildProcess.stdin
+    |> Nd.ChildProcess.stdin
     |> Nd.Stream.Writable.write(payload)
     |> ignore;
 
