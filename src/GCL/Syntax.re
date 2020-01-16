@@ -73,8 +73,8 @@ module Op = {
     | Neg => {j|¬|j}
     | Add => "+"
     | Sub => "-"
-    | Mul => "*"
-    | Div => "/"
+    | Mul => {j|×|j}
+    | Div => {j|÷|j}
     | Mod => "%";
 
   open Json.Decode;

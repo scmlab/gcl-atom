@@ -97,37 +97,10 @@ signal: $signal
       );
 };
 
-module Emitter = {
-  type t('a) = {
-    emitter: Nd.Events.t,
-    emit: 'a => unit,
-    once: unit => Promise.t('a),
-    on: ('a => unit) => unit,
-    destroy: unit => unit,
-  };
-
-  let make = () => {
-    let emitter = Nd.Events.make();
-    {
-      emitter,
-      emit: x => emitter |> Nd.Events.emit("data", x) |> ignore,
-      once: () => {
-        let (promise, resolve) = Promise.pending();
-        emitter |> Nd.Events.once("data", resolve) |> ignore;
-        promise;
-      },
-      on: callback => {
-        emitter |> Nd.Events.on("data", callback) |> ignore;
-      },
-      destroy: () => Nd.Events.removeAllListeners(emitter) |> ignore,
-    };
-  };
-};
-
 type t = {
   mutable path: option(string),
   mutable process: option(N.ChildProcess.t),
-  emitter: Emitter.t(result(Js.Json.t, Error.t)),
+  emitter: Event.t(result(Js.Json.t, Error.t)),
 };
 
 let disconnect = connection => {
@@ -145,7 +118,7 @@ let isConnected = connection =>
   };
 
 let make = (): t => {
-  {path: None, process: None, emitter: Emitter.make()};
+  {path: None, process: None, emitter: Event.make()};
 };
 
 let autoSearch = (name): Promise.t(result(string, Error.t)) =>

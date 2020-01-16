@@ -1,3 +1,4 @@
+open Rebase.Fn;
 type t =
   | Load(string)
   | Refine(int, string)
@@ -18,4 +19,4 @@ module Encode = {
     | Debug => object_([("tag", string("Debug"))]);
 };
 
-let encode: t => string = x => x |> Encode.request |> Json.stringify;
+let encode: t => string = Encode.request >> Json.stringify;
