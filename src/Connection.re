@@ -210,8 +210,17 @@ let autoSearch = (name): Promise.t(result(string, Error.t)) =>
   }
   ->Promise.mapError(e => Error.AutoSearchError(e));
 
+let getPath = connection => {
+  switch (connection.path) {
+  | Some(path) => Promise.resolved(Ok(path))
+  | None =>
+    autoSearch("gcl")->Promise.tapOk(path => connection.path = Some(path))
+  };
+};
+
 let connect = connection => {
-  let%Ok path = autoSearch("gcl");
+  let%Ok path = getPath(connection);
+
   let process =
     Nd.ChildProcess.spawn_(
       path,
@@ -221,7 +230,6 @@ let connect = connection => {
         (),
       ),
     );
-  connection.path = Some(path);
   connection.process = Connected(process);
 
   // for incremental parsing
@@ -293,6 +301,7 @@ let connect = connection => {
              Error(Error.ConnectionError(Error.ShellError(exn))),
            )
            |> ignore;
+           connection.path = None; // unregister the path
            disconnect(connection) |> ignore;
          },
        ),
