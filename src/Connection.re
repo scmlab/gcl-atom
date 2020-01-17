@@ -98,29 +98,55 @@ signal: $signal
       );
 };
 
+type status =
+  | Connected(Nd.ChildProcess.t)
+  | Disconnecting(Resource.t(unit))
+  | Disconnected;
+
 type t = {
   mutable path: option(string),
-  mutable process: option(Nd.ChildProcess.t),
+  mutable process: status,
   emitter: Event.t(result(Js.Json.t, Error.t)),
-};
-
-let disconnect = connection => {
-  connection.emitter.destroy();
-  connection.process
-  |> Option.forEach(Nd.ChildProcess.kill_("SIGTERM") >> ignore);
-  connection.process = None;
-
-  Promise.resolved();
 };
 
 let isConnected = connection =>
   switch (connection.process) {
-  | None => false
-  | Some(_) => true
+  | Connected(_) => true
+  | _ => false
+  };
+
+let disconnect = connection =>
+  switch (connection.process) {
+  | Connected(process) =>
+    // set the status to "Disconnecting"
+    let pending = Resource.make();
+    connection.process = Disconnecting(pending);
+
+    // listen to the `exit` event
+    connection.emitter.on(
+      fun
+      | Error(ConnectionError(ExitedByProcess(_, _))) => {
+          connection.emitter.destroy();
+          connection.process = Disconnected;
+          pending.supply();
+        }
+      | _ => (),
+    )
+    |> ignore;
+
+    // trigger `exit`
+    process |> (Nd.ChildProcess.kill_("SIGTERM") >> ignore);
+
+    // resolve on `exit`
+    pending.acquire();
+  | Disconnecting(pending) => pending.acquire()
+  | Disconnected => Promise.resolved()
   };
 
 let make = (): t => {
-  {path: None, process: None, emitter: Event.make()};
+  path: None,
+  process: Disconnected,
+  emitter: Event.make(),
 };
 
 let autoSearch = (name): Promise.t(result(string, Error.t)) =>
@@ -196,7 +222,7 @@ let connect = connection => {
       ),
     );
   connection.path = Some(path);
-  connection.process = Some(process);
+  connection.process = Connected(process);
 
   // for incremental parsing
   let unfinishedMsg = ref(None);
@@ -291,9 +317,7 @@ let connect = connection => {
 
 let send = (request, connection): Promise.t(result(Js.Json.t, Error.t)) => {
   switch (connection.process) {
-  | None =>
-    Promise.resolved(Error(Error.ConnectionError(Error.NotEstablishedYet)))
-  | Some(process) =>
+  | Connected(process) =>
     let promise = connection.emitter.once();
 
     let payload = Node.Buffer.fromString(request ++ "\n");
@@ -304,5 +328,7 @@ let send = (request, connection): Promise.t(result(Js.Json.t, Error.t)) => {
     |> ignore;
 
     promise;
+  | _ =>
+    Promise.resolved(Error(Error.ConnectionError(Error.NotEstablishedYet)))
   };
 };

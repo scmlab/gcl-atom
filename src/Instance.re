@@ -25,10 +25,6 @@ module View = {
 };
 
 module Connection_ = {
-  // destroy the connection
-  let disconnect = instance =>
-    Connection.disconnect(instance.connection) |> ignore;
-
   // connect if not connected yet
   let getConnection =
       (instance): Promise.t(result(Connection.t, Connection.Error.t)) => {
@@ -60,19 +56,10 @@ module Connection_ = {
 };
 
 let destroy = instance => {
-  instance |> Connection_.disconnect;
   instance.decorations |> Array.forEach(Atom.Decoration.destroy);
+  instance.connection |> Connection.disconnect |> ignore;
   instance |> View.destroy;
 };
-//
-// instance.connection.emitter.on(
-//   fun
-//   | Ok(_) => []
-//   | Error(error) => {
-//       let (header, body) = Connection.Error.toString(error);
-//       [Display(Error(header), Plain(body))];
-//     },
-// );
 
 module Command_ = {
   open Types.Command;
