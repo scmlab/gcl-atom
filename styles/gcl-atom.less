@@ -41,6 +41,11 @@
     @color: saturate(@background-color-warning, 100%);
     background: fade(mix(@color, @syntax-background-color, 60%), 50%);
   }
+
+  .highlight-link {
+    @color: saturate(@background-color-warning, 100%);
+    background: fade(mix(@color, @syntax-background-color, 60%), 50%);
+  }
 }
 
 // <Panel>
@@ -108,6 +113,11 @@
     &.collapsed { cursor: zoom-in }
   }
 
+  .expr-link {
+    // cursor: pointer;
+
+    &:hover { color: @text-color-selected }
+  }
 }
 
 

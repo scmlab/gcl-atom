@@ -50,7 +50,7 @@ module Operator = {
 
   [@react.component]
   let make = (~value: Syntax.Op.t, ~loc: Atom.Range.t) =>
-    <span> {string(toString(value))} </span>;
+    <Link loc> {string(toString(value))} </Link>;
 };
 
 module Prec = {
@@ -123,9 +123,10 @@ module Prec = {
   and handleExpr = n => {
     Syntax.Expr.(
       fun
-      | Var(s, _) => Complete(<span> {string(s)} </span>)
-      | Const(s, _) => Complete(<span> {string(s)} </span>)
-      | Lit(lit, _) => Complete(<span> {string(Lit.toString(lit))} </span>)
+      | Var(s, loc) => Complete(<Link loc> {string(s)} </Link>)
+      | Const(s, loc) => Complete(<Link loc> {string(s)} </Link>)
+      | Lit(lit, loc) =>
+        Complete(<Link loc> {string(Lit.toString(lit))} </Link>)
       | Op(op, loc) => handleOperator(n, op, loc)
       | App(p, q, _) =>
         switch (handleExpr(n, p)) {
@@ -141,7 +142,7 @@ module Prec = {
             }
           }
         }
-      | Hole(_) => Complete(<span> {string("[?]")} </span>)
+      | Hole(loc) => Complete(<Link loc> {string("[?]")} </Link>)
     );
   }
   [@react.component]

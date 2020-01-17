@@ -17,7 +17,6 @@ module View = {
   let destroy = instance => instance.editor |> View.destroy;
   let show = instance => instance.view.setActivation(true) |> ignore;
   let hide = instance => instance.view.setActivation(false) |> ignore;
-
   let displayError = (header, body, instance) => {
     instance.view.setHeader(Error(header)) |> ignore;
     instance.view.setBody(Plain(body)) |> ignore;

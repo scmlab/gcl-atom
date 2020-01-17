@@ -78,6 +78,26 @@ let make = (editor: Atom.TextEditor.t) => {
       [||],
     );
   ReactDOMRe.render(component, element);
+  // <Links>
+  let linkDict: Js.Dict.t(Atom.Decoration.t) = Js.Dict.empty();
+  let delete_: string => unit = [%raw id => "{delete linkDict[id]}"];
+  open Link;
+  channels.link.on(
+    fun
+    | MouseOver(range) =>
+      Js.Dict.set(
+        linkDict,
+        Atom.Range.toString(range),
+        Decoration.markLink(range, editor),
+      )
+    | MouseLeave(range) => {
+        let key = Atom.Range.toString(range);
+        Js.Dict.get(linkDict, key) |> Option.forEach(Atom.Decoration.destroy);
+        delete_(key);
+      },
+  )
+  |> ignore;
+
   // expose the interface
   Interface.make(channels);
 };

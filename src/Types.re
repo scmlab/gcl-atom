@@ -12,6 +12,7 @@ module View = {
       setActivation: Channel.t(bool, unit),
       setHeader: Channel.t(header, unit),
       setBody: Channel.t(Body.t, unit),
+      link: Event.t(Link.event),
     };
 
     let make = () => {
@@ -19,6 +20,7 @@ module View = {
       setActivation: Channel.make(),
       setHeader: Channel.make(),
       setBody: Channel.make(),
+      link: Event.make(),
     };
   };
 

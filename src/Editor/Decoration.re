@@ -4,7 +4,7 @@ let mark = (type_, class_, range, editor) => {
   open Atom;
   let marker = editor |> TextEditor.markBufferRange(range);
   let option = TextEditor.decorateMarkerOptions(~type_, ~class_, ());
-  [editor |> Atom.TextEditor.decorateMarker(marker, option)];
+  editor |> Atom.TextEditor.decorateMarker(marker, option);
 };
 
 let markLineSpecSoft = mark("highlight", "highlight-spec-soft");
@@ -88,7 +88,7 @@ let markSpec = (spec: Specification.t, editor): array(Atom.Decoration.t) => {
   Js.List.flatten([
     overlaySpec(pre, start, editor),
     overlaySpec(post, end_, editor),
-    markLineSpecSoft(end_, editor),
+    [markLineSpecSoft(end_, editor)],
   ])
   |> Array.fromList;
 };
@@ -97,7 +97,9 @@ let markSite = (site, specifications, editor) => {
   let range = specifications |> ErrorSite.toRange(site);
   Js.List.flatten([
     overlayError(range, editor),
-    mark("line-number", "line-number-error", range, editor),
+    [mark("line-number", "line-number-error", range, editor)],
   ])
   |> Array.fromList;
 };
+
+let markLink = mark("highlight", "highlight-link");

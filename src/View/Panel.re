@@ -30,8 +30,10 @@ let make = (~channels: Channels.t) => {
       </h2>
     };
 
-  <section className={activated ? "" : "hidden"}>
-    headerElem
-    <Body body />
-  </section>;
+  <Link.Provider value={channels.link}>
+    <section className={activated ? "" : "hidden"}>
+      headerElem
+      <Body body />
+    </section>
+  </Link.Provider>;
 };
