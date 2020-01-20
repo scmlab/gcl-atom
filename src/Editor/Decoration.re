@@ -88,7 +88,7 @@ let markSpec = (spec: Specification.t, editor): array(Atom.Decoration.t) => {
   Js.List.flatten([
     overlaySpec(pre, start, editor),
     overlaySpec(post, end_, editor),
-    [markLineSpecSoft(end_, editor)],
+    [markLineSpecSoft(start, editor), markLineSpecSoft(end_, editor)],
   ])
   |> Array.fromList;
 };
