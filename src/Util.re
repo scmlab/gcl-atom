@@ -10,15 +10,10 @@ module React = {
 
   let manyInFragment = ReactDOMRe.createElement(ReasonReact.fragment);
 
-  let sepBy = (sep: reactElement, item: list(reactElement)) =>
-    switch (item) {
-    | [] => <> </>
-    | [x] => x
-    | [x, ...xs] =>
-      {
-        Array.fromList([x, ...List.map(i => <> sep i </>, xs)]);
-      }
-      |> manyIn("span")
+  let sepBy = (sep: reactElement, xs: array(reactElement)) =>
+    switch (Array.length(xs)) {
+    | 0 => <> </>
+    | _ => Array.reduce((xs, x) => <> xs sep x </>, <> </>, xs)
     };
   let enclosedBy =
       (front: reactElement, back: reactElement, item: reactElement) =>

@@ -133,6 +133,8 @@ module Expr = {
     | Hole(range)
   and subst = Js.Dict.t(t);
 
+  // let disjunct = Array.reduce(3, 4);
+
   let rec decode: Json.Decode.decoder(t) =
     json =>
       json
