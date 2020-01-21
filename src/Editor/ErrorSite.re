@@ -1,8 +1,9 @@
 open Rebase;
+open Syntax;
 
 type t =
-  | Global(Atom.Range.t)
-  | Local(Atom.Range.t, int);
+  | Global(loc)
+  | Local(loc, int);
 
 open Json.Decode;
 open Decoder;
@@ -10,49 +11,37 @@ open Decoder;
 let decode: decoder(t) =
   sum(
     fun
-    | "Global" => Contents(json => Global(json |> range))
+    | "Global" => Contents(json => Global(json |> Loc.decode))
     | "Local" =>
-      Contents(pair(range, int) |> map(((r, i)) => Local(r, i)))
+      Contents(pair(Loc.decode, int) |> map(((r, i)) => Local(r, i)))
     | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
   );
 
-let toRange = (site, specifications) => {
+let toLoc = (site, specifications) => {
   switch (site) {
-  | Global(range) => range
-  | Local(range, i) =>
-    open Atom.Range;
+  | Global(loc) => loc
+  | Local(loc, i) =>
     open Specification;
     let specs = specifications |> Array.filter(spec => spec.id == i);
 
     specs[0]
     |> Option.mapOr(
          spec =>
-           range
-           |> translate(start(spec.range), start(spec.range))
-           // down by 1 line
-           |> translate(Atom.Point.make(1, 0), Atom.Point.make(1, 0)),
-         range,
+           spec.loc
+           |> Syntax.Loc.translate(loc)
+           |> Syntax.Loc.translateBy(1, 0, 1, 0),
+         loc,
        );
   };
 };
 
+let toRange = (site, specifications) =>
+  toLoc(site, specifications) |> Loc.toRange;
+
 let toString = site => {
-  let rangeToString = range => {
-    Atom.Range.(
-      Atom.Point.(
-        string_of_int(row(start(range)))
-        ++ ":"
-        ++ string_of_int(column(start(range)))
-        ++ "-"
-        ++ string_of_int(row(end_(range)))
-        ++ ":"
-        ++ string_of_int(column(end_(range)))
-      )
-    );
-  };
   switch (site) {
-  | Global(range) => "at " ++ rangeToString(range)
-  | Local(range, i) =>
-    "at " ++ rangeToString(range) ++ " in #" ++ string_of_int(i)
+  | Global(loc) => "at " ++ Loc.toString(loc)
+  | Local(loc, i) =>
+    "at " ++ Loc.toString(loc) ++ " in #" ++ string_of_int(i)
   };
 };

@@ -14,20 +14,24 @@ module Error = {
       sum(
         fun
         | "NotInScope" =>
-          Contents(pair(string, range) |> map(((s, _)) => NotInScope(s)))
+          Contents(
+            pair(string, Syntax.Loc.decode)
+            |> map(((s, _)) => NotInScope(s)),
+          )
         | "UnifyFailed" =>
           Contents(
-            tuple3(Type.decode, Type.decode, range)
+            tuple3(Type.decode, Type.decode, Syntax.Loc.decode)
             |> map(((s, t, _)) => UnifyFailed(s, t)),
           )
         | "RecursiveType" =>
           Contents(
-            tuple3(int, Type.decode, range)
+            tuple3(int, Type.decode, Syntax.Loc.decode)
             |> map(((s, t, _)) => RecursiveType(s, t)),
           )
         | "NotFunction" =>
           Contents(
-            pair(Type.decode, range) |> map(((t, _)) => NotFunction(t)),
+            pair(Type.decode, Syntax.Loc.decode)
+            |> map(((t, _)) => NotFunction(t)),
           )
         | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
       );
@@ -65,7 +69,8 @@ module Error = {
       | "LexicalError" => TagOnly(_ => LexicalError)
       | "SyntacticError" =>
         Contents(
-          pair(range, string) |> map(((_, msg)) => SyntacticError(msg)),
+          pair(Syntax.Loc.decode, string)
+          |> map(((_, msg)) => SyntacticError(msg)),
         )
       | "StructError" =>
         Contents(json => StructError(json |> StructError.decode))

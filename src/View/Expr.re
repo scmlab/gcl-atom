@@ -1,7 +1,7 @@
 // open Rebase;
 open React;
+open Syntax;
 
-// open Syntax;
 // open Syntax.VarArg;
 
 //
@@ -49,7 +49,7 @@ module Operator = {
   open Syntax.Op;
 
   [@react.component]
-  let make = (~value: Syntax.Op.t, ~loc: Atom.Range.t) =>
+  let make = (~value: Syntax.Op.t, ~loc: loc) =>
     <Link loc> {string(toString(value))} </Link>;
 };
 

@@ -1,7 +1,8 @@
 open Rebase;
 
-let mark = (type_, class_, range, editor) => {
+let mark = (type_, class_, loc, editor) => {
   open Atom;
+  let range = Syntax.Loc.toRange(loc);
   let marker = editor |> TextEditor.markBufferRange(range);
   let option = TextEditor.decorateMarkerOptions(~type_, ~class_, ());
   editor |> Atom.TextEditor.decorateMarker(marker, option);
@@ -13,16 +14,11 @@ let markLineSpecHard = mark("highlight", "highlight-spec-hard");
 //
 
 let overlay =
-    (
-      text,
-      class_,
-      tail: bool,
-      translation: (int, int),
-      range: Atom.Range.t,
-      editor,
-    ) => {
+    (text, class_, tail: bool, translation: (int, int), loc, editor) => {
   open Atom;
   open Webapi.Dom;
+  let range = Syntax.Loc.toRange(loc);
+
   // create an element for the overlay
   let element = Webapi.Dom.document |> Document.createElement("div");
   Element.setInnerHTML(element, text);
@@ -59,45 +55,53 @@ let overlay =
 
 let overlaySpec = text => overlay(text, "overlay-spec-text", false, (0, 1));
 
-let overlayError = (range: Atom.Range.t, editor) => {
+let overlayError = (loc, editor) => {
   let length =
-    editor |> Atom.TextEditor.getTextInBufferRange(range) |> Js.String.length;
+    editor
+    |> Atom.TextEditor.getTextInBufferRange(Syntax.Loc.toRange(loc))
+    |> Js.String.length;
   let text = Js.String.repeat(length, "&nbsp;");
-  overlay(text, "overlay-error", true, (0, 0), range, editor);
+  overlay(text, "overlay-error", true, (0, 0), loc, editor);
 };
 
 let markSpec = (spec: Specification.t, editor): array(Atom.Decoration.t) => {
-  open Specification;
-  open Atom;
+  Specification.(
+    switch (spec.loc) {
+    | NoLoc => [||]
+    | Loc(start, end_) =>
+      open Syntax;
+      open Syntax.Loc;
+      let startLoc = Loc(start, Pos.translateBy(0, 2, start));
+      let endLoc = Loc(Pos.translateBy(0, -2, end_), end_);
 
-  let start = Range.start(spec.range);
-  let start = Range.make(start, Point.translate(Point.make(0, 2), start));
-  let end_ = Range.end_(spec.range);
-  let end_ = Range.make(Point.translate(Point.make(0, -2), end_), end_);
+      let trim = s =>
+        if (String.length(s) > 77) {
+          String.sub(~from=0, ~length=73, s) ++ " ...";
+        } else {
+          s;
+        };
 
-  let trim = s =>
-    if (String.length(s) > 77) {
-      String.sub(~from=0, ~length=73, s) ++ " ...";
-    } else {
-      s;
-    };
+      let pre = trim(Syntax.Expr.toString(spec.pre));
+      let post = trim(Syntax.Expr.toString(spec.post));
 
-  let pre = trim(Syntax.Expr.toString(spec.pre));
-  let post = trim(Syntax.Expr.toString(spec.post));
-
-  Js.List.flatten([
-    overlaySpec(pre, start, editor),
-    overlaySpec(post, end_, editor),
-    [markLineSpecSoft(start, editor), markLineSpecSoft(end_, editor)],
-  ])
-  |> Array.fromList;
+      Js.List.flatten([
+        overlaySpec(pre, startLoc, editor),
+        overlaySpec(post, endLoc, editor),
+        [
+          markLineSpecSoft(startLoc, editor),
+          markLineSpecSoft(endLoc, editor),
+        ],
+      ])
+      |> Array.fromList;
+    }
+  );
 };
 
 let markSite = (site, specifications, editor) => {
-  let range = specifications |> ErrorSite.toRange(site);
+  let loc = specifications |> ErrorSite.toLoc(site);
   Js.List.flatten([
-    overlayError(range, editor),
-    [mark("line-number", "line-number-error", range, editor)],
+    overlayError(loc, editor),
+    [mark("line-number", "line-number-error", loc, editor)],
   ])
   |> Array.fromList;
 };

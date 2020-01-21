@@ -1,6 +1,94 @@
 open! Rebase;
 open Decoder;
-open Util;
+open! Util;
+
+module Pos = {
+  type t =
+    | Pos(string, int, int);
+  open Json.Decode;
+  let decode: decoder(t) =
+    json =>
+      Pos(
+        field("filepath", string, json),
+        field("line", int, json),
+        field("column", int, json),
+      );
+
+  let toPoint =
+    fun
+    | Pos(_, line, column) => Atom.Point.make(line - 1, column - 1);
+
+  let toString =
+    fun
+    | Pos(_, line, column) =>
+      string_of_int(line) ++ ":" ++ string_of_int(column);
+
+  let translate = by =>
+    fun
+    | Pos(path, line, column) => {
+        let Pos(_, y, x) = by;
+        Pos(path, line + y, column + x);
+      };
+
+  let translateBy = (y, x) =>
+    fun
+    | Pos(path, line, column) => Pos(path, line + y, column + x);
+};
+
+module Loc = {
+  type t =
+    | NoLoc
+    | Loc(Pos.t, Pos.t);
+  open Json.Decode;
+  let decode: decoder(t) =
+    sum(
+      fun
+      | "Loc" =>
+        Contents(
+          json =>
+            Loc(
+              field("start", Pos.decode, json),
+              field("end", Pos.decode, json),
+            ),
+        )
+      | "NoLoc" => TagOnly(_ => NoLoc)
+      | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
+    );
+
+  let toRange =
+    fun
+    | NoLoc => Atom.Range.make(Atom.Point.make(0, 0), Atom.Point.make(0, 0))
+    | Loc(x, Pos(_, line, column)) =>
+      Atom.Range.make(Pos.toPoint(x), Atom.Point.make(line - 1, column));
+
+  let toString =
+    fun
+    | NoLoc => "NoLoc"
+
+    | Loc(x, y) => Pos.toString(x) ++ "-" ++ Pos.toString(y);
+
+  let translate = by =>
+    fun
+    | NoLoc => by
+
+    | Loc(x, y) =>
+      switch (by) {
+      | NoLoc => Loc(x, y)
+      | Loc(w, v) => Loc(Pos.translate(x, w), Pos.translate(y, v))
+      };
+
+  let translateBy = (startY, startX, endY, endX) =>
+    fun
+    | NoLoc => Loc(Pos("", startY, startX), Pos("", endY, endX))
+    | Loc(x, y) =>
+      Loc(
+        Pos.translateBy(startY, startX, x),
+        Pos.translateBy(endY, endX, y),
+      );
+};
+
+type pos = Pos.t;
+type loc = Loc.t;
 
 module VarArg = {
   type t('a, 'b) =
@@ -103,10 +191,10 @@ module Op = {
 
 module Upper = {
   type t =
-    | Upper(string, range);
+    | Upper(string, loc);
   open Json.Decode;
   let decode: decoder(t) =
-    pair(string, range) |> map(((x, r)) => Upper(x, r));
+    pair(string, Loc.decode) |> map(((x, r)) => Upper(x, r));
   let toString =
     fun
     | Upper(x, _) => x;
@@ -114,10 +202,10 @@ module Upper = {
 
 module Lower = {
   type t =
-    | Lower(string, range);
+    | Lower(string, loc);
   open Json.Decode;
   let decode: decoder(t) =
-    pair(string, range) |> map(((x, r)) => Lower(x, r));
+    pair(string, Loc.decode) |> map(((x, r)) => Lower(x, r));
   let toString =
     fun
     | Lower(x, _) => x;
@@ -125,12 +213,12 @@ module Lower = {
 
 module Expr = {
   type t =
-    | Var(string, range)
-    | Const(string, range)
-    | Lit(Lit.t, range)
-    | Op(Op.t, range)
-    | App(t, t, range)
-    | Hole(range)
+    | Var(string, loc)
+    | Const(string, loc)
+    | Lit(Lit.t, loc)
+    | Op(Op.t, loc)
+    | App(t, t, loc)
+    | Hole(loc)
   and subst = Js.Dict.t(t);
 
   // let disjunct = Array.reduce(3, 4);
@@ -143,28 +231,28 @@ module Expr = {
              fun
              | "Var" =>
                Contents(
-                 pair(Lower.decode, range)
+                 pair(Lower.decode, Loc.decode)
                  |> map(((x, r)) => Var(Lower.toString(x), r)),
                )
              | "Const" =>
                Contents(
-                 pair(Upper.decode, range)
+                 pair(Upper.decode, Loc.decode)
                  |> map(((x, r)) => Const(Upper.toString(x), r)),
                )
              | "Lit" =>
                Contents(
-                 pair(Lit.decode, range) |> map(((x, r)) => Lit(x, r)),
+                 pair(Lit.decode, Loc.decode) |> map(((x, r)) => Lit(x, r)),
                )
              | "Op" =>
                Contents(
-                 pair(Op.decode, range) |> map(((x, r)) => Op(x, r)),
+                 pair(Op.decode, Loc.decode) |> map(((x, r)) => Op(x, r)),
                )
              | "App" =>
                Contents(
-                 tuple3(decode, decode, range)
+                 tuple3(decode, decode, Loc.decode)
                  |> map(((x, y, r)) => App(x, y, r)),
                )
-             | "Hole" => Contents(range |> map(r => Hole(r)))
+             | "Hole" => Contents(Loc.decode |> map(r => Hole(r)))
              | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
            )
          )

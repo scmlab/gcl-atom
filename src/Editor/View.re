@@ -84,14 +84,12 @@ let make = (editor: Atom.TextEditor.t) => {
   open Link;
   channels.link.on(
     fun
-    | MouseOver(range) =>
-      Js.Dict.set(
-        linkDict,
-        Atom.Range.toString(range),
-        Decoration.markLink(range, editor),
-      )
-    | MouseLeave(range) => {
-        let key = Atom.Range.toString(range);
+    | MouseOver(loc) => {
+        let key = Syntax.Loc.toString(loc);
+        Js.Dict.set(linkDict, key, Decoration.markLink(loc, editor));
+      }
+    | MouseLeave(loc) => {
+        let key = Syntax.Loc.toString(loc);
         Js.Dict.get(linkDict, key) |> Option.forEach(Atom.Decoration.destroy);
         delete_(key);
       },

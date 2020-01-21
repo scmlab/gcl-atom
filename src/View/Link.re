@@ -1,6 +1,8 @@
+open Syntax;
+
 type event =
-  | MouseOver(Atom.Range.t)
-  | MouseLeave(Atom.Range.t);
+  | MouseOver(loc)
+  | MouseLeave(loc);
 
 let emitter: Event.t(event) = Event.make();
 let eventContext = React.createContext(emitter);

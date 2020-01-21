@@ -1,11 +1,12 @@
 open Json.Decode;
-open Decoder;
+open Syntax;
+open! Decoder;
 
 type t = {
   id: int,
   pre: Syntax.Expr.t,
   post: Syntax.Expr.t,
-  range: Atom.Range.t,
+  loc,
 };
 
 let decode: decoder(t) =
@@ -13,5 +14,5 @@ let decode: decoder(t) =
     id: json |> field("specID", int),
     pre: json |> field("specPreCond", Syntax.Expr.decode),
     post: json |> field("specPostCond", Syntax.Expr.decode),
-    range: json |> field("specLoc", range),
+    loc: json |> field("specLoc", Loc.decode),
   };
