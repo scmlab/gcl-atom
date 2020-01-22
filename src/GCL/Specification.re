@@ -1,5 +1,5 @@
 open Json.Decode;
-open Syntax;
+open Base;
 open! Decoder;
 
 type t = {

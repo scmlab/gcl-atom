@@ -1,5 +1,5 @@
 open Rebase;
-// open Type;
+open Base;
 open Types.View;
 
 module PanelContainer = {
@@ -85,11 +85,11 @@ let make = (editor: Atom.TextEditor.t) => {
   channels.link.on(
     fun
     | MouseOver(loc) => {
-        let key = Syntax.Loc.toString(loc);
+        let key = Loc.toString(loc);
         Js.Dict.set(linkDict, key, Decoration.markLink(loc, editor));
       }
     | MouseLeave(loc) => {
-        let key = Syntax.Loc.toString(loc);
+        let key = Loc.toString(loc);
         Js.Dict.get(linkDict, key) |> Option.forEach(Atom.Decoration.destroy);
         delete_(key);
       },

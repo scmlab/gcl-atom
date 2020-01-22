@@ -1,6 +1,6 @@
 // open Rebase;
 open React;
-open Syntax;
+open Base;
 
 // open Syntax.VarArg;
 

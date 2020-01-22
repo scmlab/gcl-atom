@@ -1,5 +1,5 @@
 open Rebase;
-open Syntax;
+open Base;
 
 type t =
   | Global(loc)
@@ -27,9 +27,7 @@ let toLoc = (site, specifications) => {
     specs[0]
     |> Option.mapOr(
          spec =>
-           spec.loc
-           |> Syntax.Loc.translate(loc)
-           |> Syntax.Loc.translateBy(1, 0, 1, 0),
+           spec.loc |> Loc.translate(loc) |> Loc.translateBy(1, 0, 1, 0),
          loc,
        );
   };

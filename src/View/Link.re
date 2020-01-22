@@ -1,4 +1,4 @@
-open Syntax;
+open Base;
 
 type event =
   | MouseOver(loc)

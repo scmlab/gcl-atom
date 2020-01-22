@@ -1,4 +1,5 @@
 open Rebase;
+open Base;
 open Types.Instance;
 open Specification;
 
@@ -10,15 +11,15 @@ let fromCursorPosition = instance => {
   let smallestHole = ref(None);
   instance.specifications
   |> Array.filter(spec =>
-       Range.containsPoint(cursor, Syntax.Loc.toRange(spec.loc))
+       Range.containsPoint(cursor, Loc.toRange(spec.loc))
      )
   |> Array.forEach(spec =>
        switch (smallestHole^) {
        | None => smallestHole := Some(spec)
        | Some(spec') =>
          if (Range.containsRange(
-               Syntax.Loc.toRange(spec.loc),
-               Syntax.Loc.toRange(spec'.loc),
+               Loc.toRange(spec.loc),
+               Loc.toRange(spec'.loc),
              )) {
            smallestHole := Some(spec);
          }
@@ -33,15 +34,12 @@ let getPayloadRange = (spec, instance) => {
 
   // return the text in the targeted hole
   let start =
-    Point.translate(
-      Range.start(Syntax.Loc.toRange(spec.loc)),
-      Point.make(1, 0),
-    );
+    Point.translate(Range.start(Loc.toRange(spec.loc)), Point.make(1, 0));
   let end_ =
     instance.editor
     |> TextEditor.getBuffer
     |> TextBuffer.rangeForRow(
-         Point.row(Range.end_(Syntax.Loc.toRange(spec.loc))) - 1,
+         Point.row(Range.end_(Loc.toRange(spec.loc))) - 1,
          true,
        )
     |> Range.end_;
@@ -64,11 +62,11 @@ let resolve = (i, instance) => {
   specs[0]
   |> Option.forEach(spec => {
        let payload = getPayload(spec, instance);
-       let start = Range.start(Syntax.Loc.toRange(spec.loc));
+       let start = Range.start(Loc.toRange(spec.loc));
 
        instance.editor
        |> TextEditor.getBuffer
-       |> TextBuffer.delete(Syntax.Loc.toRange(spec.loc))
+       |> TextBuffer.delete(Loc.toRange(spec.loc))
        |> ignore;
 
        instance.editor

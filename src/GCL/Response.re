@@ -1,6 +1,7 @@
 open Json.Decode;
 open Decoder;
 open Rebase;
+open Base;
 
 module Error = {
   module TypeError = {
@@ -15,22 +16,21 @@ module Error = {
         fun
         | "NotInScope" =>
           Contents(
-            pair(string, Syntax.Loc.decode)
-            |> map(((s, _)) => NotInScope(s)),
+            pair(string, Loc.decode) |> map(((s, _)) => NotInScope(s)),
           )
         | "UnifyFailed" =>
           Contents(
-            tuple3(Type.decode, Type.decode, Syntax.Loc.decode)
+            tuple3(Type.decode, Type.decode, Loc.decode)
             |> map(((s, t, _)) => UnifyFailed(s, t)),
           )
         | "RecursiveType" =>
           Contents(
-            tuple3(int, Type.decode, Syntax.Loc.decode)
+            tuple3(int, Type.decode, Loc.decode)
             |> map(((s, t, _)) => RecursiveType(s, t)),
           )
         | "NotFunction" =>
           Contents(
-            pair(Type.decode, Syntax.Loc.decode)
+            pair(Type.decode, Loc.decode)
             |> map(((t, _)) => NotFunction(t)),
           )
         | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
@@ -69,7 +69,7 @@ module Error = {
       | "LexicalError" => TagOnly(_ => LexicalError)
       | "SyntacticError" =>
         Contents(
-          pair(Syntax.Loc.decode, string)
+          pair(Loc.decode, string)
           |> map(((_, msg)) => SyntacticError(msg)),
         )
       | "StructError" =>

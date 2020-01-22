@@ -1,48 +1,44 @@
 // open Type.View;
 open Rebase;
 open React;
+open Base;
 
 module Origin = {
   open Util;
   type t =
-    | AroundAbort(Syntax.loc)
-    | AroundSkip(Syntax.loc)
-    | AssertGuaranteed(Syntax.loc)
-    | AssertSufficient(Syntax.loc)
-    | Assignment(Syntax.loc)
-    | IfTotal(Syntax.loc)
-    | IfBranch(Syntax.loc)
-    | LoopBase(Syntax.loc)
-    | LoopInd(Syntax.loc)
-    | LoopTermBase(Syntax.loc)
-    | LoopTermDec(Syntax.loc)
-    | LoopInitialize(Syntax.loc);
+    | AroundAbort(loc)
+    | AroundSkip(loc)
+    | AssertGuaranteed(loc)
+    | AssertSufficient(loc)
+    | Assignment(loc)
+    | IfTotal(loc)
+    | IfBranch(loc)
+    | LoopBase(loc)
+    | LoopInd(loc)
+    | LoopTermBase(loc)
+    | LoopTermDec(loc)
+    | LoopInitialize(loc);
 
   open Decoder;
   open! Json.Decode;
   let decode: decoder(t) =
     sum(
       fun
-      | "AroundAbort" =>
-        Contents(Syntax.Loc.decode |> map(x => AroundAbort(x)))
-      | "AroundSkip" =>
-        Contents(Syntax.Loc.decode |> map(x => AroundSkip(x)))
+      | "AroundAbort" => Contents(Loc.decode |> map(x => AroundAbort(x)))
+      | "AroundSkip" => Contents(Loc.decode |> map(x => AroundSkip(x)))
       | "AssertGuaranteed" =>
-        Contents(Syntax.Loc.decode |> map(x => AssertGuaranteed(x)))
+        Contents(Loc.decode |> map(x => AssertGuaranteed(x)))
       | "AssertSufficient" =>
-        Contents(Syntax.Loc.decode |> map(x => AssertSufficient(x)))
-      | "Assignment" =>
-        Contents(Syntax.Loc.decode |> map(x => Assignment(x)))
-      | "IfTotal" => Contents(Syntax.Loc.decode |> map(x => IfTotal(x)))
-      | "IfBranch" => Contents(Syntax.Loc.decode |> map(x => IfBranch(x)))
-      | "LoopBase" => Contents(Syntax.Loc.decode |> map(x => LoopBase(x)))
-      | "LoopInd" => Contents(Syntax.Loc.decode |> map(x => LoopInd(x)))
-      | "LoopTermBase" =>
-        Contents(Syntax.Loc.decode |> map(x => LoopTermBase(x)))
-      | "LoopTermDec" =>
-        Contents(Syntax.Loc.decode |> map(x => LoopTermDec(x)))
+        Contents(Loc.decode |> map(x => AssertSufficient(x)))
+      | "Assignment" => Contents(Loc.decode |> map(x => Assignment(x)))
+      | "IfTotal" => Contents(Loc.decode |> map(x => IfTotal(x)))
+      | "IfBranch" => Contents(Loc.decode |> map(x => IfBranch(x)))
+      | "LoopBase" => Contents(Loc.decode |> map(x => LoopBase(x)))
+      | "LoopInd" => Contents(Loc.decode |> map(x => LoopInd(x)))
+      | "LoopTermBase" => Contents(Loc.decode |> map(x => LoopTermBase(x)))
+      | "LoopTermDec" => Contents(Loc.decode |> map(x => LoopTermDec(x)))
       | "LoopInitialize" =>
-        Contents(Syntax.Loc.decode |> map(x => LoopInitialize(x)))
+        Contents(Loc.decode |> map(x => LoopInitialize(x)))
       | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
     );
 };
@@ -50,7 +46,7 @@ module Origin = {
 module ProofObligation = {
   type t =
     | ProofObligation(int, Syntax.Expr.t, Syntax.Expr.t, array(Origin.t))
-    | IfTotal(Syntax.Expr.t, array(Syntax.Expr.t), Syntax.Loc.t);
+    | IfTotal(Syntax.Expr.t, array(Syntax.Expr.t), Loc.t);
 
   [@react.component]
   let make = (~payload: t) =>
@@ -103,11 +99,7 @@ module ProofObligation = {
         )
       | "ObliIfTotal" =>
         Contents(
-          tuple3(
-            Syntax.Expr.decode,
-            array(Syntax.Expr.decode),
-            Syntax.Loc.decode,
-          )
+          tuple3(Syntax.Expr.decode, array(Syntax.Expr.decode), Loc.decode)
           |> map(((p, qs, l)) => IfTotal(p, qs, l)),
         )
       | tag => raise(DecodeError("Unknown constructor: " ++ tag)),

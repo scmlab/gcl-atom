@@ -1,8 +1,9 @@
 open Rebase;
+open Base;
 
 let mark = (type_, class_, loc, editor) => {
   open Atom;
-  let range = Syntax.Loc.toRange(loc);
+  let range = Loc.toRange(loc);
   let marker = editor |> TextEditor.markBufferRange(range);
   let option = TextEditor.decorateMarkerOptions(~type_, ~class_, ());
   editor |> Atom.TextEditor.decorateMarker(marker, option);
@@ -17,7 +18,7 @@ let overlay =
     (text, class_, tail: bool, translation: (int, int), loc, editor) => {
   open Atom;
   open Webapi.Dom;
-  let range = Syntax.Loc.toRange(loc);
+  let range = Loc.toRange(loc);
 
   // create an element for the overlay
   let element = Webapi.Dom.document |> Document.createElement("div");
@@ -58,7 +59,7 @@ let overlaySpec = text => overlay(text, "overlay-spec-text", false, (0, 1));
 let overlayError = (loc, editor) => {
   let length =
     editor
-    |> Atom.TextEditor.getTextInBufferRange(Syntax.Loc.toRange(loc))
+    |> Atom.TextEditor.getTextInBufferRange(Loc.toRange(loc))
     |> Js.String.length;
   let text = Js.String.repeat(length, "&nbsp;");
   overlay(text, "overlay-error", true, (0, 0), loc, editor);
@@ -70,7 +71,7 @@ let markSpec = (spec: Specification.t, editor): array(Atom.Decoration.t) => {
     | NoLoc => [||]
     | Loc(start, end_) =>
       open Syntax;
-      open Syntax.Loc;
+      open Loc;
       let startLoc = Loc(start, Pos.translateBy(0, 2, start));
       let endLoc = Loc(Pos.translateBy(0, -2, end_), end_);
 
