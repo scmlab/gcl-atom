@@ -1,4 +1,5 @@
 open! Rebase;
+open Rebase.Fn;
 
 type range = Atom.Range.t;
 
@@ -10,11 +11,18 @@ module React = {
 
   let manyInFragment = ReactDOMRe.createElement(ReasonReact.fragment);
 
-  let sepBy = (sep: reactElement, xs: array(reactElement)) =>
-    switch (Array.length(xs)) {
-    | 0 => <> </>
-    | _ => Array.reduce((xs, x) => <> xs sep x </>, <> </>, xs)
+  let sepBy' = (sep: reactElement, item: list(reactElement)) =>
+    switch (item) {
+    | [] => <> </>
+    | [x] => x
+    | [x, ...xs] =>
+      {
+        Array.fromList([x, ...List.map(i => <> sep i </>, xs)]);
+      }
+      |> manyIn("span")
     };
+  let sepBy = (sep: reactElement) => List.fromArray >> sepBy'(sep);
+
   let enclosedBy =
       (front: reactElement, back: reactElement, item: reactElement) =>
     <> front {string(" ")} item {string(" ")} back </>;

@@ -21,5 +21,5 @@ let make = (~loc, ~children) => {
   let link = React.useContext(eventContext);
   let onMouseOver = _ => link.emit(MouseOver(loc));
   let onMouseLeave = _ => link.emit(MouseLeave(loc));
-  <span className="expr-link" onMouseOver onMouseLeave> children </span>;
+  <div className="expr-link" onMouseOver onMouseLeave> children </div>;
 };

@@ -59,7 +59,7 @@ module Origin = {
 
 module ProofObligation = {
   type t =
-    | ProofObligation(int, Syntax.Expr.t, Syntax.Expr.t, array(Origin.t));
+    | ProofObligation(int, Syntax.Pred.t, Syntax.Pred.t, array(Origin.t));
   // | IfTotal(Syntax.Expr.t, array(Syntax.Expr.t), Loc.t);
 
   [@react.component]
@@ -76,13 +76,13 @@ module ProofObligation = {
           {string(origins)}
         </span>
         <span className="gcl-proof-obligation-antecedent">
-          <Expr expr=p />
+          <Pred value=p />
         </span>
         <span className="gcl-proof-obligation-arrow">
           {string({j|⇒|j})}
         </span>
         <span className="gcl-proof-obligation-consequent">
-          <Expr expr=q />
+          <Pred value=q />
         </span>
       </li>;
     // | IfTotal(p, qs, _) =>
@@ -106,7 +106,7 @@ module ProofObligation = {
 
   open! Json.Decode;
   let decode: decoder(t) =
-    tuple4(int, Syntax.Expr.decode, Syntax.Expr.decode, array(Origin.decode))
+    tuple4(int, Syntax.Pred.decode, Syntax.Pred.decode, array(Origin.decode))
     |> map(((i, p, q, o)) => ProofObligation(i, p, q, o));
   //
   // let decode: decoder(t) =

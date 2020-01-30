@@ -20,18 +20,18 @@ module Paren = {
 
     if (activate) {
       if (collapsed) {
-        <span className onMouseOver onMouseLeave onClick>
+        <div className onMouseOver onMouseLeave onClick>
           {string("(...)")}
-        </span>;
+        </div>;
       } else {
         <>
-          <span className onMouseOver onMouseLeave onClick>
+          <div className onMouseOver onMouseLeave onClick>
             {string("(")}
-          </span>
+          </div>
           children
-          <span className onMouseOver onMouseLeave onClick>
+          <div className onMouseOver onMouseLeave onClick>
             {string(")")}
-          </span>
+          </div>
         </>;
       };
     } else {
@@ -42,7 +42,7 @@ module Paren = {
 
 module Space = {
   [@react.component]
-  let make = () => <span> {string(" ")} </span>;
+  let make = () => <div> {string(" ")} </div>;
 };
 
 module Operator = {
@@ -154,4 +154,5 @@ module Prec = {
 };
 
 [@react.component]
-let make = (~expr: Syntax.Expr.t) => <Prec prec=0 value=expr />;
+let make = (~value: Syntax.Expr.t) =>
+  <div className="expr"> <Prec prec=0 value /> </div>;

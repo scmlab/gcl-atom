@@ -98,6 +98,7 @@
         align-items: flex-start;
 
         .gcl-proof-obligation-message {
+          display: none;
           width: 100%;
 
           font-size: 75%;
@@ -116,17 +117,44 @@
     }
   }
 
-  .expr-paren {
-    cursor: zoom-out;
 
-    &.hovered { color: @text-color-selected }
-    &.collapsed { cursor: zoom-in }
+  .expr {
+    white-space:pre;
+
+    display: inline-flex;
+
+    .expr-paren {
+      cursor: zoom-out;
+      &.hovered { color: @text-color-selected }
+      &.collapsed { cursor: zoom-in }
+    }
+
+    .expr-link {
+      &:hover { color: @text-color-selected }
+    }
   }
 
-  .expr-link {
-    // cursor: pointer;
+  // predicates
+  .group {
+    display: inline-flex;
+    flex-direction: column;
 
-    &:hover { color: @text-color-selected }
+    .group-underline {
+      height: 6px;
+      border-radius: 3px;
+      margin-bottom: 3px;
+      // background: @background-color-error;
+      background: @background-color-selected;
+      // background: @background-color-highlight;
+      cursor: pointer;
+
+      &.group-if { background: @background-color-info }
+      &.group-loop { background: @background-color-success }
+
+      // &:hover { background: @text-color }
+    }
+    // border-bottom: 5px solid @background-color-selected;
+
   }
 }
 
