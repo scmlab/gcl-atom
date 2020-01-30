@@ -4,7 +4,6 @@ open React;
 open Base;
 
 module Origin = {
-  open Util;
   type t =
     | AroundAbort(loc)
     | AroundSkip(loc)
@@ -63,7 +62,7 @@ module ProofObligation = {
           <Expr expr=q />
         </span>
       </li>
-    | IfTotal(p, qs, l) =>
+    | IfTotal(p, qs, _) =>
       let qs' = qs |> Array.map(q => <Expr expr=q />);
 
       <li className="gcl-body-item">

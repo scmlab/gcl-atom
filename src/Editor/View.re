@@ -58,12 +58,15 @@ let make = (editor: Atom.TextEditor.t) => {
   // add "gcl" to the class-list
   editor
   |> Atom.Views.getView
-  |> Webapi.Dom.HtmlElement.classList
-  |> Webapi.Dom.DomTokenList.add("gcl");
+  |> HtmlElement.classList
+  |> DomTokenList.add("gcl");
 
   // create a element to house the panel
   let element = document |> Document.createElement("article");
+  element |> Element.setAttribute("tabIndex", "-1");
   element |> Element.classList |> DomTokenList.add("gcl-panel");
+  element |> Element.classList |> DomTokenList.add("native-key-bindings");
+  //
   let id = "gcl:" ++ string_of_int(Atom.TextEditor.id(editor));
   Element.setId(element, id);
   container |> Element.appendChild(element);

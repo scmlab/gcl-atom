@@ -70,7 +70,6 @@ let markSpec = (spec: Specification.t, editor): array(Atom.Decoration.t) => {
     switch (spec.loc) {
     | NoLoc => [||]
     | Loc(start, end_) =>
-      open Syntax;
       open Loc;
       let startLoc = Loc(start, Pos.translateBy(0, 2, start));
       let endLoc = Loc(Pos.translateBy(0, -2, end_), end_);
