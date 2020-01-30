@@ -293,3 +293,59 @@ module Expr = {
 
   let toString = Precedence.toString(0);
 };
+
+module Pred = {
+  type t =
+    | Pred(Expr.t)
+    | IfTotalDisj(array(Expr.t))
+    | IfBranchConj(t, Expr.t)
+    | LoopTermDecrConj(t, Expr.t, Expr.t)
+    | LoopTermConj(t, array(Expr.t))
+    | LoopIndConj(t, Expr.t)
+    | LoopBaseConj(t, array(Expr.t));
+
+  open Json.Decode;
+  let rec decode: decoder(t) =
+    json =>
+      json
+      |> sum(
+           fun
+           | "Pred" => Contents(Expr.decode |> map(x => Pred(x)))
+           | "IfTotalDisj" =>
+             Contents(array(Expr.decode) |> map(xs => IfTotalDisj(xs)))
+           | "IfBranchConj" =>
+             Contents(
+               pair(decode, Expr.decode)
+               |> map(((x, e)) => IfBranchConj(x, e)),
+             )
+           | "LoopTermDecrConj" =>
+             Contents(
+               tuple3(decode, Expr.decode, Expr.decode)
+               |> map(((x, e, f)) => LoopTermDecrConj(x, e, f)),
+             )
+           | "LoopTermConj" =>
+             Contents(
+               pair(decode, array(Expr.decode))
+               |> map(((x, es)) => LoopTermConj(x, es)),
+             )
+           | "LoopIndConj" =>
+             Contents(
+               pair(decode, Expr.decode)
+               |> map(((x, e)) => LoopIndConj(x, e)),
+             )
+           | "LoopBaseConj" =>
+             Contents(
+               pair(decode, array(Expr.decode))
+               |> map(((x, es)) => LoopBaseConj(x, es)),
+             )
+           | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
+         );
+  // let rec toExpr = fun
+  //   | Pred(e) => e
+  //   | IfTotalDisj(array(es)) => ( es |> Array.map(toExpr) )
+  //   | IfBranchConj(t, Expr.t)
+  //   | LoopTermDecrConj(t, Expr.t, Expr.t)
+  //   | LoopTermConj(t, array(Expr.t))
+  //   | LoopIndConj(t, Expr.t)
+  //   | LoopBaseConj(t, array(Expr.t));
+};
