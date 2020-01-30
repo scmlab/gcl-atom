@@ -93,8 +93,18 @@
 
       li {
         display: flex;
+        flex-wrap: wrap;
         justify-content: space-between;
         align-items: flex-start;
+
+        .gcl-proof-obligation-message {
+          width: 100%;
+
+          font-size: 75%;
+          font-variant: small-caps;
+          font-weight: bolder;
+          color: @text-color-info;
+        }
 
         .gcl-proof-obligation-antecedent { width: 45% }
         .gcl-proof-obligation-consequent { width: 45% }
