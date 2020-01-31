@@ -145,8 +145,11 @@
       background: @background-color-selected;
       cursor: pointer;
 
-      &.marker-if { background: @background-color-warning }
-      &.marker-if:hover { background: lighten(@background-color-warning, 10%) }
+      &.marker-guard { background: @background-color-warning }
+      &.marker-guard:hover { background: lighten(@background-color-warning, 10%) }
+
+      &.marker-if { background: @background-color-error }
+      &.marker-if:hover { background: lighten(@background-color-error, 10%) }
 
       &.marker-loop { background: @background-color-info }
       &.marker-loop:hover { background: lighten(@background-color-info, 5%) }
@@ -162,8 +165,8 @@
       font-weight: bolder;
       color: @background-color-selected;
 
-      &.marker-if { color: @background-color-warning }
-      &.marker-if:hover { color: lighten(@background-color-warning, 10%) }
+      &.marker-if { color: @background-color-error }
+      &.marker-if:hover { color: lighten(@background-color-error, 10%) }
 
       &.marker-loop { color: @background-color-info }
       &.marker-loop:hover { color: lighten(@background-color-info, 5%) }

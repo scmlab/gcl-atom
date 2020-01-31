@@ -4,6 +4,7 @@ open React;
 
 type kind =
   | Default
+  | Guard
   | If
   | Loop;
 
@@ -13,6 +14,7 @@ module Marker = {
     let className =
       switch (kind) {
       | Default => ""
+      | Guard => " marker-guard"
       | If => " marker-if"
       | Loop => " marker-loop"
       };
@@ -37,12 +39,15 @@ let rec make = (~value: Syntax.Pred.t) => {
   };
   switch (value) {
   | Pred(expr) => <Marker> <Expr value=expr /> </Marker>
-  | IfTotalDisj(guards) =>
-    <Marker kind=If text="guards">
-      {guards
-       |> Array.map(x => <Self value={Pred(x)} />)
-       |> Util.React.sepBy(string({j| ∨ |j}))}
-    </Marker>
+  | GuardDisj(guards) =>
+    guards
+    |> Array.map(x => <Marker kind=Guard> <Expr value=x /> </Marker>)
+    |> Util.React.sepBy(string({j| ∨ |j}))
+  // <Marker kind=If text="guards">
+  //   {guards
+  //    |> Array.map(x => <Self value={Pred(x)} />)
+  //    |> Util.React.sepBy(string({j| ∨ |j}))}
+  // </Marker>
   | IfBranchConj(value, expr) =>
     <Marker kind=If text="invariant">
       <Self value />

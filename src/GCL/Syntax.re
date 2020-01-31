@@ -297,7 +297,7 @@ module Expr = {
 module Pred = {
   type t =
     | Pred(Expr.t)
-    | IfTotalDisj(array(Expr.t))
+    | GuardDisj(array(Expr.t))
     | IfBranchConj(t, Expr.t)
     | LoopTermDecrConj(t, Expr.t, Expr.t)
     | LoopTermConj(t, array(Expr.t))
@@ -311,8 +311,8 @@ module Pred = {
       |> sum(
            fun
            | "Pred" => Contents(Expr.decode |> map(x => Pred(x)))
-           | "IfTotalDisj" =>
-             Contents(array(Expr.decode) |> map(xs => IfTotalDisj(xs)))
+           | "GuardDisj" =>
+             Contents(array(Expr.decode) |> map(xs => GuardDisj(xs)))
            | "IfBranchConj" =>
              Contents(
                pair(decode, Expr.decode)
@@ -342,7 +342,7 @@ module Pred = {
          );
   // let rec toExpr = fun
   //   | Pred(e) => e
-  //   | IfTotalDisj(array(es)) => ( es |> Array.map(toExpr) )
+  //   | GuardDisj(array(es)) => ( es |> Array.map(toExpr) )
   //   | IfBranchConj(t, Expr.t)
   //   | LoopTermDecrConj(t, Expr.t, Expr.t)
   //   | LoopTermConj(t, array(Expr.t))
