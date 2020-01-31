@@ -98,7 +98,7 @@
         align-items: flex-start;
 
         .gcl-proof-obligation-message {
-          display: none;
+          // display: none;
           width: 100%;
 
           font-size: 75%;
@@ -134,26 +134,41 @@
     }
   }
 
-  // predicates
-  .group {
+  .marker {
     display: inline-flex;
     flex-direction: column;
 
-    .group-underline {
+    .marker-line {
       height: 6px;
       border-radius: 3px;
-      margin-bottom: 3px;
-      // background: @background-color-error;
+      // margin-bottom: 3px;
       background: @background-color-selected;
-      // background: @background-color-highlight;
       cursor: pointer;
 
-      &.group-if { background: @background-color-info }
-      &.group-loop { background: @background-color-success }
+      &.marker-if { background: @background-color-warning }
+      &.marker-if:hover { background: lighten(@background-color-warning, 10%) }
 
-      // &:hover { background: @text-color }
+      &.marker-loop { background: @background-color-info }
+      &.marker-loop:hover { background: lighten(@background-color-info, 5%) }
+
+      &:marker { background: lighten(@background-color-selected, 5%) }
     }
-    // border-bottom: 5px solid @background-color-selected;
+
+    .marker-text {
+      text-align: center;
+
+      font-size: 75%;
+      font-variant: small-caps;
+      font-weight: bolder;
+      color: @background-color-selected;
+
+      &.marker-if { color: @background-color-warning }
+      &.marker-if:hover { color: lighten(@background-color-warning, 10%) }
+
+      &.marker-loop { color: @background-color-info }
+      &.marker-loop:hover { color: lighten(@background-color-info, 5%) }
+
+    }
 
   }
 }

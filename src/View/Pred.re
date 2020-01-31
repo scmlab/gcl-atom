@@ -7,15 +7,23 @@ type kind =
   | If
   | Loop;
 
-module Group = {
+module Marker = {
   [@react.component]
-  let make = (~kind=Default, ~children) => {
-    <div className="group">
-      <div className="group-content"> children </div>
-      {switch (kind) {
-       | Default => <div className="group-underline" />
-       | If => <div className="group-underline group-if" />
-       | Loop => <div className="group-underline group-loop" />
+  let make = (~kind=Default, ~text=?, ~children) => {
+    let className =
+      switch (kind) {
+      | Default => ""
+      | If => " marker-if"
+      | Loop => " marker-loop"
+      };
+
+    <div className="marker">
+      <div className="marker-content"> children </div>
+      <div className={"marker-line" ++ className} />
+      {switch (text) {
+       | Some(text) =>
+         <div className={"marker-text" ++ className}> {string(text)} </div>
+       | None => <> </>
        }}
     </div>;
   };
@@ -28,48 +36,48 @@ let rec make = (~value: Syntax.Pred.t) => {
     let makeProps = makeProps;
   };
   switch (value) {
-  | Pred(expr) => <Group> <Expr value=expr /> </Group>
+  | Pred(expr) => <Marker> <Expr value=expr /> </Marker>
   | IfTotalDisj(guards) =>
-    <Group kind=If>
+    <Marker kind=If text="guards">
       {guards
        |> Array.map(x => <Self value={Pred(x)} />)
        |> Util.React.sepBy(string({j| ∨ |j}))}
-    </Group>
+    </Marker>
   | IfBranchConj(value, expr) =>
-    <Group kind=If>
+    <Marker kind=If text="invariant">
       <Self value />
       {string({j| ∧ |j})}
       <Self value={Pred(expr)} />
-    </Group>
+    </Marker>
   | LoopTermDecrConj(value, x, y) =>
-    <Group kind=Loop>
+    <Marker kind=Loop text="bound & invariant">
       <Self value />
       {string({j| ∧ |j})}
       <Self value={Pred(x)} />
       {string({j| ∧ |j})}
       <Self value={Pred(y)} />
-    </Group>
+    </Marker>
   | LoopTermConj(value, guards) =>
-    <Group kind=Loop>
+    <Marker kind=Loop text="invariant & guards">
       <Self value />
       {string({j| ∧ |j})}
       {guards
        |> Array.map(x => <Self value={Pred(x)} />)
        |> Util.React.sepBy(string({j| ∨ |j}))}
-    </Group>
+    </Marker>
   | LoopIndConj(value, expr) =>
-    <Group kind=Loop>
+    <Marker kind=Loop text="invariant">
       <Self value />
       {string({j| ∧ |j})}
       <Self value={Pred(expr)} />
-    </Group>
+    </Marker>
   | LoopBaseConj(value, guards) =>
-    <Group kind=Loop>
+    <Marker kind=Loop text="invariant & guards">
       <Self value />
       {string({j| ∧ |j})}
       {guards
        |> Array.map(x => <Self value={Pred(x)} />)
        |> Util.React.sepBy(string({j| ∨ |j}))}
-    </Group>
+    </Marker>
   };
 };
