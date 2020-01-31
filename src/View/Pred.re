@@ -53,46 +53,6 @@ let rec make = (~value: Syntax.Pred.t) => {
     predicates
     |> Array.map(x => <Self value=x />)
     |> Util.React.sepBy(string({j| ∨ |j}))
-  // <Marker kind=If text="guards">
-  //   {guards
-  //    |> Array.map(x => <Self value={Pred(x)} />)
-  //    |> Util.React.sepBy(string({j| ∨ |j}))}
-  // </Marker>
-  // | IfBranchConj(value, expr) =>
-  //   <Marker kind=If text="invariant">
-  //     <Self value />
-  //     {string({j| ∧ |j})}
-  //     <Self value={Pred(expr)} />
-  //   </Marker>
-  // | LoopTermDecrConj(value, x, y) =>
-  //   <Marker kind=Loop text="bound & invariant">
-  //     <Self value />
-  //     {string({j| ∧ |j})}
-  //     <Self value={Pred(x)} />
-  //     {string({j| ∧ |j})}
-  //     <Self value={Pred(y)} />
-  //   </Marker>
-  // | LoopTermConj(value, guards) =>
-  //   <Marker kind=Loop text="invariant & guards">
-  //     <Self value />
-  //     {string({j| ∧ |j})}
-  //     {guards
-  //      |> Array.map(x => <Self value={Pred(x)} />)
-  //      |> Util.React.sepBy(string({j| ∨ |j}))}
-  //   </Marker>
-  // | LoopIndConj(value, expr) =>
-  //   <Marker kind=Loop text="invariant">
-  //     <Self value />
-  //     {string({j| ∧ |j})}
-  //     <Self value={Pred(expr)} />
-  //   </Marker>
-  // | LoopBaseConj(value, guards) =>
-  //   <Marker kind=Loop text="invariant & guards">
-  //     <Self value />
-  //     {string({j| ∧ |j})}
-  //     {guards
-  //      |> Array.map(x => <Self value={Pred(x)} />)
-  //      |> Util.React.sepBy(string({j| ∨ |j}))}
-  //   </Marker>
+  | Negate(predicate) => <> {string({j|¬ |j})} <Self value=predicate /> </>
   };
 };

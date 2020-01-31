@@ -140,15 +140,22 @@
     flex-direction: column;
 
     .marker-line {
-      border-bottom: 4px @background-color-selected solid;
+      height: 12px;
+      border-top: 4px @background-color-selected;
+       // @background-color-selected solid;
 
       cursor: pointer;
 
-      &.marker-guard { border-bottom: 4px @background-color-warning solid }
-      &.marker-guard:hover { border-bottom: 4px lighten(@background-color-warning, 10%) solid }
+      &.marker-guard { border-top-style: dashed }
+      &.marker-assertion { border-top-style: solid }
 
-      &.marker-assertion { border-bottom: 4px @background-color-info solid }
-      &.marker-assertion:hover { border-bottom: 4px lighten(@background-color-info, 10%) solid }
+      
+      // &.marker-guard:hover { border-top: 4px lighten(@background-color-warning, 10%) solid }
+
+      // &.marker-guard:hover { border-top: 4px lighten(@background-color-warning, 10%) solid }
+      //
+      // &.marker-assertion { border-top: 4px @background-color-info solid }
+      // &.marker-assertion:hover { border-top: 4px lighten(@background-color-info, 10%) solid }
 
       // &.marker-if { background: @background-color-error }
       // &.marker-if:hover { background: lighten(@background-color-error, 10%) }

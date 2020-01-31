@@ -300,7 +300,8 @@ module Pred = {
     | Assertion(Expr.t, Loc.t)
     | Guard(Expr.t, Loc.t)
     | Conjunct(array(t))
-    | Disjunct(array(t));
+    | Disjunct(array(t))
+    | Negate(t);
   // | LoopTermDecrConj(t, Expr.t, Expr.t)
   // | LoopTermConj(t, array(Expr.t))
   // | LoopIndConj(t, Expr.t)
@@ -327,6 +328,7 @@ module Pred = {
              Contents(array(decode) |> map(xs => Conjunct(xs)))
            | "Disjunct" =>
              Contents(array(decode) |> map(xs => Disjunct(xs)))
+           | "Negate" => Contents(decode |> map(x => Negate(x)))
            | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
          );
 };
