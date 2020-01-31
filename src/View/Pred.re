@@ -39,21 +39,26 @@ let rec make = (~value: Syntax.Pred.t) => {
   };
   switch (value) {
   | Pred(expr) => <Marker> <Expr value=expr /> </Marker>
-  | GuardDisj(guards) =>
-    guards
-    |> Array.map(x => <Marker kind=Guard> <Expr value=x /> </Marker>)
+  | Guard(expr) => <Marker kind=Guard> <Expr value=expr /> </Marker>
+  | Conjunct(predicates) =>
+    predicates
+    |> Array.map(x => <Self value=x />)
+    |> Util.React.sepBy(string({j| ∧ |j}))
+  | Disjunct(predicates) =>
+    predicates
+    |> Array.map(x => <Self value=x />)
     |> Util.React.sepBy(string({j| ∨ |j}))
   // <Marker kind=If text="guards">
   //   {guards
   //    |> Array.map(x => <Self value={Pred(x)} />)
   //    |> Util.React.sepBy(string({j| ∨ |j}))}
   // </Marker>
-  | IfBranchConj(value, expr) =>
-    <Marker kind=If text="invariant">
-      <Self value />
-      {string({j| ∧ |j})}
-      <Self value={Pred(expr)} />
-    </Marker>
+  // | IfBranchConj(value, expr) =>
+  //   <Marker kind=If text="invariant">
+  //     <Self value />
+  //     {string({j| ∧ |j})}
+  //     <Self value={Pred(expr)} />
+  //   </Marker>
   | LoopTermDecrConj(value, x, y) =>
     <Marker kind=Loop text="bound & invariant">
       <Self value />

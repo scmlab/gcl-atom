@@ -297,8 +297,9 @@ module Expr = {
 module Pred = {
   type t =
     | Pred(Expr.t)
-    | GuardDisj(array(Expr.t))
-    | IfBranchConj(t, Expr.t)
+    | Guard(Expr.t)
+    | Conjunct(array(t))
+    | Disjunct(array(t))
     | LoopTermDecrConj(t, Expr.t, Expr.t)
     | LoopTermConj(t, array(Expr.t))
     | LoopIndConj(t, Expr.t)
@@ -311,13 +312,11 @@ module Pred = {
       |> sum(
            fun
            | "Pred" => Contents(Expr.decode |> map(x => Pred(x)))
-           | "GuardDisj" =>
-             Contents(array(Expr.decode) |> map(xs => GuardDisj(xs)))
-           | "IfBranchConj" =>
-             Contents(
-               pair(decode, Expr.decode)
-               |> map(((x, e)) => IfBranchConj(x, e)),
-             )
+           | "Guard" => Contents(Expr.decode |> map(e => Guard(e)))
+           | "Conjunct" =>
+             Contents(array(decode) |> map(xs => Conjunct(xs)))
+           | "Disjunct" =>
+             Contents(array(decode) |> map(xs => Disjunct(xs)))
            | "LoopTermDecrConj" =>
              Contents(
                tuple3(decode, Expr.decode, Expr.decode)
