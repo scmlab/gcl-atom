@@ -71,7 +71,8 @@ module ProofObligation = {
         |> Array.map(Origin.toString)
         |> List.fromArray
         |> String.joinWith(" ");
-      <li className="gcl-body-item">
+
+      <li className="gcl-body-item native-key-bindings" tabIndex=(-1)>
         <span className="gcl-proof-obligation-message">
           {string(origins)}
         </span>
