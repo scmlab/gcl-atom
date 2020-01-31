@@ -297,6 +297,7 @@ module Expr = {
 module Pred = {
   type t =
     | Pred(Expr.t)
+    | Assertion(Expr.t)
     | Guard(Expr.t)
     | Conjunct(array(t))
     | Disjunct(array(t));
@@ -312,6 +313,7 @@ module Pred = {
       |> sum(
            fun
            | "Pred" => Contents(Expr.decode |> map(x => Pred(x)))
+           | "Assertion" => Contents(Expr.decode |> map(e => Assertion(e)))
            | "Guard" => Contents(Expr.decode |> map(e => Guard(e)))
            | "Conjunct" =>
              Contents(array(decode) |> map(xs => Conjunct(xs)))

@@ -5,6 +5,7 @@ open React;
 type kind =
   | Default
   | Guard
+  | Assertion
   | If
   | Loop;
 
@@ -15,6 +16,7 @@ module Marker = {
       switch (kind) {
       | Default => ""
       | Guard => " marker-guard"
+      | Assertion => " marker-assertion"
       | If => " marker-if"
       | Loop => " marker-loop"
       };
@@ -39,6 +41,7 @@ let rec make = (~value: Syntax.Pred.t) => {
   };
   switch (value) {
   | Pred(expr) => <Marker> <Expr value=expr /> </Marker>
+  | Assertion(expr) => <Marker kind=Assertion> <Expr value=expr /> </Marker>
   | Guard(expr) => <Marker kind=Guard> <Expr value=expr /> </Marker>
   | Conjunct(predicates) =>
     predicates
