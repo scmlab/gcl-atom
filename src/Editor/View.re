@@ -95,6 +95,11 @@ let make = (editor: Atom.TextEditor.t) => {
         let key = Loc.toString(loc);
         Js.Dict.get(linkDict, key) |> Option.forEach(Atom.Decoration.destroy);
         delete_(key);
+      }
+    | MouseClick(loc) => {
+        let range = Loc.toRange(loc);
+        // select the range
+        Atom.TextEditor.setSelectedScreenRange(range, editor);
       },
   )
   |> ignore;

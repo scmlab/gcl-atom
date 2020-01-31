@@ -104,7 +104,7 @@
           font-size: 75%;
           font-variant: small-caps;
           font-weight: bolder;
-          color: @text-color-info;
+          color: @text-color-subtle;
         }
 
         .gcl-proof-obligation-antecedent { width: 45% }
@@ -121,6 +121,7 @@
 
   .expr {
     white-space:pre;
+    color: @text-color-highlight;
 
     display: inline-flex;
 
@@ -141,50 +142,49 @@
 
     // color: @background-color-success;
 
+    // cursor: pointer;
+
+//     &.marker-assertion .marker-content {
+//       // color: desaturate(@text-color-error, 30%) !important;
+//       // color: red;
+// // @background-color-selected ;
+//     }
+
     .marker-line {
       height: 8px;
       border-bottom: 4px @text-color-subtle;
-      // @background-color-selected
-       // @background-color-selected solid;
 
-      cursor: pointer;
 
       &:hover { border-color: @text-color }
 
       &.marker-guard { border-bottom-style: dashed }
       &.marker-assertion { border-bottom-style: solid }
 
-
-
-      // &.marker-guard:hover { border-bottom: 4px lighten(@background-color-warning, 10%) solid }
-      //
-      // &.marker-assertion { border-bottom: 4px @background-color-info solid }
-      // &.marker-assertion:hover { border-bottom: 4px lighten(@background-color-info, 10%) solid }
-
       &.marker-if { border-color: desaturate(@background-color-success, 30%);  }
-      &.marker-if:hover { border-color: @background-color-success }
+      &.marker-if:hover { border-color: @text-color-success }
 
-      &.marker-loop { border-color: desaturate(@background-color-warning, 30%); }
-      &.marker-loop:hover { border-color: @background-color-warning }
+      &.marker-loop { border-color: desaturate(@background-color-info, 30%); }
+      &.marker-loop:hover { border-color: @text-color-info }
+      // &.marker-loop:hover { border-color: @background-color-info  }
 
       &:marker { background: lighten(@background-color-selected, 5%) }
     }
-
-    .marker-text {
-      text-align: center;
-
-      font-size: 75%;
-      font-variant: small-caps;
-      font-weight: bolder;
-      color: @background-color-selected;
-
-      // &.marker-if { color: @background-color-error }
-      // &.marker-if:hover { color: lighten(@background-color-error, 10%) }
-      //
-      // &.marker-loop { color: @background-color-info }
-      // &.marker-loop:hover { color: lighten(@background-color-info, 5%) }
-
-    }
+    //
+    // .marker-text {
+    //   text-align: center;
+    //
+    //   font-size: 75%;
+    //   font-variant: small-caps;
+    //   font-weight: bolder;
+    //   color: @background-color-selected;
+    //
+    //   // &.marker-if { color: @background-color-error }
+    //   // &.marker-if:hover { color: lighten(@background-color-error, 10%) }
+    //   //
+    //   // &.marker-loop { color: @background-color-info }
+    //   // &.marker-loop:hover { color: lighten(@background-color-info, 5%) }
+    //
+    // }
 
   }
 }
