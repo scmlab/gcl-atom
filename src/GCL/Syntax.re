@@ -305,10 +305,6 @@ module Pred = {
     | Conjunct(array(t))
     | Disjunct(array(t))
     | Negate(t);
-  // | LoopTermDecrConj(t, Expr.t, Expr.t)
-  // | LoopTermConj(t, array(Expr.t))
-  // | LoopIndConj(t, Expr.t)
-  // | LoopBaseConj(t, array(Expr.t));
 
   open Json.Decode;
   let decodeSort: decoder(sort) =

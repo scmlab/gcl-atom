@@ -55,6 +55,21 @@ module Origin = {
     | LoopTermBase(_) => "LoopTermBase"
     | LoopTermDec(_) => "LoopTermDec"
     | LoopInitialize(_) => "LoopInitialize";
+
+  let locOf =
+    fun
+    | AroundAbort(l) => l
+    | AroundSkip(l) => l
+    | AssertGuaranteed(l) => l
+    | AssertSufficient(l) => l
+    | Assignment(l) => l
+    | IfTotal(l) => l
+    | IfBranch(l) => l
+    | LoopBase(l) => l
+    | LoopInd(l) => l
+    | LoopTermBase(l) => l
+    | LoopTermDec(l) => l
+    | LoopInitialize(l) => l;
 };
 
 module ProofObligation = {
@@ -66,16 +81,21 @@ module ProofObligation = {
   let make = (~payload: t) =>
     switch (payload) {
     | ProofObligation(_, p, q, os) =>
-      let origins =
-        os
-        |> Array.map(Origin.toString)
-        |> List.fromArray
-        |> String.joinWith(" ");
+      let origin =
+        switch (os[Array.length(os) - 1]) {
+        | None => <> </>
+        | Some(x) =>
+          let loc = Origin.locOf(x);
+          <Link loc> {string(Origin.toString(x))} </Link>;
+        };
+      // let origins =
+      //   os
+      //   |> Array.map(Origin.toString)
+      //   |> List.fromArray
+      //   |> String.joinWith(" ");
 
       <li className="gcl-body-item native-key-bindings" tabIndex=(-1)>
-        <span className="gcl-proof-obligation-message">
-          {string(origins)}
-        </span>
+        <span className="gcl-proof-obligation-message"> origin </span>
         <span className="gcl-proof-obligation-antecedent">
           <Pred value=p />
         </span>
