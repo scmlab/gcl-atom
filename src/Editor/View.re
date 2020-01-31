@@ -91,7 +91,7 @@ let make = (editor: Atom.TextEditor.t) => {
         let key = Loc.toString(loc);
         Js.Dict.set(linkDict, key, Decoration.markLink(loc, editor));
       }
-    | MouseLeave(loc) => {
+    | MouseOut(loc) => {
         let key = Loc.toString(loc);
         Js.Dict.get(linkDict, key) |> Option.forEach(Atom.Decoration.destroy);
         delete_(key);

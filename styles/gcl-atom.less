@@ -118,6 +118,7 @@
   }
 
 
+
   .expr {
     white-space:pre;
 
@@ -139,23 +140,21 @@
     flex-direction: column;
 
     .marker-line {
-      height: 6px;
-      border-radius: 3px;
-      // margin-bottom: 3px;
-      background: @background-color-selected;
+      border-bottom: 4px @background-color-selected solid;
+
       cursor: pointer;
 
-      &.marker-guard { background: @background-color-warning }
-      &.marker-guard:hover { background: lighten(@background-color-warning, 10%) }
+      &.marker-guard { border-bottom: 4px @background-color-warning solid }
+      &.marker-guard:hover { border-bottom: 4px lighten(@background-color-warning, 10%) solid }
 
-      &.marker-assertion { background: @background-color-info }
-      &.marker-assertion:hover { background: lighten(@background-color-info, 10%) }
+      &.marker-assertion { border-bottom: 4px @background-color-info solid }
+      &.marker-assertion:hover { border-bottom: 4px lighten(@background-color-info, 10%) solid }
 
-      &.marker-if { background: @background-color-error }
-      &.marker-if:hover { background: lighten(@background-color-error, 10%) }
-
-      &.marker-loop { background: @background-color-info }
-      &.marker-loop:hover { background: lighten(@background-color-info, 5%) }
+      // &.marker-if { background: @background-color-error }
+      // &.marker-if:hover { background: lighten(@background-color-error, 10%) }
+      //
+      // &.marker-loop { background: @background-color-info }
+      // &.marker-loop:hover { background: lighten(@background-color-info, 5%) }
 
       &:marker { background: lighten(@background-color-selected, 5%) }
     }
@@ -168,11 +167,11 @@
       font-weight: bolder;
       color: @background-color-selected;
 
-      &.marker-if { color: @background-color-error }
-      &.marker-if:hover { color: lighten(@background-color-error, 10%) }
-
-      &.marker-loop { color: @background-color-info }
-      &.marker-loop:hover { color: lighten(@background-color-info, 5%) }
+      // &.marker-if { color: @background-color-error }
+      // &.marker-if:hover { color: lighten(@background-color-error, 10%) }
+      //
+      // &.marker-loop { color: @background-color-info }
+      // &.marker-loop:hover { color: lighten(@background-color-info, 5%) }
 
     }
 

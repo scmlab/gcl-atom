@@ -2,7 +2,7 @@ open Base;
 
 type event =
   | MouseOver(loc)
-  | MouseLeave(loc);
+  | MouseOut(loc);
 
 let emitter: Event.t(event) = Event.make();
 let eventContext = React.createContext(emitter);
@@ -20,6 +20,6 @@ module Provider = {
 let make = (~loc, ~children) => {
   let link = React.useContext(eventContext);
   let onMouseOver = _ => link.emit(MouseOver(loc));
-  let onMouseLeave = _ => link.emit(MouseLeave(loc));
-  <div className="expr-link" onMouseOver onMouseLeave> children </div>;
+  let onMouseOut = _ => link.emit(MouseOut(loc));
+  <div className="expr-link" onMouseOver onMouseOut> children </div>;
 };

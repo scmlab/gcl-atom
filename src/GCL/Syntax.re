@@ -297,8 +297,8 @@ module Expr = {
 module Pred = {
   type t =
     | Pred(Expr.t)
-    | Assertion(Expr.t)
-    | Guard(Expr.t)
+    | Assertion(Expr.t, Loc.t)
+    | Guard(Expr.t, Loc.t)
     | Conjunct(array(t))
     | Disjunct(array(t));
   // | LoopTermDecrConj(t, Expr.t, Expr.t)
@@ -313,40 +313,20 @@ module Pred = {
       |> sum(
            fun
            | "Pred" => Contents(Expr.decode |> map(x => Pred(x)))
-           | "Assertion" => Contents(Expr.decode |> map(e => Assertion(e)))
-           | "Guard" => Contents(Expr.decode |> map(e => Guard(e)))
+           | "Assertion" =>
+             Contents(
+               pair(Expr.decode, Loc.decode)
+               |> map(((e, l)) => Assertion(e, l)),
+             )
+           | "Guard" =>
+             Contents(
+               pair(Expr.decode, Loc.decode)
+               |> map(((e, l)) => Guard(e, l)),
+             )
            | "Conjunct" =>
              Contents(array(decode) |> map(xs => Conjunct(xs)))
            | "Disjunct" =>
              Contents(array(decode) |> map(xs => Disjunct(xs)))
-           // | "LoopTermDecrConj" =>
-           //   Contents(
-           //     tuple3(decode, Expr.decode, Expr.decode)
-           //     |> map(((x, e, f)) => LoopTermDecrConj(x, e, f)),
-           //   )
-           // | "LoopTermConj" =>
-           //   Contents(
-           //     pair(decode, array(Expr.decode))
-           //     |> map(((x, es)) => LoopTermConj(x, es)),
-           //   )
-           // | "LoopIndConj" =>
-           //   Contents(
-           //     pair(decode, Expr.decode)
-           //     |> map(((x, e)) => LoopIndConj(x, e)),
-           //   )
-           // | "LoopBaseConj" =>
-           //   Contents(
-           //     pair(decode, array(Expr.decode))
-           //     |> map(((x, es)) => LoopBaseConj(x, es)),
-           //   )
            | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
          );
-  // let rec toExpr = fun
-  //   | Pred(e) => e
-  //   | GuardDisj(array(es)) => ( es |> Array.map(toExpr) )
-  //   | IfBranchConj(t, Expr.t)
-  //   | LoopTermDecrConj(t, Expr.t, Expr.t)
-  //   | LoopTermConj(t, array(Expr.t))
-  //   | LoopIndConj(t, Expr.t)
-  //   | LoopBaseConj(t, array(Expr.t));
 };

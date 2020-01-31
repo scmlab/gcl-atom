@@ -1,6 +1,6 @@
 // open Rebase;
 open React;
-// open Base;
+open Base;
 
 type kind =
   | Default
@@ -11,7 +11,7 @@ type kind =
 
 module Marker = {
   [@react.component]
-  let make = (~kind=Default, ~text=?, ~children) => {
+  let make = (~kind=Default, ~text=?, ~loc=Loc.NoLoc, ~children) => {
     let className =
       switch (kind) {
       | Default => ""
@@ -20,15 +20,16 @@ module Marker = {
       | If => " marker-if"
       | Loop => " marker-loop"
       };
-
     <div className="marker">
       <div className="marker-content"> children </div>
-      <div className={"marker-line" ++ className} />
-      {switch (text) {
-       | Some(text) =>
-         <div className={"marker-text" ++ className}> {string(text)} </div>
-       | None => <> </>
-       }}
+      <Link loc>
+        <div className={"marker-line" ++ className} />
+        {switch (text) {
+         | Some(text) =>
+           <div className={"marker-text" ++ className}> {string(text)} </div>
+         | None => <> </>
+         }}
+      </Link>
     </div>;
   };
 };
@@ -41,8 +42,9 @@ let rec make = (~value: Syntax.Pred.t) => {
   };
   switch (value) {
   | Pred(expr) => <Marker> <Expr value=expr /> </Marker>
-  | Assertion(expr) => <Marker kind=Assertion> <Expr value=expr /> </Marker>
-  | Guard(expr) => <Marker kind=Guard> <Expr value=expr /> </Marker>
+  | Assertion(expr, loc) =>
+    <Marker kind=Assertion loc> <Expr value=expr /> </Marker>
+  | Guard(expr, loc) => <Marker kind=Guard loc> <Expr value=expr /> </Marker>
   | Conjunct(predicates) =>
     predicates
     |> Array.map(x => <Self value=x />)
