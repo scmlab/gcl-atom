@@ -2,31 +2,36 @@
 open React;
 open Base;
 
+open Syntax.Pred;
+
 type kind =
-  | Default
   | Guard
-  | Assertion
-  | If
-  | Loop;
+  | Assertion;
 
 module Marker = {
   [@react.component]
-  let make = (~kind=Default, ~text=?, ~loc=Loc.NoLoc, ~children) => {
-    let className =
+  let make = (~kind=?, ~sort=?, ~text=?, ~loc=Loc.NoLoc, ~children) => {
+    let kind =
       switch (kind) {
-      | Default => ""
-      | Guard => " marker-guard"
-      | Assertion => " marker-assertion"
-      | If => " marker-if"
-      | Loop => " marker-loop"
+      | None => ""
+      | Some(Guard) => " marker-guard"
+      | Some(Assertion) => " marker-assertion"
       };
-    <div className="marker">
+    let sort =
+      switch (sort) {
+      | None => ""
+      | Some(If(_)) => " marker-if"
+      | Some(Loop(_)) => " marker-loop"
+      };
+    <div className={"marker" ++ sort ++ kind}>
       <div className="marker-content"> children </div>
       <Link loc>
-        <div className={"marker-line" ++ className} />
+        <div className={"marker-line" ++ sort ++ kind} />
         {switch (text) {
          | Some(text) =>
-           <div className={"marker-text" ++ className}> {string(text)} </div>
+           <div className={"marker-text" ++ sort ++ kind}>
+             {string(text)}
+           </div>
          | None => <> </>
          }}
       </Link>
@@ -44,7 +49,8 @@ let rec make = (~value: Syntax.Pred.t) => {
   | Pred(expr) => <Marker> <Expr value=expr /> </Marker>
   | Assertion(expr, loc) =>
     <Marker kind=Assertion loc> <Expr value=expr /> </Marker>
-  | Guard(expr, loc) => <Marker kind=Guard loc> <Expr value=expr /> </Marker>
+  | Guard(expr, sort, loc) =>
+    <Marker kind=Guard sort loc> <Expr value=expr /> </Marker>
   | Conjunct(predicates) =>
     predicates
     |> Array.map(x => <Self value=x />)

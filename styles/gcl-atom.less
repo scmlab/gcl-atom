@@ -139,29 +139,33 @@
     display: inline-flex;
     flex-direction: column;
 
+    // color: @background-color-success;
+
     .marker-line {
-      height: 12px;
-      border-top: 4px @background-color-selected;
+      height: 8px;
+      border-bottom: 4px @text-color-subtle;
+      // @background-color-selected
        // @background-color-selected solid;
 
       cursor: pointer;
 
-      &.marker-guard { border-top-style: dashed }
-      &.marker-assertion { border-top-style: solid }
+      &:hover { border-color: @text-color }
 
-      
-      // &.marker-guard:hover { border-top: 4px lighten(@background-color-warning, 10%) solid }
+      &.marker-guard { border-bottom-style: dashed }
+      &.marker-assertion { border-bottom-style: solid }
 
-      // &.marker-guard:hover { border-top: 4px lighten(@background-color-warning, 10%) solid }
+
+
+      // &.marker-guard:hover { border-bottom: 4px lighten(@background-color-warning, 10%) solid }
       //
-      // &.marker-assertion { border-top: 4px @background-color-info solid }
-      // &.marker-assertion:hover { border-top: 4px lighten(@background-color-info, 10%) solid }
+      // &.marker-assertion { border-bottom: 4px @background-color-info solid }
+      // &.marker-assertion:hover { border-bottom: 4px lighten(@background-color-info, 10%) solid }
 
-      // &.marker-if { background: @background-color-error }
-      // &.marker-if:hover { background: lighten(@background-color-error, 10%) }
-      //
-      // &.marker-loop { background: @background-color-info }
-      // &.marker-loop:hover { background: lighten(@background-color-info, 5%) }
+      &.marker-if { border-color: desaturate(@background-color-success, 30%);  }
+      &.marker-if:hover { border-color: @background-color-success }
+
+      &.marker-loop { border-color: desaturate(@background-color-warning, 30%); }
+      &.marker-loop:hover { border-color: @background-color-warning }
 
       &:marker { background: lighten(@background-color-selected, 5%) }
     }
