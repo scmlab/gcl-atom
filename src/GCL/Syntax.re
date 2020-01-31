@@ -299,11 +299,11 @@ module Pred = {
     | Pred(Expr.t)
     | Guard(Expr.t)
     | Conjunct(array(t))
-    | Disjunct(array(t))
-    | LoopTermDecrConj(t, Expr.t, Expr.t)
-    | LoopTermConj(t, array(Expr.t))
-    | LoopIndConj(t, Expr.t)
-    | LoopBaseConj(t, array(Expr.t));
+    | Disjunct(array(t));
+  // | LoopTermDecrConj(t, Expr.t, Expr.t)
+  // | LoopTermConj(t, array(Expr.t))
+  // | LoopIndConj(t, Expr.t)
+  // | LoopBaseConj(t, array(Expr.t));
 
   open Json.Decode;
   let rec decode: decoder(t) =
@@ -317,26 +317,26 @@ module Pred = {
              Contents(array(decode) |> map(xs => Conjunct(xs)))
            | "Disjunct" =>
              Contents(array(decode) |> map(xs => Disjunct(xs)))
-           | "LoopTermDecrConj" =>
-             Contents(
-               tuple3(decode, Expr.decode, Expr.decode)
-               |> map(((x, e, f)) => LoopTermDecrConj(x, e, f)),
-             )
-           | "LoopTermConj" =>
-             Contents(
-               pair(decode, array(Expr.decode))
-               |> map(((x, es)) => LoopTermConj(x, es)),
-             )
-           | "LoopIndConj" =>
-             Contents(
-               pair(decode, Expr.decode)
-               |> map(((x, e)) => LoopIndConj(x, e)),
-             )
-           | "LoopBaseConj" =>
-             Contents(
-               pair(decode, array(Expr.decode))
-               |> map(((x, es)) => LoopBaseConj(x, es)),
-             )
+           // | "LoopTermDecrConj" =>
+           //   Contents(
+           //     tuple3(decode, Expr.decode, Expr.decode)
+           //     |> map(((x, e, f)) => LoopTermDecrConj(x, e, f)),
+           //   )
+           // | "LoopTermConj" =>
+           //   Contents(
+           //     pair(decode, array(Expr.decode))
+           //     |> map(((x, es)) => LoopTermConj(x, es)),
+           //   )
+           // | "LoopIndConj" =>
+           //   Contents(
+           //     pair(decode, Expr.decode)
+           //     |> map(((x, e)) => LoopIndConj(x, e)),
+           //   )
+           // | "LoopBaseConj" =>
+           //   Contents(
+           //     pair(decode, array(Expr.decode))
+           //     |> map(((x, es)) => LoopBaseConj(x, es)),
+           //   )
            | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
          );
   // let rec toExpr = fun
