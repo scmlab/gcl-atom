@@ -1,4 +1,6 @@
 open! Rebase;
+open Rebase.Fn;
+
 open Decoder;
 open! Util;
 open Base;
@@ -134,7 +136,28 @@ module Expr = {
     | Hole(loc)
   and subst = Js.Dict.t(t);
 
-  // let disjunct = Array.reduce(3, 4);
+  let locOf =
+    fun
+    | Var(_, loc) => loc
+    | Const(_, loc) => loc
+    | Lit(_, loc) => loc
+    | Op(_, loc) => loc
+    | App(_, _, loc) => loc
+    | Hole(loc) => loc;
+
+  let negate = x => App(Op(Op.Neg, NoLoc), x, NoLoc);
+  let disj = (x, y) => App(App(Op(Op.Disj, NoLoc), x, NoLoc), y, NoLoc);
+  let conj = (x, y) => App(App(Op(Op.Conj, NoLoc), x, NoLoc), y, NoLoc);
+  let rec disjunct' =
+    fun
+    | [] => Lit(Bool(true), NoLoc)
+    | [x, ...xs] => disj(x, disjunct'(xs));
+  let rec conjunct' =
+    fun
+    | [] => Lit(Bool(false), NoLoc)
+    | [x, ...xs] => disj(x, conjunct'(xs));
+  let disjunct = List.fromArray >> disjunct';
+  let conjunct = List.fromArray >> conjunct';
 
   let rec decode: Json.Decode.decoder(t) =
     json =>
@@ -338,4 +361,15 @@ module Pred = {
            | "Negate" => Contents(decode |> map(x => Negate(x)))
            | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
          );
+
+  let rec toExpr =
+    fun
+    | Pred(e) => e
+    | Assertion(e, _) => e
+    | Guard(e, _, _) => e
+    | Conjunct(xs) => xs |> Array.map(toExpr) |> Expr.disjunct
+    | Disjunct(xs) => xs |> Array.map(toExpr) |> Expr.conjunct
+    | Negate(x) => x |> toExpr |> Expr.negate;
+
+  let toString = toExpr >> Expr.toString;
 };

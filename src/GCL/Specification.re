@@ -4,15 +4,15 @@ open! Decoder;
 
 type t = {
   id: int,
-  pre: Syntax.Expr.t,
-  post: Syntax.Expr.t,
+  pre: Syntax.Pred.t,
+  post: Syntax.Pred.t,
   loc,
 };
 
 let decode: decoder(t) =
   json => {
     id: json |> field("specID", int),
-    pre: json |> field("specPreCond", Syntax.Expr.decode),
-    post: json |> field("specPostCond", Syntax.Expr.decode),
+    pre: json |> field("specPreCond", Syntax.Pred.decode),
+    post: json |> field("specPostCond", Syntax.Pred.decode),
     loc: json |> field("specLoc", Loc.decode),
   };
