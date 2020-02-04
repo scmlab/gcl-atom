@@ -320,11 +320,13 @@ module Expr = {
 module Pred = {
   type sort =
     | If(Loc.t)
-    | Loop(Loc.t);
+    | Loop(Loc.t)
+    | Bnd;
   type t =
     | Constant(Expr.t)
     | Bound(Expr.t)
     | Assertion(Expr.t, Loc.t)
+    | LoopInvariant(Expr.t, Loc.t)
     | Guard(Expr.t, sort, Loc.t)
     | Conjunct(array(t))
     | Disjunct(array(t))
@@ -351,6 +353,11 @@ module Pred = {
                pair(Expr.decode, Loc.decode)
                |> map(((e, l)) => Assertion(e, l)),
              )
+           | "LoopInvariant" =>
+             Contents(
+               pair(Expr.decode, Loc.decode)
+               |> map(((e, l)) => LoopInvariant(e, l)),
+             )
            | "Guard" =>
              Contents(
                tuple3(Expr.decode, decodeSort, Loc.decode)
@@ -369,6 +376,7 @@ module Pred = {
     | Constant(e) => e
     | Bound(e) => e
     | Assertion(e, _) => e
+    | LoopInvariant(e, _) => e
     | Guard(e, _, _) => e
     | Conjunct(xs) => xs |> Array.map(toExpr) |> Expr.disjunct
     | Disjunct(xs) => xs |> Array.map(toExpr) |> Expr.conjunct

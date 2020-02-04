@@ -22,6 +22,7 @@ module Marker = {
       | None => ""
       | Some(If(_)) => " marker-if"
       | Some(Loop(_)) => " marker-loop"
+      | Some(Bnd) => " marker-bound"
       };
     <div className={"marker" ++ sort ++ kind}>
       <div className="marker-content"> children </div>
@@ -47,11 +48,16 @@ let rec make = (~value: Syntax.Pred.t) => {
   };
   switch (value) {
   | Constant(expr) => <Marker> <Expr value=expr /> </Marker>
-  | Bound(expr) => <Marker> <Expr value=expr /> </Marker>
+  | Bound(expr) =>
+    <Marker sort=Bnd text="bound"> <Expr value=expr /> </Marker>
   | Assertion(expr, loc) =>
-    <Marker kind=Assertion loc> <Expr value=expr /> </Marker>
+    <Marker kind=Assertion loc text="assertion"> <Expr value=expr /> </Marker>
+  | LoopInvariant(expr, loc) =>
+    <Marker kind=Assertion sort={Loop(NoLoc)} text="loop invariant" loc>
+      <Expr value=expr />
+    </Marker>
   | Guard(expr, sort, loc) =>
-    <Marker kind=Guard sort loc> <Expr value=expr /> </Marker>
+    <Marker kind=Guard sort loc text="guard"> <Expr value=expr /> </Marker>
   | Conjunct(predicates) =>
     predicates
     |> Array.map(x => <Self value=x />)
