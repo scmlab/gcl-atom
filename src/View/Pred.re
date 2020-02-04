@@ -46,7 +46,8 @@ let rec make = (~value: Syntax.Pred.t) => {
     let makeProps = makeProps;
   };
   switch (value) {
-  | Pred(expr) => <Marker> <Expr value=expr /> </Marker>
+  | Constant(expr) => <Marker> <Expr value=expr /> </Marker>
+  | Bound(expr) => <Marker> <Expr value=expr /> </Marker>
   | Assertion(expr, loc) =>
     <Marker kind=Assertion loc> <Expr value=expr /> </Marker>
   | Guard(expr, sort, loc) =>

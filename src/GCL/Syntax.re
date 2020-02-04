@@ -322,7 +322,8 @@ module Pred = {
     | If(Loc.t)
     | Loop(Loc.t);
   type t =
-    | Pred(Expr.t)
+    | Constant(Expr.t)
+    | Bound(Expr.t)
     | Assertion(Expr.t, Loc.t)
     | Guard(Expr.t, sort, Loc.t)
     | Conjunct(array(t))
@@ -343,7 +344,8 @@ module Pred = {
       json
       |> sum(
            fun
-           | "Pred" => Contents(Expr.decode |> map(x => Pred(x)))
+           | "Constant" => Contents(Expr.decode |> map(x => Constant(x)))
+           | "Bound" => Contents(Expr.decode |> map(x => Bound(x)))
            | "Assertion" =>
              Contents(
                pair(Expr.decode, Loc.decode)
@@ -364,7 +366,8 @@ module Pred = {
 
   let rec toExpr =
     fun
-    | Pred(e) => e
+    | Constant(e) => e
+    | Bound(e) => e
     | Assertion(e, _) => e
     | Guard(e, _, _) => e
     | Conjunct(xs) => xs |> Array.map(toExpr) |> Expr.disjunct
