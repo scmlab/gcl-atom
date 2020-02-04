@@ -11,11 +11,8 @@ module Origin = {
     | AssertSufficient(loc)
     | Assignment(loc)
     | IfTotal(loc)
-    | IfBranch(loc)
     | LoopBase(loc)
-    | LoopInd(loc)
     | LoopTermBase(loc)
-    | LoopTermDec(loc)
     | LoopInitialize(loc);
 
   open Decoder;
@@ -31,11 +28,8 @@ module Origin = {
         Contents(Loc.decode |> map(x => AssertSufficient(x)))
       | "Assignment" => Contents(Loc.decode |> map(x => Assignment(x)))
       | "IfTotal" => Contents(Loc.decode |> map(x => IfTotal(x)))
-      | "IfBranch" => Contents(Loc.decode |> map(x => IfBranch(x)))
       | "LoopBase" => Contents(Loc.decode |> map(x => LoopBase(x)))
-      | "LoopInd" => Contents(Loc.decode |> map(x => LoopInd(x)))
       | "LoopTermBase" => Contents(Loc.decode |> map(x => LoopTermBase(x)))
-      | "LoopTermDec" => Contents(Loc.decode |> map(x => LoopTermDec(x)))
       | "LoopInitialize" =>
         Contents(Loc.decode |> map(x => LoopInitialize(x)))
       | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
@@ -49,11 +43,8 @@ module Origin = {
     | AssertSufficient(_) => "AssertSufficient"
     | Assignment(_) => "Assignment"
     | IfTotal(_) => "IfTotal"
-    | IfBranch(_) => "IfBranch"
     | LoopBase(_) => "LoopBase"
-    | LoopInd(_) => "LoopInd"
     | LoopTermBase(_) => "LoopTermBase"
-    | LoopTermDec(_) => "LoopTermDec"
     | LoopInitialize(_) => "LoopInitialize";
 
   let locOf =
@@ -64,35 +55,22 @@ module Origin = {
     | AssertSufficient(l) => l
     | Assignment(l) => l
     | IfTotal(l) => l
-    | IfBranch(l) => l
     | LoopBase(l) => l
-    | LoopInd(l) => l
     | LoopTermBase(l) => l
-    | LoopTermDec(l) => l
     | LoopInitialize(l) => l;
 };
 
 module ProofObligation = {
   type t =
-    | ProofObligation(int, Syntax.Pred.t, Syntax.Pred.t, array(Origin.t));
+    | ProofObligation(int, Syntax.Pred.t, Syntax.Pred.t, Origin.t);
   // | IfTotal(Syntax.Expr.t, array(Syntax.Expr.t), Loc.t);
 
   [@react.component]
   let make = (~payload: t) =>
     switch (payload) {
-    | ProofObligation(_, p, q, os) =>
+    | ProofObligation(_, p, q, o) =>
       let origin =
-        switch (os[Array.length(os) - 1]) {
-        | None => <> </>
-        | Some(x) =>
-          let loc = Origin.locOf(x);
-          <Link loc> {string(Origin.toString(x))} </Link>;
-        };
-      // let origins =
-      //   os
-      //   |> Array.map(Origin.toString)
-      //   |> List.fromArray
-      //   |> String.joinWith(" ");
+        <Link loc={Origin.locOf(o)}> {string(Origin.toString(o))} </Link>;
 
       <li className="gcl-body-item native-key-bindings" tabIndex=(-1)>
         <span className="gcl-proof-obligation-message"> origin </span>
@@ -127,7 +105,7 @@ module ProofObligation = {
 
   open! Json.Decode;
   let decode: decoder(t) =
-    tuple4(int, Syntax.Pred.decode, Syntax.Pred.decode, array(Origin.decode))
+    tuple4(int, Syntax.Pred.decode, Syntax.Pred.decode, Origin.decode)
     |> map(((i, p, q, o)) => ProofObligation(i, p, q, o));
   //
   // let decode: decoder(t) =
