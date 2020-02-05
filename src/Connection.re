@@ -1,343 +1,66 @@
 open! Rebase;
-open Rebase.Fn;
+module Conn = AgdaMode.Connection2;
 
-module Error = {
-  type autoSearch =
-    | ProcessHanging(string)
-    | NotSupported(string)
-    | NotFound(string, string);
-
-  type validation =
-    /* the path is empty */
-    | PathMalformed(string)
-    /* the process is not responding */
-    | ProcessHanging
-    /* from the shell */
-    | NotFound(Js.Exn.t)
-    | ShellError(Js.Exn.t)
-    /* from its stderr */
-    | ProcessError(string)
-    /* the process is not GCL */
-    | IsNotGCL(string);
-
-  type connection =
-    | ClosedByProcess(int, string)
-    | DisconnectedByUser
-    | ShellError(Js.Exn.t)
-    | ExitedByProcess(int, string)
-    | NotEstablishedYet;
-
-  type t =
-    | DecodeError(string, Js.Json.t)
-    | AutoSearchError(autoSearch)
-    | ValidationError(string, validation)
-    | ConnectionError(connection);
-
-  let toString =
-    fun
-    | DecodeError(msg, json) => (
-        {js|JSON Decode Error|js},
-        msg ++ "\n" ++ "JSON from GCL: \n" ++ Js.Json.stringify(json),
-      )
-    | AutoSearchError(ProcessHanging(name)) => (
-        "Process not responding when looking for \"" ++ name ++ "\"",
-        {j|Please restart the process|j},
-      )
-    | AutoSearchError(NotSupported(os)) => (
-        "Auto search failed",
-        {j|currently auto path searching is not supported on $(os)|j},
-      )
-    | AutoSearchError(NotFound("gcl", msg)) => ("Auto search failed", msg)
-    | AutoSearchError(NotFound(name, msg)) => (
-        "Auto search failed when looking for \"" ++ name ++ "\"",
-        msg,
-      )
-    | ValidationError(_path, PathMalformed(msg)) => ("Path malformed", msg)
-    | ValidationError(_path, ProcessHanging) => (
-        "Process hanging",
-        "The program has not been responding for more than 1 sec",
-      )
-    | ValidationError(_path, NotFound(error)) => (
-        "GCL not found",
-        Util.JsError.toString(error),
-      )
-    | ValidationError(_path, ShellError(error)) => (
-        "Error from the shell",
-        Util.JsError.toString(error),
-      )
-    | ValidationError(_path, ProcessError(msg)) => (
-        "Error from the stderr",
-        msg,
-      )
-    | ValidationError(_path, IsNotGCL(msg)) => ("This is not GCL", msg)
-
-    | ConnectionError(ClosedByProcess(code, signal)) => (
-        "Socket closed by GCL",
-        {j|exited with code: $code
-signal: $signal
-|j},
-      )
-    | ConnectionError(DisconnectedByUser) => (
-        "Disconnected",
-        "Connection disconnected by ourselves",
-      )
-    // | ConnectionError(EmitterError) => ("Emitter Error", "")
-    | ConnectionError(ShellError(error)) => (
-        "Socket error",
-        Util.JsError.toString(error),
-      )
-    | ConnectionError(ExitedByProcess(code, signal)) => (
-        "GCL has crashed",
-        {j|exited with code: $code
-  signal: $signal
-  |j},
-      )
-    | ConnectionError(NotEstablishedYet) => (
-        "Connection not established yet",
-        "Please establish the connection first",
-      );
-};
-
-type status =
-  | Connected(Nd.ChildProcess.t)
-  | Disconnecting(Resource.t(unit))
-  | Disconnected;
+module Error = Conn.Error;
 
 type t = {
-  mutable path: option(string),
-  mutable process: status,
-  emitter: Event.t(result(Js.Json.t, Error.t)),
+  mutable path: string,
+  mutable process: Conn.Process.t,
+  mutable emitter: Event.t(result(Js.Json.t, Error.t)),
 };
 
-let isConnected = connection =>
-  switch (connection.process) {
-  | Connected(_) => true
-  | _ => false
-  };
+let isConnected = connection => connection.process.isConnected();
+let disconnect = connection => connection.process.disconnect();
 
-let disconnect = connection =>
-  switch (connection.process) {
-  | Connected(process) =>
-    // set the status to "Disconnecting"
-    let pending = Resource.make();
-    connection.process = Disconnecting(pending);
-
-    // listen to the `exit` event
-    connection.emitter.on(
-      fun
-      | Error(ConnectionError(ExitedByProcess(_, _))) => {
-          connection.emitter.destroy();
-          connection.process = Disconnected;
-          pending.supply();
-        }
-      | _ => (),
-    )
-    |> ignore;
-
-    // trigger `exit`
-    process |> (Nd.ChildProcess.kill_("SIGTERM") >> ignore);
-
-    // resolve on `exit`
-    pending.acquire();
-  | Disconnecting(pending) => pending.acquire()
-  | Disconnected => Promise.resolved()
-  };
-
-let make = (): t => {
-  path: None,
-  process: Disconnected,
-  emitter: Event.make(),
-};
-
-let autoSearch = (name): Promise.t(result(string, Error.t)) =>
-  {
-    let (promise, resolve) = Promise.pending();
-
-    // reject if the process hasn't responded for more than 1 second
-    let hangTimeout =
-      Js.Global.setTimeout(
-        () => resolve(Error(ProcessHanging(name): Error.autoSearch)),
-        1000,
-      );
-
-    let commandName =
-      switch (N.OS.type_()) {
-      | "Linux"
-      | "Darwin" => Ok("which")
-      | "Windows_NT" => Ok("where.exe")
-      | os => Error(os)
-      };
-
-    switch (commandName) {
-    | Error(os) => resolve(Error(NotSupported(os)))
-    | Ok(commandName') =>
-      Nd.ChildProcess.exec(
-        commandName' ++ " " ++ name,
-        (error, stdout, stderr) => {
-          /* clear timeout as the process has responded */
-          Js.Global.clearTimeout(hangTimeout);
-
-          /* error */
-          switch (error |> Js.Nullable.toOption) {
-          | None => ()
-          | Some(err) =>
-            resolve(
-              Error(
-                NotFound(name, err |> Js.Exn.message |> Option.getOr("")),
-              ),
-            )
-          };
-
-          /* stderr */
-          let stderr' = stderr |> Node.Buffer.toString;
-          if (stderr' |> String.isEmpty |> (!)) {
-            resolve(Error(NotFound(name, stderr')));
-          };
-
-          /* stdout */
-          let stdout' = stdout |> Node.Buffer.toString;
-          if (stdout' |> String.isEmpty) {
-            resolve(Error(NotFound(name, "")));
-          } else {
-            resolve(Ok(stdout'));
-          };
-        },
-      )
-      |> ignore
-    };
-
-    promise;
-  }
-  ->Promise.mapError(e => Error.AutoSearchError(e));
-
-let getPath = connection => {
-  switch (connection.path) {
-  | Some(path) => Promise.resolved(Ok(path))
-  | None =>
-    autoSearch("gcl")->Promise.tapOk(path => connection.path = Some(path))
-  };
-};
-
-let connect = connection => {
-  let%Ok path = getPath(connection);
-
-  let process =
-    Nd.ChildProcess.spawn_(
-      path,
-      [||],
-      Nd.ChildProcess.spawnOption(
-        ~shell=Nd.ChildProcess.Shell.bool(true),
-        (),
-      ),
-    );
-  connection.process = Connected(process);
-
+let wire = connection => {
   // for incremental parsing
   let unfinishedMsg = ref(None);
 
   // on data
-  process
-  |> Nd.ChildProcess.stdout
-  |> Nd.Stream.Readable.on(
-       `data(
-         chunk => {
-           // serialize the binary chunk into string
-           let string = Node.Buffer.toString(chunk);
+  let _destructor =
+    connection.process.emitter.on(
+      fun
+      | Ok(data) => {
+          // for incremental parsing
+          let augmented =
+            switch (unfinishedMsg^) {
+            | None => data
+            | Some(unfinished) => unfinished ++ data
+            };
 
-           // for incremental parsing
-           let augmented =
-             switch (unfinishedMsg^) {
-             | None => string
-             | Some(unfinished) => unfinished ++ string
-             };
+          // try parsing the string as JSON value
+          switch (Json.parse(augmented)) {
+          | None => unfinishedMsg := Some(augmented)
+          | Some(result) =>
+            unfinishedMsg := None;
+            connection.emitter.emit(Ok(result)) |> ignore;
+          };
+        }
+      | Error(e) =>
+        connection.emitter.emit(Error(Error.ConnectionError(e))),
+    );
 
-           // try parsing the string as JSON value
-           switch (Json.parse(augmented)) {
-           | None => unfinishedMsg := Some(augmented)
-           | Some(result) =>
-             unfinishedMsg := None;
-             connection.emitter.emit(Ok(result)) |> ignore;
-           };
-         },
-       ),
-     )
-  |> ignore;
-
-  process
-  |> Nd.ChildProcess.stdin
-  |> Nd.Stream.Writable.on(`close(() => disconnect(connection) |> ignore))
-  |> ignore;
-
-  // on errors and anomalies
-  process
-  |> Nd.ChildProcess.on(
-       `close(
-         (code, signal) => {
-           connection.emitter.emit(
-             Error(
-               Error.ConnectionError(Error.ClosedByProcess(code, signal)),
-             ),
-           )
-           |> ignore;
-           disconnect(connection) |> ignore;
-         },
-       ),
-     )
-  |> Nd.ChildProcess.on(
-       `disconnect(
-         () => {
-           connection.emitter.emit(
-             Error(Error.ConnectionError(Error.DisconnectedByUser)),
-           )
-           |> ignore;
-           disconnect(connection) |> ignore;
-         },
-       ),
-     )
-  |> Nd.ChildProcess.on(
-       `error(
-         exn => {
-           connection.emitter.emit(
-             Error(Error.ConnectionError(Error.ShellError(exn))),
-           )
-           |> ignore;
-           connection.path = None; // unregister the path
-           disconnect(connection) |> ignore;
-         },
-       ),
-     )
-  |> Nd.ChildProcess.on(
-       `exit(
-         (code, signal) => {
-           connection.emitter.emit(
-             Error(
-               Error.ConnectionError(Error.ExitedByProcess(code, signal)),
-             ),
-           )
-           |> ignore;
-           disconnect(connection) |> ignore;
-         },
-       ),
-     )
-  |> ignore;
-
-  Promise.resolved(Ok());
+  ();
+};
+let make = (): Promise.t(result(t, Error.t)) => {
+  Conn.PathSearch.run("gcl")
+  ->Promise.map(
+      fun
+      | Error(e) => Error(Conn.Error.PathSearchError(e))
+      | Ok(v) => Ok(v),
+    )
+  ->Promise.mapOk(path => {
+      let process = Conn.Process.make(path, [||]);
+      {path, process, emitter: Event.make()};
+    })
+  ->Promise.tapOk(connection => wire(connection));
 };
 
 let send = (request, connection): Promise.t(result(Js.Json.t, Error.t)) => {
-  switch (connection.process) {
-  | Connected(process) =>
-    let promise = connection.emitter.once();
-
-    let payload = Node.Buffer.fromString(request ++ "\n");
-    // write
-    process
-    |> Nd.ChildProcess.stdin
-    |> Nd.Stream.Writable.write(payload)
-    |> ignore;
-
-    promise;
-  | _ =>
-    Promise.resolved(Error(Error.ConnectionError(Error.NotEstablishedYet)))
+  let promise = connection.emitter.once();
+  let result = connection.process.send(request);
+  switch (result) {
+  | Ok () => promise
+  | Error(e) => Promise.resolved(Error(Error.ConnectionError(e)))
   };
 };

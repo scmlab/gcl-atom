@@ -1,12 +1,27 @@
 open! Rebase;
+open Rebase.Fn;
 
 open! Types.Instance;
+
+module Error = {
+  type t =
+    | Connection(Connection.Error.t)
+    | Decode(string, Js.Json.t);
+
+  let toString =
+    fun
+    | Connection(e) => Connection.Error.toString(e)
+    | Decode(msg, json) => (
+        {js|JSON Decode Error|js},
+        msg ++ "\n" ++ "JSON from GCL: \n" ++ Js.Json.stringify(json),
+      );
+};
 
 let make = (editor: Atom.TextEditor.t): t => {
   editor,
   view: View.make(editor),
   toggle: false,
-  connection: Connection.make(),
+  connection: None,
   decorations: [||],
   specifications: [||],
   history: None,
@@ -25,38 +40,37 @@ module View = {
 
 module Connection_ = {
   // connect if not connected yet
-  let getConnection =
-      (instance): Promise.t(result(Connection.t, Connection.Error.t)) => {
-    let isConnected = Connection.isConnected(instance.connection);
-    if (isConnected) {
-      Promise.resolved(Ok(instance.connection));
-    } else {
-      Connection.connect(instance.connection)
-      ->Promise.mapOk(() => instance.connection);
+  let getConnection = (instance): Promise.t(result(Connection.t, Error.t)) => {
+    switch (instance.connection) {
+    | None => Connection.make()->Promise.mapError(e => Error.Connection(e))
+    | Some(connection) => Promise.resolved(Ok(connection))
     };
   };
 
   let sendRequest =
-      (request, instance): Promise.t(result(Response.t, Connection.Error.t)) => {
+      (request, instance): Promise.t(result(Response.t, Error.t)) => {
     let value = Request.encode(request);
     Js.log2("<<<", value);
 
     let%Ok conn = instance->getConnection;
-    let%Ok result = Connection.send(value, conn);
+    let%Ok result =
+      Connection.send(value, conn)
+      ->Promise.mapError(e => Error.Connection(e));
 
     Js.log2(">>>", result);
+
     // catching exceptions occured when decoding JSON values
     switch (Response.decode(result)) {
     | value => Promise.resolved(Ok(value))
     | exception (Json.Decode.DecodeError(msg)) =>
-      Promise.resolved(Error(Connection.Error.DecodeError(msg, result)))
+      Promise.resolved(Error(Error.Decode(msg, result)))
     };
   };
 };
 
 let destroy = instance => {
   instance.decorations |> Array.forEach(Atom.Decoration.destroy);
-  instance.connection |> Connection.disconnect |> ignore;
+  instance.connection |> Option.forEach(Connection.disconnect >> ignore);
   instance |> View.destroy;
 };
 
@@ -76,27 +90,27 @@ module Command_ = {
                 // destroy all decorations
                 instance.decorations |> Array.forEach(Atom.Decoration.destroy);
                 // destroy the connection
-                instance.connection |> Connection.disconnect |> ignore;
+                instance.connection
+                |> Option.forEach(Connection.disconnect >> ignore);
 
                 Promise.resolved([]);
               } else {
                 instance.toggle = true;
                 instance.view.setActivation(true) |> ignore;
 
-                if (Connection.isConnected(instance.connection)) {
-                  Promise.resolved([]);
-                } else {
+                switch (instance.connection) {
+                | Some(_) => Promise.resolved([])
+                | None =>
                   instance
                   ->Connection_.getConnection
                   ->Promise.map(
                       fun
                       | Ok(_) => [DispatchLocal(Save)]
                       | Error(error) => {
-                          let (header, body) =
-                            Connection.Error.toString(error);
+                          let (header, body) = Error.toString(error);
                           [Display(Error(header), Plain(body))];
                         },
-                    );
+                    )
                 };
               },
           ),
@@ -188,7 +202,7 @@ let rec runTasks = (instance: t, tasks: list(Types.Task.t)): Promise.t(unit) => 
       ->Promise.flatMap(
           fun
           | Error(error) => {
-              let (header, body) = Connection.Error.toString(error);
+              let (header, body) = Error.toString(error);
               instance |> View.displayError(header, body);
               Promise.resolved();
             }
