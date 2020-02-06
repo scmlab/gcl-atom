@@ -1,11 +1,23 @@
 open! Rebase;
-module Conn = AgdaMode.Connection2;
 
-module Error = Conn.Error;
+module Process = AgdaMode.Process;
+
+module Error = {
+  type t =
+    | PathSearch(Process.PathSearch.Error.t)
+    | Validation(Process.Validation.Error.t)
+    | Process(Process.Error.t);
+
+  let toString =
+    fun
+    | PathSearch(e) => Process.PathSearch.Error.toString(e)
+    | Validation(e) => Process.Validation.Error.toString(e)
+    | Process(e) => Process.Error.toString(e);
+};
 
 type t = {
   mutable path: string,
-  mutable process: Conn.Process.t,
+  mutable process: Process.t,
   mutable emitter: Event.t(result(Js.Json.t, Error.t)),
 };
 
@@ -36,21 +48,20 @@ let wire = connection => {
             connection.emitter.emit(Ok(result)) |> ignore;
           };
         }
-      | Error(e) =>
-        connection.emitter.emit(Error(Error.ConnectionError(e))),
+      | Error(e) => connection.emitter.emit(Error(Error.Process(e))),
     );
 
   ();
 };
 let make = (): Promise.t(result(t, Error.t)) => {
-  Conn.PathSearch.run("gcl")
+  Process.PathSearch.run("gcl")
   ->Promise.map(
       fun
-      | Error(e) => Error(Conn.Error.PathSearchError(e))
+      | Error(e) => Error(Error.PathSearch(e))
       | Ok(v) => Ok(v),
     )
   ->Promise.mapOk(path => {
-      let process = Conn.Process.make(path, [||]);
+      let process = Process.make(path, [||]);
       {path, process, emitter: Event.make()};
     })
   ->Promise.tapOk(connection => wire(connection));
@@ -61,6 +72,6 @@ let send = (request, connection): Promise.t(result(Js.Json.t, Error.t)) => {
   let result = connection.process.send(request);
   switch (result) {
   | Ok () => promise
-  | Error(e) => Promise.resolved(Error(Error.ConnectionError(e)))
+  | Error(e) => Promise.resolved(Error(Error.Process(e)))
   };
 };
