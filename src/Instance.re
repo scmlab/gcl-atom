@@ -139,6 +139,7 @@ module Command_ = {
           ),
         ]
       | Refine => [
+          DispatchLocal(Save),
           WithInstance(
             instance =>
               Spec.fromCursorPosition(instance)
