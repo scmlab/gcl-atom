@@ -84,9 +84,12 @@ let markSpec = (spec: Specification.t, editor): array(Atom.Decoration.t) => {
       let pre = trim(Syntax.Pred.toString(spec.pre));
       let post = trim(Syntax.Pred.toString(spec.post));
 
+      // see if the Spec's precondition and the post-condition look the same (i.e. the Q_Q case)
+      let isQQ = pre == post;
+
       Js.List.flatten([
-        overlaySpec(pre, startLoc, editor),
-        overlaySpec(post, endLoc, editor),
+        overlaySpec(isQQ ? "" : pre, startLoc, editor),
+        overlaySpec(isQQ ? "" : post, endLoc, editor),
         [
           markLineSpecSoft(startLoc, editor),
           markLineSpecSoft(endLoc, editor),

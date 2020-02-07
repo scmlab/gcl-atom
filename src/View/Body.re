@@ -84,50 +84,12 @@ module ProofObligation = {
           <Pred value=q />
         </span>
       </li>;
-    // | IfTotal(p, qs, _) =>
-    //   let qs' = qs |> Array.map(q => <Expr expr=q />);
-    //
-    //   <li className="gcl-body-item">
-    //     <span className="gcl-proof-obligation-antecedent">
-    //       <Expr expr=p />
-    //     </span>
-    //     <span className="gcl-proof-obligation-arrow">
-    //       {string({j|⇒|j})}
-    //     </span>
-    //     <span className="gcl-proof-obligation-consequent">
-    //       {string("DEBUG: if total")}
-    //       // {string("either one of the following condition should hold")}
-    //       {Util.React.sepBy(<br />, qs')}
-    //     </span>
-    //   </li>;
-    // <Expr expr=q />
     };
 
   open! Json.Decode;
   let decode: decoder(t) =
     tuple4(int, Syntax.Pred.decode, Syntax.Pred.decode, Origin.decode)
     |> map(((i, p, q, o)) => ProofObligation(i, p, q, o));
-  //
-  // let decode: decoder(t) =
-  //   sum(
-  //     fun
-  //     | "Obligation" =>
-  //       Contents(
-  //         tuple4(
-  //           int,
-  //           Syntax.Expr.decode,
-  //           Syntax.Expr.decode,
-  //           array(Origin.decode),
-  //         )
-  //         |> map(((i, p, q, o)) => ProofObligation(i, p, q, o)),
-  //       )
-  //     | "ObliIfTotal" =>
-  //       Contents(
-  //         tuple3(Syntax.Expr.decode, array(Syntax.Expr.decode), Loc.decode)
-  //         |> map(((p, qs, l)) => IfTotal(p, qs, l)),
-  //       )
-  //     | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
-  //   );
 };
 
 type t =
