@@ -32,16 +32,18 @@ let fromCursorPosition = instance => {
 let getPayloadRange = (spec, instance) => {
   open Atom;
 
-  // return the text in the targeted hole
+  let startingRow = Point.row(Range.start(Loc.toRange(spec.loc))) + 1;
+  let endingRow = Point.row(Range.end_(Loc.toRange(spec.loc))) - 1;
+
   let start =
-    Point.translate(Range.start(Loc.toRange(spec.loc)), Point.make(1, 0));
+    instance.editor
+    |> TextEditor.getBuffer
+    |> TextBuffer.rangeForRow(startingRow, true)
+    |> Range.start;
   let end_ =
     instance.editor
     |> TextEditor.getBuffer
-    |> TextBuffer.rangeForRow(
-         Point.row(Range.end_(Loc.toRange(spec.loc))) - 1,
-         true,
-       )
+    |> TextBuffer.rangeForRow(endingRow, true)
     |> Range.end_;
   Range.make(start, end_);
 };
@@ -62,6 +64,7 @@ let resolve = (i, instance) => {
   specs[0]
   |> Option.forEach(spec => {
        let payload = getPayload(spec, instance);
+       Js.log2("!!!! [ payload ]", payload);
        let start = Range.start(Loc.toRange(spec.loc));
 
        instance.editor
