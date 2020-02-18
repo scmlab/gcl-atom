@@ -151,10 +151,12 @@ module Expr = {
   let rec disjunct' =
     fun
     | [] => Lit(Bool(true), NoLoc)
+    | [x] => x
     | [x, ...xs] => disj(x, disjunct'(xs));
   let rec conjunct' =
     fun
     | [] => Lit(Bool(false), NoLoc)
+    | [x] => x
     | [x, ...xs] => disj(x, conjunct'(xs));
   let disjunct = List.fromArray >> disjunct';
   let conjunct = List.fromArray >> conjunct';
