@@ -5,65 +5,67 @@ open Base;
 
 module Origin = {
   type t =
-    | AroundAbort(loc)
-    | AroundSkip(loc)
-    | AssertGuaranteed(loc)
-    | AssertSufficient(loc)
-    | Assignment(loc)
-    | IfTotal(loc)
-    | LoopBase(loc)
-    | LoopTermBase(loc)
-    | LoopInitialize(loc);
+    | AtAbort(loc)
+    | AtSkip(loc)
+    | AtSpec(loc)
+    | AtAssignment(loc)
+    | AtAssertion(loc)
+    | AtLoopInvariant(loc)
+    | AtIf(loc)
+    | AtLoop(loc)
+    | AtTermination(loc)
+    | AtBoundDecrement(loc);
 
   open Decoder;
   open! Json.Decode;
   let decode: decoder(t) =
     sum(
       fun
-      | "AroundAbort" => Contents(Loc.decode |> map(x => AroundAbort(x)))
-      | "AroundSkip" => Contents(Loc.decode |> map(x => AroundSkip(x)))
-      | "AssertGuaranteed" =>
-        Contents(Loc.decode |> map(x => AssertGuaranteed(x)))
-      | "AssertSufficient" =>
-        Contents(Loc.decode |> map(x => AssertSufficient(x)))
-      | "Assignment" => Contents(Loc.decode |> map(x => Assignment(x)))
-      | "IfTotal" => Contents(Loc.decode |> map(x => IfTotal(x)))
-      | "LoopBase" => Contents(Loc.decode |> map(x => LoopBase(x)))
-      | "LoopTermBase" => Contents(Loc.decode |> map(x => LoopTermBase(x)))
-      | "LoopInitialize" =>
-        Contents(Loc.decode |> map(x => LoopInitialize(x)))
+      | "AtAbort" => Contents(Loc.decode |> map(x => AtAbort(x)))
+      | "AtSkip" => Contents(Loc.decode |> map(x => AtSkip(x)))
+      | "AtSpec" => Contents(Loc.decode |> map(x => AtSpec(x)))
+      | "AtAssignment" => Contents(Loc.decode |> map(x => AtAssignment(x)))
+      | "AtAssertion" => Contents(Loc.decode |> map(x => AtAssertion(x)))
+      | "AtLoopInvariant" =>
+        Contents(Loc.decode |> map(x => AtLoopInvariant(x)))
+      | "AtIf" => Contents(Loc.decode |> map(x => AtIf(x)))
+      | "AtLoop" => Contents(Loc.decode |> map(x => AtLoop(x)))
+      | "AtTermination" => Contents(Loc.decode |> map(x => AtTermination(x)))
+      | "AtBoundDecrement" =>
+        Contents(Loc.decode |> map(x => AtBoundDecrement(x)))
       | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
     );
 
   let toString =
     fun
-    | AroundAbort(_) => "AroundAbort"
-    | AroundSkip(_) => "AroundSkip"
-    | AssertGuaranteed(_) => "AssertGuaranteed"
-    | AssertSufficient(_) => "AssertSufficient"
-    | Assignment(_) => "Assignment"
-    | IfTotal(_) => "IfTotal"
-    | LoopBase(_) => "LoopBase"
-    | LoopTermBase(_) => "LoopTermBase"
-    | LoopInitialize(_) => "LoopInitialize";
+    | AtAbort(_) => "Abort"
+    | AtSkip(_) => "Skip"
+    | AtSpec(_) => "Spec"
+    | AtAssignment(_) => "Assignment"
+    | AtAssertion(_) => "Assertion"
+    | AtLoopInvariant(_) => "Loop Invariant"
+    | AtIf(_) => "Conditional"
+    | AtLoop(_) => "Loop"
+    | AtTermination(_) => "Termination"
+    | AtBoundDecrement(_) => "Bound Decrement";
 
   let locOf =
     fun
-    | AroundAbort(l) => l
-    | AroundSkip(l) => l
-    | AssertGuaranteed(l) => l
-    | AssertSufficient(l) => l
-    | Assignment(l) => l
-    | IfTotal(l) => l
-    | LoopBase(l) => l
-    | LoopTermBase(l) => l
-    | LoopInitialize(l) => l;
+    | AtAbort(loc) => loc
+    | AtSkip(loc) => loc
+    | AtSpec(loc) => loc
+    | AtAssignment(loc) => loc
+    | AtAssertion(loc) => loc
+    | AtLoopInvariant(loc) => loc
+    | AtIf(loc) => loc
+    | AtLoop(loc) => loc
+    | AtTermination(loc) => loc
+    | AtBoundDecrement(loc) => loc;
 };
 
 module ProofObligation = {
   type t =
     | ProofObligation(int, Syntax.Pred.t, Syntax.Pred.t, Origin.t);
-  // | IfTotal(Syntax.Expr.t, array(Syntax.Expr.t), Loc.t);
 
   [@react.component]
   let make = (~payload: t) =>

@@ -41,7 +41,9 @@ module Error = {
     type t =
       | MissingBound
       | MissingAssertion
+      | MissingLoopInvariant
       | ExcessBound
+      | MissingPrecondition
       | MissingPostcondition
       | DigHole;
 
@@ -50,8 +52,10 @@ module Error = {
         fun
         | "MissingBound" => Contents(_ => MissingBound)
         | "MissingAssertion" => Contents(_ => MissingAssertion)
+        | "MissingLoopInvariant" => Contents(_ => MissingLoopInvariant)
         | "ExcessBound" => Contents(_ => ExcessBound)
-        | "MissingPostcondition" => TagOnly(_ => MissingPostcondition)
+        | "MissingPrecondition" => Contents(_ => MissingPrecondition)
+        | "MissingPostcondition" => Contents(_ => MissingPostcondition)
         | "DigHole" => Contents(_ => DigHole)
         | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
       );
@@ -72,7 +76,7 @@ module Error = {
           pair(Loc.decode, string)
           |> map(((_, msg)) => SyntacticError(msg)),
         )
-      | "StructError" =>
+      | "StructError2" =>
         Contents(json => StructError(json |> StructError.decode))
       | "TypeError" => Contents(json => TypeError(json |> TypeError.decode))
       | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
@@ -114,11 +118,24 @@ module Error = {
           Plain("Assertion before the DO construct is missing"),
         ),
       ]
+    | StructError(MissingLoopInvariant) => [
+        AddDecorations(Decoration.markSite(site)),
+        Display(
+          Error("Loop Invariant Missing"),
+          Plain("Loop invariant before the DO construct is missing"),
+        ),
+      ]
     | StructError(ExcessBound) => [
         AddDecorations(Decoration.markSite(site)),
         Display(
           Error("Excess Bound"),
           Plain("Unnecessary bound annotation at this assertion"),
+        ),
+      ]
+    | StructError(MissingPrecondition) => [
+        Display(
+          Error("Precondition Missing"),
+          Plain("The first statement of the program should be an assertion"),
         ),
       ]
     | StructError(MissingPostcondition) => [

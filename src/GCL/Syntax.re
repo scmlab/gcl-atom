@@ -326,9 +326,9 @@ module Pred = {
     | Bnd;
   type t =
     | Constant(Expr.t)
-    | Bound(Expr.t)
+    | Bound(Expr.t, Loc.t)
     | Assertion(Expr.t, Loc.t)
-    | LoopInvariant(Expr.t, Loc.t)
+    | LoopInvariant(Expr.t, Expr.t, Loc.t)
     | Guard(Expr.t, sort, Loc.t)
     | Conjunct(array(t))
     | Disjunct(array(t))
@@ -349,7 +349,11 @@ module Pred = {
       |> sum(
            fun
            | "Constant" => Contents(Expr.decode |> map(x => Constant(x)))
-           | "Bound" => Contents(Expr.decode |> map(x => Bound(x)))
+           | "Bound" =>
+             Contents(
+               pair(Expr.decode, Loc.decode)
+               |> map(((e, l)) => Bound(e, l)),
+             )
            | "Assertion" =>
              Contents(
                pair(Expr.decode, Loc.decode)
@@ -357,8 +361,8 @@ module Pred = {
              )
            | "LoopInvariant" =>
              Contents(
-               pair(Expr.decode, Loc.decode)
-               |> map(((e, l)) => LoopInvariant(e, l)),
+               tuple3(Expr.decode, Expr.decode, Loc.decode)
+               |> map(((e, bnd, l)) => LoopInvariant(e, bnd, l)),
              )
            | "Guard" =>
              Contents(
@@ -376,9 +380,9 @@ module Pred = {
   let rec toExpr =
     fun
     | Constant(e) => e
-    | Bound(e) => e
+    | Bound(e, _) => e
     | Assertion(e, _) => e
-    | LoopInvariant(e, _) => e
+    | LoopInvariant(e, _, _) => e
     | Guard(e, _, _) => e
     | Conjunct(xs) => xs |> Array.map(toExpr) |> Expr.disjunct
     | Disjunct(xs) => xs |> Array.map(toExpr) |> Expr.conjunct

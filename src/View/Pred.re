@@ -48,11 +48,11 @@ let rec make = (~value: Syntax.Pred.t) => {
   };
   switch (value) {
   | Constant(expr) => <Marker> <Expr value=expr /> </Marker>
-  | Bound(expr) =>
-    <Marker sort=Bnd text="bound"> <Expr value=expr /> </Marker>
+  | Bound(expr, loc) =>
+    <Marker sort=Bnd loc text="bound"> <Expr value=expr /> </Marker>
   | Assertion(expr, loc) =>
     <Marker kind=Assertion loc text="assertion"> <Expr value=expr /> </Marker>
-  | LoopInvariant(expr, loc) =>
+  | LoopInvariant(expr, _, loc) =>
     <Marker kind=Assertion sort={Loop(NoLoc)} text="loop invariant" loc>
       <Expr value=expr />
     </Marker>
