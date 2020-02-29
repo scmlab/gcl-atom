@@ -320,29 +320,18 @@ module Expr = {
 };
 
 module Pred = {
-  type sort =
-    | If(Loc.t)
-    | Loop(Loc.t)
-    | Bnd;
   type t =
     | Constant(Expr.t)
     | Bound(Expr.t, Loc.t)
     | Assertion(Expr.t, Loc.t)
     | LoopInvariant(Expr.t, Expr.t, Loc.t)
-    | Guard(Expr.t, sort, Loc.t)
+    | GuardIf(Expr.t, Loc.t)
+    | GuardLoop(Expr.t, Loc.t)
     | Conjunct(array(t))
     | Disjunct(array(t))
     | Negate(t);
 
   open Json.Decode;
-  let decodeSort: decoder(sort) =
-    sum(
-      fun
-      | "IF" => Contents(Loc.decode |> map(l => If(l)))
-      | "LOOP" => Contents(Loc.decode |> map(l => Loop(l)))
-      | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
-    );
-
   let rec decode: decoder(t) =
     json =>
       json
@@ -364,10 +353,15 @@ module Pred = {
                tuple3(Expr.decode, Expr.decode, Loc.decode)
                |> map(((e, bnd, l)) => LoopInvariant(e, bnd, l)),
              )
-           | "Guard" =>
+           | "GuardIf" =>
              Contents(
-               tuple3(Expr.decode, decodeSort, Loc.decode)
-               |> map(((e, s, l)) => Guard(e, s, l)),
+               pair(Expr.decode, Loc.decode)
+               |> map(((e, l)) => GuardIf(e, l)),
+             )
+           | "GuardLoop" =>
+             Contents(
+               pair(Expr.decode, Loc.decode)
+               |> map(((e, l)) => GuardLoop(e, l)),
              )
            | "Conjunct" =>
              Contents(array(decode) |> map(xs => Conjunct(xs)))
@@ -383,7 +377,8 @@ module Pred = {
     | Bound(e, _) => e
     | Assertion(e, _) => e
     | LoopInvariant(e, _, _) => e
-    | Guard(e, _, _) => e
+    | GuardIf(e, _) => e
+    | GuardLoop(e, _) => e
     | Conjunct(xs) => xs |> Array.map(toExpr) |> Expr.disjunct
     | Disjunct(xs) => xs |> Array.map(toExpr) |> Expr.conjunct
     | Negate(x) => x |> toExpr |> Expr.negate;

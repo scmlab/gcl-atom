@@ -8,6 +8,11 @@ type kind =
   | Guard
   | Assertion;
 
+type sort =
+  | If
+  | Loop
+  | Bnd;
+
 module Marker = {
   [@react.component]
   let make = (~kind=?, ~sort=?, ~text=?, ~loc=Loc.NoLoc, ~children) => {
@@ -20,8 +25,8 @@ module Marker = {
     let sort =
       switch (sort) {
       | None => ""
-      | Some(If(_)) => " marker-if"
-      | Some(Loop(_)) => " marker-loop"
+      | Some(If) => " marker-if"
+      | Some(Loop) => " marker-loop"
       | Some(Bnd) => " marker-bound"
       };
     <div className={"marker" ++ sort ++ kind}>
@@ -53,11 +58,15 @@ let rec make = (~value: Syntax.Pred.t) => {
   | Assertion(expr, loc) =>
     <Marker kind=Assertion loc text="assertion"> <Expr value=expr /> </Marker>
   | LoopInvariant(expr, _, loc) =>
-    <Marker kind=Assertion sort={Loop(NoLoc)} text="loop invariant" loc>
+    <Marker kind=Assertion sort=Loop text="loop invariant" loc>
       <Expr value=expr />
     </Marker>
-  | Guard(expr, sort, loc) =>
-    <Marker kind=Guard sort loc text="guard"> <Expr value=expr /> </Marker>
+  | GuardIf(expr, loc) =>
+    <Marker kind=Guard sort=If loc text="guard"> <Expr value=expr /> </Marker>
+  | GuardLoop(expr, loc) =>
+    <Marker kind=Guard sort=Loop loc text="guard">
+      <Expr value=expr />
+    </Marker>
   | Conjunct(predicates) =>
     predicates
     |> Array.map(x => <Self value=x />)
