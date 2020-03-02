@@ -2,6 +2,7 @@ open Rebase.Fn;
 type t =
   | Load(string)
   | Refine(int, string)
+  | InsertAssertion(int)
   | Debug;
 
 module Encode = {
@@ -16,6 +17,8 @@ module Encode = {
         ("tag", string("Refine")),
         ("contents", (id, payload) |> pair(int, string)),
       ])
+    | InsertAssertion(n) =>
+      object_([("tag", string("InsertAssertion")), ("contents", int(n))])
     | Debug => object_([("tag", string("Debug"))]);
 };
 

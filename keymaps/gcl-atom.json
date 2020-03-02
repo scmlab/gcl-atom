@@ -6,6 +6,7 @@
     "cmd-s": "gcl-atom:save",
     "ctrl-s": "gcl-atom:save",
     "ctrl-c ctrl-c": "gcl-atom:refine",
+    "ctrl-c ctrl-a": "gcl-atom:insert-assertion",
     "ctrl-c ctrl-t": "gcl-atom:debug"
   }
 }

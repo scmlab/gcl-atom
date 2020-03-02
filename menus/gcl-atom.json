@@ -8,6 +8,10 @@
       {
         "label": "Refine",
         "command": "gcl-atom:refine"
+      },
+      {
+        "label": "Insert assertion",
+        "command": "gcl-atom:insert-assertion"
       }
     ]
   },
@@ -25,6 +29,10 @@
             {
               "label": "Refine",
               "command": "gcl-atom:refine"
+            },
+            {
+              "label": "Insert assertion",
+              "command": "gcl-atom:insert-assertion"
             }
           ]
         }

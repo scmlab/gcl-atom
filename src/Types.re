@@ -44,11 +44,13 @@ module Command = {
   type remote =
     | Load(string)
     | Refine(Specification.t)
+    | InsertAssertion(int)
     | Debug;
   type local =
     | Toggle
     | Save
     | Refine
+    | InsertAssertion
     | Debug;
 };
 

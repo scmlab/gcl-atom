@@ -149,6 +149,18 @@ module Command_ = {
                  ),
           ),
         ]
+      | InsertAssertion => [
+          DispatchLocal(Save),
+          WithInstance(
+            instance => {
+              let cursor =
+                Atom.TextEditor.getCursorBufferPosition(instance.editor);
+              open Base.Pos;
+              let Pos(_, line, _) = Base.Pos.fromPoint("whatever", cursor);
+              Promise.resolved([DispatchRemote(InsertAssertion(line))]);
+            },
+          ),
+        ]
       | Debug => [DispatchRemote(Debug)];
   };
 
@@ -166,6 +178,7 @@ module Command_ = {
             },
           ),
         ]
+      | InsertAssertion(n) => [SendRequest(InsertAssertion(n))]
       | Debug => [SendRequest(Debug)];
   };
 };

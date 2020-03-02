@@ -214,6 +214,7 @@ type t =
   | Error(array(Error.t))
   | OK(array(Body.ProofObligation.t), array(Specification.t))
   | Resolve(int)
+  | InsertAssertion(Syntax.Expr.t)
   | UnknownResponse(Js.Json.t);
 
 let decode: decoder(t) =
@@ -229,6 +230,8 @@ let decode: decoder(t) =
         )
         |> map(((obs, specs)) => OK(obs, specs)),
       )
+    | "Insert" =>
+      Contents(Syntax.Expr.decode |> map(i => InsertAssertion(i)))
     | "Resolve" => Contents(int |> map(i => Resolve(i)))
     | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
   );
@@ -261,6 +264,15 @@ let handle = (response): list(Types.Task.t) => {
             instance => {
               let%P _ = Spec.resolve(i, instance);
               Promise.resolved([DispatchLocal(Save)]);
+            },
+          ),
+        ]
+      | InsertAssertion(i) => [
+          WithInstance(
+            _instance => {
+              Js.log(i);
+              // let%P _ = Spec.resolve(i, instance);
+              Promise.resolved([]);
             },
           ),
         ]
