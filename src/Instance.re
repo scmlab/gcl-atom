@@ -39,11 +39,25 @@ module View = {
 };
 
 module Connection_ = {
+  let persist = (instance, conn) => instance.connection = Some(conn);
+
   // connect if not connected yet
-  let getConnection = (instance): Promise.t(result(Connection.t, Error.t)) => {
+  let establish = (instance): Promise.t(result(Connection.t, Error.t)) => {
     switch (instance.connection) {
-    | None => Connection.make()->Promise.mapError(e => Error.Connection(e))
+    | None =>
+      Connection.make()
+      ->Promise.mapError(e => Error.Connection(e))
+      ->Promise.tapOk(persist(instance))
     | Some(connection) => Promise.resolved(Ok(connection))
+    };
+  };
+
+  let destroy = instance => {
+    switch (instance.connection) {
+    | None => ()
+    | Some(connection) =>
+      connection |> Connection.disconnect |> ignore;
+      instance.connection = None;
     };
   };
 
@@ -52,7 +66,7 @@ module Connection_ = {
     let value = Request.encode(request);
     Js.log2("<<<", value);
 
-    let%Ok conn = instance->getConnection;
+    let%Ok conn = instance->establish;
     let%Ok result =
       Connection.send(value, conn)
       ->Promise.mapError(e => Error.Connection(e));
@@ -90,8 +104,7 @@ module Command_ = {
                 // destroy all decorations
                 instance.decorations |> Array.forEach(Atom.Decoration.destroy);
                 // destroy the connection
-                instance.connection
-                |> Option.forEach(Connection.disconnect >> ignore);
+                instance |> Connection_.destroy;
 
                 Promise.resolved([]);
               } else {
@@ -102,7 +115,7 @@ module Command_ = {
                 | Some(_) => Promise.resolved([])
                 | None =>
                   instance
-                  ->Connection_.getConnection
+                  ->Connection_.establish
                   ->Promise.map(
                       fun
                       | Ok(_) => [DispatchLocal(Save)]

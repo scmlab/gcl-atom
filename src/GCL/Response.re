@@ -59,13 +59,77 @@ module Error = {
         | "DigHole" => Contents(_ => DigHole)
         | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
       );
+
+    let handle = site =>
+      fun
+      | MissingBound => [
+          Types.Task.AddDecorations(Decoration.markSite(site)),
+          Display(
+            Error("Bound Missing"),
+            Plain(
+              "Bound missing at the end of the assertion before the DO construct \" , bnd : ... }\"",
+            ),
+          ),
+        ]
+      | MissingAssertion => [
+          AddDecorations(Decoration.markSite(site)),
+          Display(
+            Error("Assertion Missing"),
+            Plain("Assertion before the DO construct is missing"),
+          ),
+        ]
+      | MissingLoopInvariant => [
+          AddDecorations(Decoration.markSite(site)),
+          Display(
+            Error("Loop Invariant Missing"),
+            Plain("Loop invariant before the DO construct is missing"),
+          ),
+        ]
+      | ExcessBound => [
+          AddDecorations(Decoration.markSite(site)),
+          Display(
+            Error("Excess Bound"),
+            Plain("Unnecessary bound annotation at this assertion"),
+          ),
+        ]
+      | MissingPrecondition => [
+          Display(
+            Error("Precondition Missing"),
+            Plain(
+              "The first statement of the program should be an assertion",
+            ),
+          ),
+        ]
+      | MissingPostcondition => [
+          Display(
+            Error("Postcondition Missing"),
+            Plain("The last statement of the program should be an assertion"),
+          ),
+        ]
+      | DigHole => [
+          WithInstance(
+            instance => {
+              let%P _ = instance |> Spec.digHole(site);
+              switch (instance.history) {
+              | Some(Types.Command.Refine(_)) =>
+                Promise.resolved([
+                  Types.Task.DispatchLocal(Save),
+                  DispatchLocal(Refine),
+                ])
+              | _ => Promise.resolved([Types.Task.DispatchLocal(Save)])
+              };
+            },
+          ),
+        ];
   };
 
   type kind =
     | LexicalError
-    | SyntacticError(string)
+    | SyntacticError(array(string))
     | StructError(StructError.t)
-    | TypeError(TypeError.t);
+    | TypeError(TypeError.t)
+    | CannotReadFile(string)
+    | NotLoaded;
 
   let decodeKind: decoder(kind) =
     sum(
@@ -73,12 +137,14 @@ module Error = {
       | "LexicalError" => TagOnly(_ => LexicalError)
       | "SyntacticError" =>
         Contents(
-          pair(Loc.decode, string)
-          |> map(((_, msg)) => SyntacticError(msg)),
+          array(pair(Loc.decode, string))
+          |> map(pairs => SyntacticError(pairs |> Array.map(snd))),
         )
       | "StructError2" =>
         Contents(json => StructError(json |> StructError.decode))
       | "TypeError" => Contents(json => TypeError(json |> TypeError.decode))
+      | "CannotReadFile" => Contents(json => CannotReadFile(json |> string))
+      | "NotLoaded" => TagOnly(_ => NotLoaded)
       | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
     );
 
@@ -98,73 +164,14 @@ module Error = {
         AddDecorations(Decoration.markSite(site)),
         Display(Error("Lexical Error"), Plain(ErrorSite.toString(site))),
       ]
-    | SyntacticError(message) => [
-        AddDecorations(Decoration.markSite(site)),
-        Display(Error("Parse Error"), Plain(message)),
-      ]
-    | StructError(MissingBound) => [
+    | SyntacticError(messages) => [
         AddDecorations(Decoration.markSite(site)),
         Display(
-          Error("Bound Missing"),
-          Plain(
-            "Bound missing at the end of the assertion before the DO construct \" , bnd : ... }\"",
-          ),
+          Error("Parse Error"),
+          Plain(messages |> List.fromArray |> String.joinWith("\n")),
         ),
       ]
-    | StructError(MissingAssertion) => [
-        AddDecorations(Decoration.markSite(site)),
-        Display(
-          Error("Assertion Missing"),
-          Plain("Assertion before the DO construct is missing"),
-        ),
-      ]
-    | StructError(MissingLoopInvariant) => [
-        AddDecorations(Decoration.markSite(site)),
-        Display(
-          Error("Loop Invariant Missing"),
-          Plain("Loop invariant before the DO construct is missing"),
-        ),
-      ]
-    | StructError(ExcessBound) => [
-        AddDecorations(Decoration.markSite(site)),
-        Display(
-          Error("Excess Bound"),
-          Plain("Unnecessary bound annotation at this assertion"),
-        ),
-      ]
-    | StructError(MissingPrecondition) => [
-        Display(
-          Error("Precondition Missing"),
-          Plain("The first statement of the program should be an assertion"),
-        ),
-      ]
-    | StructError(MissingPostcondition) => [
-        Display(
-          Error("Postcondition Missing"),
-          Plain("The last statement of the program should be an assertion"),
-        ),
-      ]
-    | StructError(DigHole) => [
-        WithInstance(
-          instance => {
-            let%P _ = instance |> Spec.digHole(site);
-            switch (instance.history) {
-            | Some(Types.Command.Refine(_)) =>
-              Promise.resolved([DispatchLocal(Save), DispatchLocal(Refine)])
-            | _ => Promise.resolved([DispatchLocal(Save)])
-            };
-          },
-        ),
-      ]
-    // | StructError(Panic(message)) => [
-    //     Display(
-    //       Error("Panic"),
-    //       Plain(
-    //         "This should not have happened, please report this issue\n"
-    //         ++ message,
-    //       ),
-    //     ),
-    //   ]
+    | StructError(error) => StructError.handle(site, error)
     | TypeError(NotInScope(name)) => [
         AddDecorations(Decoration.markSite(site)),
         Display(
@@ -205,6 +212,17 @@ module Error = {
             "The type " ++ Type.toString(t) ++ " is not a function type",
           ),
         ),
+      ]
+    | CannotReadFile(path) => [
+        AddDecorations(Decoration.markSite(site)),
+        Display(
+          Error("Cannot Read File"),
+          Plain("Cannot read file of path: " ++ path),
+        ),
+      ]
+    | NotLoaded => [
+        AddDecorations(Decoration.markSite(site)),
+        Display(Error("Not Loaded"), Plain("Please load the file first")),
       ]
     };
   };
