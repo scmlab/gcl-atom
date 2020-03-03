@@ -1,5 +1,8 @@
 open Rebase;
 open Syntax;
+
+open Task__Type;
+
 open! GCL__Error;
 
 module StructError = {
@@ -7,7 +10,7 @@ module StructError = {
   let handle = site =>
     fun
     | MissingBound => [
-        Types.Task.AddDecorations(Decoration.markSite(site)),
+        AddDecorations(Decoration.markSite(site)),
         Display(
           Error("Bound Missing"),
           Plain(
@@ -54,11 +57,8 @@ module StructError = {
             let%P _ = instance |> Spec.digHole(site);
             switch (instance.history) {
             | Some(Types.Command.Refine(_)) =>
-              Promise.resolved([
-                Types.Task.DispatchLocal(Save),
-                DispatchLocal(Refine),
-              ])
-            | _ => Promise.resolved([Types.Task.DispatchLocal(Save)])
+              Promise.resolved([DispatchLocal(Save), DispatchLocal(Refine)])
+            | _ => Promise.resolved([DispatchLocal(Save)])
             };
           },
         ),
@@ -67,8 +67,6 @@ module StructError = {
 
 let handle = error => {
   let Error(site, kind) = error;
-  open Types.Task;
-  ();
   switch (kind) {
   | LexicalError => [
       AddDecorations(Decoration.markSite(site)),

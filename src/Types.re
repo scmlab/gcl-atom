@@ -67,17 +67,3 @@ module Instance = {
     mutable history: option(Command.remote),
   };
 };
-
-module Task = {
-  type t =
-    | WithInstance(Instance.t => Promise.t(list(t)))
-    | SetSpecifications(array(GCL.Response.Specification.t))
-    | AddDecorations(
-        (array(GCL.Response.Specification.t), Atom.TextEditor.t) =>
-        array(Atom.Decoration.t),
-      )
-    | DispatchRemote(Command.remote)
-    | DispatchLocal(Command.local)
-    | SendRequest(GCL.Request.t)
-    | Display(View.header, Body.t);
-};

@@ -1,6 +1,6 @@
-open Rebase;
+open! Rebase;
 open Types.Command;
-open Types.Task;
+open Task__Type;
 
 // from Editor Command to Tasks
 module Local = {
@@ -31,7 +31,7 @@ module Local = {
                     fun
                     | Ok(_) => [DispatchLocal(Save)]
                     | Error(error) => {
-                        let (header, body) = GCL.Error.toString(error);
+                        let (header, body) = Instance.Error.toString(error);
                         [Display(Error(header), Plain(body))];
                       },
                   )

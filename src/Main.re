@@ -107,6 +107,64 @@ let eventTargetEditor = (event: Webapi.Dom.Event.t): option(TextEditor.t) => {
 
 /* register keymap bindings and emit commands */
 let onTriggerCommand = () => {
+  // run the Tasks
+  let rec runTasks =
+          (instance: Types.Instance.t, tasks: list(Task__Type.t))
+          : Promise.t(unit) => {
+    open Task__Type;
+
+    let runTask = task =>
+      switch (task) {
+      | WithInstance(callback) =>
+        callback(instance)->Promise.flatMap(runTasks(instance))
+      | AddDecorations(callback) =>
+        Js.log("[ add decorations ]");
+        instance.decorations =
+          Array.concat(
+            callback(instance.specifications, instance.editor),
+            instance.decorations,
+          );
+        Promise.resolved();
+      | SetSpecifications(specs) =>
+        Js.log("[ set specifications ]");
+        instance.specifications = specs;
+        Promise.resolved();
+      | DispatchRemote(command) =>
+        Js.log2("[ dispatch remote ]", command);
+        instance.history = Some(command);
+        Task__Command.Remote.dispatch(command) |> runTasks(instance);
+      | DispatchLocal(command) =>
+        Js.log2("[ dispatch local ]", command);
+        Task__Command.Local.dispatch(command) |> runTasks(instance);
+      | SendRequest(request) =>
+        Js.log("[ send ]");
+        Instance.Connection_.sendRequest(request, instance)
+        ->Promise.flatMap(
+            fun
+            | Error(error) => {
+                let (header, body) = Instance.Error.toString(error);
+                instance |> Instance.View.displayError(header, body);
+                Promise.resolved();
+              }
+            | Ok(x) => x |> Task__Response.handle |> runTasks(instance),
+          );
+      | Display(header, body) =>
+        instance.view.setHeader(header) |> ignore;
+        instance.view.setBody(body) |> ignore;
+        Promise.resolved();
+      };
+
+    let rec runEach =
+      fun
+      | [] => Promise.resolved()
+      | [x, ...xs] => {
+          let%P () = runTask(x);
+          let%P () = runEach(xs);
+          Promise.resolved();
+        };
+    runEach(tasks);
+  };
+
   Command.Local.commandNames
   |> Array.forEach(command =>
        Commands.add(
@@ -115,8 +173,8 @@ let onTriggerCommand = () => {
          |> eventTargetEditor
          |> Option.flatMap(Instances.get)
          |> Option.forEach(instance =>
-              Instance.Command_.Local.dispatch(Command.Local.parse(command))
-              |> Instance.runTasks(instance)
+              Task__Command.Local.dispatch(Command.Local.parse(command))
+              |> runTasks(instance)
               |> ignore
             )
        )
