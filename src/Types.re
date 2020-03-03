@@ -1,3 +1,5 @@
+open GCL;
+
 module View = {
   type header =
     | AllGood
@@ -43,7 +45,7 @@ module View = {
 module Command = {
   type remote =
     | Load(string)
-    | Refine(Specification.t)
+    | Refine(GCL.Response.Specification.t)
     | InsertAssertion(int)
     | Debug;
   type local =
@@ -61,7 +63,7 @@ module Instance = {
     mutable toggle: bool,
     mutable connection: option(Connection.t),
     mutable decorations: array(Atom.Decoration.t),
-    mutable specifications: array(Specification.t),
+    mutable specifications: array(GCL.Response.Specification.t),
     mutable history: option(Command.remote),
   };
 };
@@ -69,13 +71,13 @@ module Instance = {
 module Task = {
   type t =
     | WithInstance(Instance.t => Promise.t(list(t)))
-    | SetSpecifications(array(Specification.t))
+    | SetSpecifications(array(GCL.Response.Specification.t))
     | AddDecorations(
-        (array(Specification.t), Atom.TextEditor.t) =>
+        (array(GCL.Response.Specification.t), Atom.TextEditor.t) =>
         array(Atom.Decoration.t),
       )
     | DispatchRemote(Command.remote)
     | DispatchLocal(Command.local)
-    | SendRequest(Request.t)
+    | SendRequest(GCL.Request.t)
     | Display(View.header, Body.t);
 };

@@ -46,7 +46,7 @@ module Marker = {
 };
 
 [@react.component]
-let rec make = (~value: Syntax.Pred.t) => {
+let rec make = (~value: t) => {
   module Self = {
     let make = make;
     let makeProps = makeProps;

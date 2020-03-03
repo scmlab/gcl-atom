@@ -7,7 +7,6 @@ type t =
 
 module Encode = {
   open Json.Encode;
-
   let request: encoder(t) =
     fun
     | Load(filepath) =>

@@ -24,7 +24,6 @@ module Pos = {
     fun
     | Pos(path, line, column) => Pos(path, line + y, column + x);
 
-  open! Decoder;
   open Json.Decode;
   let decode: decoder(t) =
     json =>
@@ -82,7 +81,7 @@ module Loc = {
         Pos.translateBy(endY, endX, y),
       );
 
-  open Decoder;
+  open Util.Decode;
   open Json.Decode;
   let decode: decoder(t) =
     sum(

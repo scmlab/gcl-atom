@@ -49,13 +49,13 @@ module Operator = {
   open Syntax.Op;
 
   [@react.component]
-  let make = (~value: Syntax.Op.t, ~loc: loc) =>
+  let make = (~value: t, ~loc: loc) =>
     <Link loc> {string(toString(value))} </Link>;
 };
 
 module Prec = {
   open Syntax;
-  open Syntax.VarArg;
+  open VarArg;
   // module VarArg = Syntax.VarArg;
 
   let rec handleOperator = (n, op, loc) => {

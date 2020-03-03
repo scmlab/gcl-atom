@@ -62,8 +62,8 @@ module Connection_ = {
   };
 
   let sendRequest =
-      (request, instance): Promise.t(result(Response.t, Error.t)) => {
-    let value = Request.encode(request);
+      (request, instance): Promise.t(result(GCL__Response.t, Error.t)) => {
+    let value = GCL.Request.encode(request);
     Js.log2("<<<", value);
 
     let%Ok conn = instance->establish;
@@ -74,7 +74,7 @@ module Connection_ = {
     Js.log2(">>>", result);
 
     // catching exceptions occured when decoding JSON values
-    switch (Response.decode(result)) {
+    switch (GCL__Response.decode(result)) {
     | value => Promise.resolved(Ok(value))
     | exception (Json.Decode.DecodeError(msg)) =>
       Promise.resolved(Error(Error.Decode(msg, result)))
@@ -185,7 +185,7 @@ module Command_ = {
       | Refine(spec) => [
           WithInstance(
             instance => {
-              open Specification;
+              open GCL.Response.Specification;
               let payload = Spec.getPayload(spec, instance);
               Promise.resolved([SendRequest(Refine(spec.id, payload))]);
             },

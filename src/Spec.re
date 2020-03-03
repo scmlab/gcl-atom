@@ -1,7 +1,7 @@
 open Rebase;
 open Base;
 open Types.Instance;
-open Specification;
+open GCL.Response.Specification;
 
 let fromCursorPosition = instance => {
   open Atom;
@@ -80,9 +80,30 @@ let resolve = (i, instance) => {
   Promise.resolved();
 };
 
+// NOTE: move this somewhere else
+module Site = {
+  open GCL.Error.Site;
+  let toLoc = (site, specifications) => {
+    switch (site) {
+    | Global(loc) => loc
+    | Local(loc, i) =>
+      let specs = specifications |> Array.filter(spec => spec.id == i);
+
+      specs[0]
+      |> Option.mapOr(
+           spec =>
+             spec.loc |> Loc.translate(loc) |> Loc.translateBy(1, 0, 1, 0),
+           loc,
+         );
+    };
+  };
+  let toRange = (site, specifications) =>
+    toLoc(site, specifications) |> Loc.toRange;
+};
+
 // rewrite "?" to "{!!}"
 let digHole = (site, instance) => {
-  let range = instance.specifications |> ErrorSite.toRange(site);
+  let range = instance.specifications |> Site.toRange(site);
   open Atom;
   let start = Range.start(range);
   // add indentation to the hole

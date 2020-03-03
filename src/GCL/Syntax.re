@@ -1,10 +1,9 @@
-open! Rebase;
+open Rebase;
 open Rebase.Fn;
 
-open Decoder;
-open! Util;
 open Base;
 
+// for pretty printing
 module VarArg = {
   type t('a, 'b) =
     | Expect('a => t('a, 'b))
@@ -26,22 +25,22 @@ module Lit = {
     | Num(int)
     | Bool(bool);
 
-  let decode: Json.Decode.decoder(t) =
-    json =>
-      json
-      |> Json.Decode.(
-           sum(
-             fun
-             | "Num" => Contents(int |> map(x => Num(x)))
-             | "Bol" => Contents(bool |> map(x => Bool(x)))
-             | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
-           )
-         );
-
   let toString =
     fun
     | Num(i) => string_of_int(i)
     | Bool(b) => string_of_bool(b);
+
+  open Util.Decode;
+  open Json.Decode;
+  let decode: decoder(t) =
+    json =>
+      json
+      |> sum(
+           fun
+           | "Num" => Contents(int |> map(x => Num(x)))
+           | "Bol" => Contents(bool |> map(x => Bool(x)))
+           | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
+         );
 };
 
 module Op = {
@@ -107,23 +106,23 @@ module Op = {
 module Upper = {
   type t =
     | Upper(string, loc);
-  open Json.Decode;
-  let decode: decoder(t) =
-    pair(string, Loc.decode) |> map(((x, r)) => Upper(x, r));
   let toString =
     fun
     | Upper(x, _) => x;
+  open Json.Decode;
+  let decode: decoder(t) =
+    pair(string, Loc.decode) |> map(((x, r)) => Upper(x, r));
 };
 
 module Lower = {
   type t =
     | Lower(string, loc);
-  open Json.Decode;
-  let decode: decoder(t) =
-    pair(string, Loc.decode) |> map(((x, r)) => Lower(x, r));
   let toString =
     fun
     | Lower(x, _) => x;
+  open Json.Decode;
+  let decode: decoder(t) =
+    pair(string, Loc.decode) |> map(((x, r)) => Lower(x, r));
 };
 
 module Expr = {
@@ -161,41 +160,40 @@ module Expr = {
   let disjunct = List.fromArray >> disjunct';
   let conjunct = List.fromArray >> conjunct';
 
-  let rec decode: Json.Decode.decoder(t) =
+  open Util.Decode;
+  open Json.Decode;
+  let rec decode: decoder(t) =
     json =>
       json
-      |> Json.Decode.(
-           sum(
-             fun
-             | "Var" =>
-               Contents(
-                 pair(Lower.decode, Loc.decode)
-                 |> map(((x, r)) => Var(Lower.toString(x), r)),
-               )
-             | "Const" =>
-               Contents(
-                 pair(Upper.decode, Loc.decode)
-                 |> map(((x, r)) => Const(Upper.toString(x), r)),
-               )
-             | "Lit" =>
-               Contents(
-                 pair(Lit.decode, Loc.decode) |> map(((x, r)) => Lit(x, r)),
-               )
-             | "Op" =>
-               Contents(
-                 pair(Op.decode, Loc.decode) |> map(((x, r)) => Op(x, r)),
-               )
-             | "App" =>
-               Contents(
-                 tuple3(decode, decode, Loc.decode)
-                 |> map(((x, y, r)) => App(x, y, r)),
-               )
-             | "Hole" => Contents(Loc.decode |> map(r => Hole(r)))
-             | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
-           )
+      |> sum(
+           fun
+           | "Var" =>
+             Contents(
+               pair(Lower.decode, Loc.decode)
+               |> map(((x, r)) => Var(Lower.toString(x), r)),
+             )
+           | "Const" =>
+             Contents(
+               pair(Upper.decode, Loc.decode)
+               |> map(((x, r)) => Const(Upper.toString(x), r)),
+             )
+           | "Lit" =>
+             Contents(
+               pair(Lit.decode, Loc.decode) |> map(((x, r)) => Lit(x, r)),
+             )
+           | "Op" =>
+             Contents(
+               pair(Op.decode, Loc.decode) |> map(((x, r)) => Op(x, r)),
+             )
+           | "App" =>
+             Contents(
+               tuple3(decode, decode, Loc.decode)
+               |> map(((x, y, r)) => App(x, y, r)),
+             )
+           | "Hole" => Contents(Loc.decode |> map(r => Hole(r)))
+           | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
          )
-  and decodeSubst: Json.Decode.decoder(subst) =
-    json => json |> Json.Decode.dict(decode);
+  and decodeSubst: decoder(subst) = json => json |> dict(decode);
 
   module Precedence = {
     open VarArg;
@@ -331,6 +329,7 @@ module Pred = {
     | Disjunct(array(t))
     | Negate(t);
 
+  open Util.Decode;
   open Json.Decode;
   let rec decode: decoder(t) =
     json =>
@@ -384,4 +383,55 @@ module Pred = {
     | Negate(x) => x |> toExpr |> Expr.negate;
 
   let toString = toExpr >> Expr.toString;
+};
+
+module Type = {
+  module Base = {
+    type t =
+      | Int
+      | Bool;
+
+    let toString =
+      fun
+      | Int => "Int"
+      | Bool => "Bool";
+
+    open Json.Decode;
+    let decode: decoder(t) =
+      string
+      |> map(
+           fun
+           | "TInt" => Int
+           | "TBool" => Bool
+           | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
+         );
+  };
+
+  type t =
+    | Base(Base.t)
+    | Array(t)
+    | Func(t, t)
+    | Var(int);
+
+  let rec toString =
+    fun
+    | Base(b) => Base.toString(b)
+    | Array(t) => "Array " ++ toString(t)
+    | Func(s, t) => toString(s) ++ " -> " ++ toString(t)
+    | Var(i) => "Var " ++ string_of_int(i);
+
+  open Util.Decode;
+  open Json.Decode;
+  let rec decode: decoder(t) =
+    json =>
+      json
+      |> sum(
+           fun
+           | "TBase" => Contents(Base.decode |> map(x => Base(x)))
+           | "TArray" => Contents(decode |> map(x => Array(x)))
+           | "TFun" =>
+             Contents(pair(decode, decode) |> map(((x, y)) => Func(x, y)))
+           | "TVar" => Contents(int |> map(x => Var(x)))
+           | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
+         );
 };

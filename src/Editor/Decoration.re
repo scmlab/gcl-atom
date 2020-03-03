@@ -65,8 +65,8 @@ let overlayError = (loc, editor) => {
   overlay(text, "overlay-error", true, (0, 0), loc, editor);
 };
 
-let markSpec = (spec: Specification.t, editor): array(Atom.Decoration.t) => {
-  Specification.(
+let markSpec = (spec: GCL.Response.Specification.t, editor): array(Atom.Decoration.t) => {
+  GCL.Response.Specification.(
     switch (spec.loc) {
     | NoLoc => [||]
     | Loc(start, end_) =>

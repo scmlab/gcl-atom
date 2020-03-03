@@ -3,6 +3,31 @@ open Rebase.Fn;
 
 type range = Atom.Range.t;
 
+module Decode = {
+  open Json.Decode;
+
+  type fieldType('a) =
+    | Contents(decoder('a))
+    | TagOnly(decoder('a));
+
+  let sum = decoder =>
+    field("tag", string)
+    |> andThen(tag =>
+         switch (decoder(tag)) {
+         | Contents(d) => field("contents", d)
+         | TagOnly(d) => d
+         }
+       );
+
+  let maybe: decoder('a) => decoder(option('a)) =
+    decoder =>
+      sum(
+        fun
+        | "Just" => Contents(json => Some(decoder(json)))
+        | _ => TagOnly(_ => None),
+      );
+};
+
 module React = {
   open ReasonReact;
 
