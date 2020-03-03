@@ -1,8 +1,6 @@
 open! Rebase;
 open Rebase.Fn;
 
-open! Types.Instance;
-
 module Error = {
   type t =
     | Connection(Connection.Error.t)
@@ -15,6 +13,16 @@ module Error = {
         {js|JSON Decode Error|js},
         msg ++ "\n" ++ "JSON from GCL: \n" ++ Js.Json.stringify(json),
       );
+};
+
+type t = {
+  editor: Atom.TextEditor.t,
+  view: Types.View.Interface.t,
+  mutable toggle: bool,
+  mutable connection: option(Connection.t),
+  mutable decorations: array(Atom.Decoration.t),
+  mutable specifications: array(Response.Specification.t),
+  mutable history: option(Types.Request.t),
 };
 
 let make = (editor: Atom.TextEditor.t): t => {
@@ -62,8 +70,8 @@ module Connection_ = {
   };
 
   let sendRequest =
-      (request, instance): Promise.t(result(GCL__Response.t, Error.t)) => {
-    let value = GCL.Request.encode(request);
+      (request, instance): Promise.t(result(Response.t, Error.t)) => {
+    let value = Types.Request.encode(request);
     Js.log2("<<<", value);
 
     let%Ok conn = instance->establish;
@@ -74,7 +82,7 @@ module Connection_ = {
     Js.log2(">>>", result);
 
     // catching exceptions occured when decoding JSON values
-    switch (GCL__Response.decode(result)) {
+    switch (Response.decode(result)) {
     | value => Promise.resolved(Ok(value))
     | exception (Json.Decode.DecodeError(msg)) =>
       Promise.resolved(Error(Error.Decode(msg, result)))

@@ -2,7 +2,7 @@
 open Rebase;
 open React;
 
-open GCL.Response;
+open Response;
 
 type t =
   | Nothing

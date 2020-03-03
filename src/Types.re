@@ -1,5 +1,3 @@
-open GCL;
-
 module View = {
   type header =
     | AllGood
@@ -42,28 +40,52 @@ module View = {
   };
 };
 
-module Command = {
-  type remote =
+module Request = {
+  open Rebase.Fn;
+  type t =
     | Load(string)
-    | Refine(GCL.Response.Specification.t)
+    | Refine(int, string)
     | InsertAssertion(int)
     | Debug;
-  type local =
+
+  module Encode = {
+    open Json.Encode;
+    let request: encoder(t) =
+      fun
+      | Load(filepath) =>
+        object_([("tag", string("Load")), ("contents", string(filepath))])
+      | Refine(id, payload) =>
+        object_([
+          ("tag", string("Refine")),
+          ("contents", (id, payload) |> pair(int, string)),
+        ])
+      | InsertAssertion(n) =>
+        object_([
+          ("tag", string("InsertAssertion")),
+          ("contents", int(n)),
+        ])
+      | Debug => object_([("tag", string("Debug"))]);
+  };
+
+  let encode: t => string = Encode.request >> Json.stringify;
+};
+
+module Command = {
+  type t =
     | Toggle
     | Save
     | Refine
     | InsertAssertion
     | Debug;
-};
 
-module Instance = {
-  type t = {
-    editor: Atom.TextEditor.t,
-    view: View.Interface.t,
-    mutable toggle: bool,
-    mutable connection: option(Connection.t),
-    mutable decorations: array(Atom.Decoration.t),
-    mutable specifications: array(GCL.Response.Specification.t),
-    mutable history: option(Command.remote),
-  };
+  let names = [|"toggle", "save", "refine", "insert-assertion", "debug"|];
+
+  let parse =
+    fun
+    | "toggle" => Toggle
+    | "save" => Save
+    | "refine" => Refine
+    | "insert-assertion" => InsertAssertion
+    | "debug" => Debug
+    | _ => Save;
 };

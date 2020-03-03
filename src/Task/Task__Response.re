@@ -1,10 +1,11 @@
 open Rebase;
 
-open! GCL__Response;
-open Task__Type;
+open! Response;
+open Task__Types;
 open Types.Command;
+
 // from GCL response to Task
-let handle = (response): list(Task__Type.t) => {
+let handle = (response): list(Task__Types.t) => {
   switch (response) {
   | Error(errors) =>
     errors
@@ -28,7 +29,7 @@ let handle = (response): list(Task__Type.t) => {
       WithInstance(
         instance => {
           let%P _ = Spec.resolve(i, instance);
-          Promise.resolved([DispatchLocal(Save)]);
+          Promise.resolved([DispatchCommand(Save)]);
         },
       ),
     ]

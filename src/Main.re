@@ -1,9 +1,8 @@
-open Rebase;
-// open Rebase.Fn;
+open! Rebase;
 
 let activated: ref(bool) = ref(false);
 
-let instances: Js.Dict.t(Types.Instance.t) = Js.Dict.empty();
+let instances: Js.Dict.t(Instance.t) = Js.Dict.empty();
 
 module Instances = {
   let textEditorID = textEditor =>
@@ -107,65 +106,7 @@ let eventTargetEditor = (event: Webapi.Dom.Event.t): option(TextEditor.t) => {
 
 /* register keymap bindings and emit commands */
 let onTriggerCommand = () => {
-  // run the Tasks
-  let rec runTasks =
-          (instance: Types.Instance.t, tasks: list(Task__Type.t))
-          : Promise.t(unit) => {
-    open Task__Type;
-
-    let runTask = task =>
-      switch (task) {
-      | WithInstance(callback) =>
-        callback(instance)->Promise.flatMap(runTasks(instance))
-      | AddDecorations(callback) =>
-        Js.log("[ add decorations ]");
-        instance.decorations =
-          Array.concat(
-            callback(instance.specifications, instance.editor),
-            instance.decorations,
-          );
-        Promise.resolved();
-      | SetSpecifications(specs) =>
-        Js.log("[ set specifications ]");
-        instance.specifications = specs;
-        Promise.resolved();
-      | DispatchRemote(command) =>
-        Js.log2("[ dispatch remote ]", command);
-        instance.history = Some(command);
-        Task__Command.Remote.dispatch(command) |> runTasks(instance);
-      | DispatchLocal(command) =>
-        Js.log2("[ dispatch local ]", command);
-        Task__Command.Local.dispatch(command) |> runTasks(instance);
-      | SendRequest(request) =>
-        Js.log("[ send ]");
-        Instance.Connection_.sendRequest(request, instance)
-        ->Promise.flatMap(
-            fun
-            | Error(error) => {
-                let (header, body) = Instance.Error.toString(error);
-                instance |> Instance.View.displayError(header, body);
-                Promise.resolved();
-              }
-            | Ok(x) => x |> Task__Response.handle |> runTasks(instance),
-          );
-      | Display(header, body) =>
-        instance.view.setHeader(header) |> ignore;
-        instance.view.setBody(body) |> ignore;
-        Promise.resolved();
-      };
-
-    let rec runEach =
-      fun
-      | [] => Promise.resolved()
-      | [x, ...xs] => {
-          let%P () = runTask(x);
-          let%P () = runEach(xs);
-          Promise.resolved();
-        };
-    runEach(tasks);
-  };
-
-  Command.Local.commandNames
+  Types.Command.names
   |> Array.forEach(command =>
        Commands.add(
          `CSSSelector("atom-text-editor"), "gcl-atom:" ++ command, event =>
@@ -173,8 +114,8 @@ let onTriggerCommand = () => {
          |> eventTargetEditor
          |> Option.flatMap(Instances.get)
          |> Option.forEach(instance =>
-              Task__Command.Local.dispatch(Command.Local.parse(command))
-              |> runTasks(instance)
+              Task__Command.dispatch(Types.Command.parse(command))
+              |> TaskRunner.run(instance)
               |> ignore
             )
        )

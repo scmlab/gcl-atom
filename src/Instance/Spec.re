@@ -1,7 +1,7 @@
 open Rebase;
 open Base;
-open Types.Instance;
-open GCL.Response.Specification;
+open Instance;
+open Response.Specification;
 
 let fromCursorPosition = instance => {
   open Atom;
@@ -82,7 +82,7 @@ let resolve = (i, instance) => {
 
 // NOTE: move this somewhere else
 module Site = {
-  open GCL.Error.Site;
+  open Response.Error.Site;
   let toLoc = (site, specifications) => {
     switch (site) {
     | Global(loc) => loc

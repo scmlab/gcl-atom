@@ -65,8 +65,9 @@ let overlayError = (loc, editor) => {
   overlay(text, "overlay-error", true, (0, 0), loc, editor);
 };
 
-let markSpec = (spec: GCL.Response.Specification.t, editor): array(Atom.Decoration.t) => {
-  GCL.Response.Specification.(
+let markSpec =
+    (spec: Response.Specification.t, editor): array(Atom.Decoration.t) => {
+  Response.Specification.(
     switch (spec.loc) {
     | NoLoc => [||]
     | Loc(start, end_) =>
@@ -101,7 +102,7 @@ let markSpec = (spec: GCL.Response.Specification.t, editor): array(Atom.Decorati
 };
 
 let markSite = (site, specifications, editor) => {
-  let loc = specifications |> ErrorSite.toLoc(site);
+  let loc = specifications |> Response.Error.Site.toLoc(site);
   Js.List.flatten([
     overlayError(loc, editor),
     [mark("line-number", "line-number-error", loc, editor)],

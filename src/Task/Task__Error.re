@@ -1,12 +1,11 @@
 open Rebase;
 open Syntax;
 
-open Task__Type;
-
-open! GCL__Error;
+open Task__Types;
+open! Response.Error;
 
 module StructError = {
-  open GCL__Error.StructError;
+  open Response.Error.StructError;
   let handle = site =>
     fun
     | MissingBound => [
@@ -56,9 +55,12 @@ module StructError = {
           instance => {
             let%P _ = instance |> Spec.digHole(site);
             switch (instance.history) {
-            | Some(Types.Command.Refine(_)) =>
-              Promise.resolved([DispatchLocal(Save), DispatchLocal(Refine)])
-            | _ => Promise.resolved([DispatchLocal(Save)])
+            | Some(Types.Request.Refine(_)) =>
+              Promise.resolved([
+                DispatchCommand(Save),
+                DispatchCommand(Refine),
+              ])
+            | _ => Promise.resolved([DispatchCommand(Save)])
             };
           },
         ),
@@ -72,7 +74,7 @@ let handle = error => {
       AddDecorations(Decoration.markSite(site)),
       Display(
         Error("Lexical Error"),
-        Plain(GCL.Error.Site.toString(site)),
+        Plain(Response.Error.Site.toString(site)),
       ),
     ]
   | SyntacticError(messages) => [
