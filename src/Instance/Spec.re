@@ -119,3 +119,15 @@ let digHole = (site, instance) => {
   instance.editor |> TextEditor.setCursorBufferPosition(cursorPos);
   Promise.resolved();
 };
+
+let insert = (lineNo, expr, instance) => {
+  open Atom;
+
+  let assertion = "{ " ++ Syntax.Expr.toString(expr) ++ " }\n";
+
+  // set the cursor at the line
+  let point = Point.make(lineNo - 1, 0);
+  TextEditor.setCursorScreenPosition(point, instance.editor);
+  // insert the assertion
+  TextEditor.insertText(assertion, instance.editor) |> ignore;
+};

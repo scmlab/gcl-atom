@@ -33,12 +33,11 @@ let handle = (response): list(Task__Types.t) => {
         },
       ),
     ]
-  | InsertAssertion(i) => [
+  | InsertAssertion(i, expr) => [
       WithInstance(
-        _instance => {
-          Js.log(i);
-          // let%P _ = Spec.resolve(i, instance);
-          Promise.resolved([]);
+        instance => {
+          Spec.insert(i, expr, instance);
+          Promise.resolved([DispatchCommand(Save)]);
         },
       ),
     ]

@@ -28,7 +28,8 @@ module Lit = {
   let toString =
     fun
     | Num(i) => string_of_int(i)
-    | Bool(b) => string_of_bool(b);
+    | Bool(true) => "True"
+    | Bool(false) => "False";
 
   open Util.Decode;
   open Json.Decode;
