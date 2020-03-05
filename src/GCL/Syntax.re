@@ -160,7 +160,7 @@ module Expr = {
     fun
     | [] => Lit(Bool(false), NoLoc)
     | [x] => x
-    | [x, ...xs] => disj(x, conjunct'(xs));
+    | [x, ...xs] => conj(x, conjunct'(xs));
   let disjunct = List.fromArray >> disjunct';
   let conjunct = List.fromArray >> conjunct';
 
@@ -406,8 +406,9 @@ module Pred = {
     | LoopInvariant(e, _, _) => e
     | GuardIf(e, _) => e
     | GuardLoop(e, _) => e
-    | Conjunct(xs) => xs |> Array.map(toExpr) |> Expr.disjunct
-    | Disjunct(xs) => xs |> Array.map(toExpr) |> Expr.conjunct
+    | Conjunct(xs) => xs |> Array.map(toExpr) |> Expr.conjunct
+    // xs |> Array.map(toExpr) |> Expr.conjunct
+    | Disjunct(xs) => xs |> Array.map(toExpr) |> Expr.disjunct
     | Negate(x) => x |> toExpr |> Expr.negate;
 
   let toString = toExpr >> Expr.toString;
