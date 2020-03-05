@@ -3,6 +3,8 @@ open Rebase.Fn;
 
 type range = Atom.Range.t;
 
+[@bs.val] external _stringify: Js.Json.t => string = "JSON.stringify";
+
 module Decode = {
   open Json.Decode;
 
@@ -26,6 +28,31 @@ module Decode = {
         | "Just" => Contents(json => Some(decoder(json)))
         | _ => TagOnly(_ => None),
       );
+
+  let tuple5 = (decodeA, decodeB, decodeC, decodeD, decodeE, json) =>
+    if (Js.Array.isArray(json)) {
+      let source: array(Js.Json.t) = Obj.magic(json: Js.Json.t);
+      let length = Js.Array.length(source);
+      if (length == 5) {
+        try (
+          decodeA(Js.Array.unsafe_get(source, 0)),
+          decodeB(Js.Array.unsafe_get(source, 1)),
+          decodeC(Js.Array.unsafe_get(source, 2)),
+          decodeD(Js.Array.unsafe_get(source, 3)),
+          decodeE(Js.Array.unsafe_get(source, 4)),
+        ) {
+        | DecodeError(msg) => raise(DecodeError(msg ++ "\n\tin tuple5"))
+        };
+      } else {
+        raise(
+          DecodeError(
+            {j|Expected array of length 5, got array of length $length|j},
+          ),
+        );
+      };
+    } else {
+      raise(DecodeError("Expected array, got " ++ _stringify(json)));
+    };
 };
 
 module React = {

@@ -45,6 +45,12 @@ module Space = {
   let make = () => <div> {string(" ")} </div>;
 };
 
+module Low = {
+  [@react.component]
+  let make = (~value: Syntax.Lower.t) =>
+    <div> {string(Syntax.Lower.toString(value))} </div>;
+};
+
 module Operator = {
   open Syntax.Op;
 
@@ -121,6 +127,10 @@ module Prec = {
     };
   }
   and handleExpr = n => {
+    module Self = {
+      let make = make;
+      let makeProps = makeProps;
+    };
     Syntax.Expr.(
       fun
       | Var(s, loc) => Complete(<Link loc> {string(s)} </Link>)
@@ -142,6 +152,29 @@ module Prec = {
             }
           }
         }
+      | Quant(op, vars, p, q, loc) =>
+        Complete(
+          <Link loc>
+            {string("<")}
+            <Space />
+            <Self prec=0 value=op />
+            <Space />
+            {Util.React.sepBy(
+               <Space />,
+               Array.map(value => <Low value />, vars),
+             )}
+            <Space />
+            {string(":")}
+            <Space />
+            <Self prec=0 value=p />
+            <Space />
+            {string(":")}
+            <Space />
+            <Self prec=0 value=q />
+            <Space />
+            {string(">")}
+          </Link>,
+        )
       | Hole(loc) => Complete(<Link loc> {string("[?]")} </Link>)
     );
   }

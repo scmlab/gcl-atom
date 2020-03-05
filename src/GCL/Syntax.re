@@ -133,6 +133,8 @@ module Expr = {
     | Lit(Lit.t, loc)
     | Op(Op.t, loc)
     | App(t, t, loc)
+    // (+ i : 0 <= i && i < N : f i)
+    | Quant(t, array(Lower.t), t, t, loc)
     | Hole(loc)
   and subst = Js.Dict.t(t);
 
@@ -143,6 +145,7 @@ module Expr = {
     | Lit(_, loc) => loc
     | Op(_, loc) => loc
     | App(_, _, loc) => loc
+    | Quant(_, _, _, _, loc) => loc
     | Hole(loc) => loc;
 
   let negate = x => App(Op(Op.Neg, NoLoc), x, NoLoc);
@@ -163,6 +166,7 @@ module Expr = {
 
   open Util.Decode;
   open Json.Decode;
+
   let rec decode: decoder(t) =
     json =>
       json
@@ -190,6 +194,17 @@ module Expr = {
              Contents(
                tuple3(decode, decode, Loc.decode)
                |> map(((x, y, r)) => App(x, y, r)),
+             )
+           | "Quant" =>
+             Contents(
+               Util.Decode.tuple5(
+                 decode,
+                 array(Lower.decode),
+                 decode,
+                 decode,
+                 Loc.decode,
+               )
+               |> map(((op, vars, p, q, l)) => Quant(op, vars, p, q, l)),
              )
            | "Hole" => Contents(Loc.decode |> map(r => Hole(r)))
            | tag => raise(DecodeError("Unknown constructor: " ++ tag)),
@@ -306,6 +321,18 @@ module Expr = {
             }
           }
         }
+      | Quant(op, vars, p, q, _) =>
+        Complete(
+          "< "
+          ++ toString(0, op)
+          ++ " "
+          ++ Js.String.concatMany(Array.map(Lower.toString, vars), " ")
+          ++ " : "
+          ++ toString(0, p)
+          ++ " : "
+          ++ toString(0, q)
+          ++ " >",
+        )
       | Hole(_) => Complete("[?]")
     // | Hole(_) => Complete("[" ++ string_of_int(i) ++ "]")
     and toString = (n, p) =>
