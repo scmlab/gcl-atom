@@ -24,6 +24,7 @@ type t = {
 let isConnected = connection => connection.process.isConnected();
 let disconnect = connection => connection.process.disconnect();
 
+// Wires `process` and `emitter` up
 let wire = connection => {
   // for incremental parsing
   let unfinishedMsg = ref(None);
@@ -53,18 +54,38 @@ let wire = connection => {
 
   ();
 };
+
+let getGCLPath = (): Promise.t(result(string, Error.t)) => {
+  let storedPath =
+    Atom.Config.get("gcl-atom.path") |> Option.getOr("") |> Js.String.trim;
+  if (String.isEmpty(storedPath) || storedPath == ".") {
+    Process.PathSearch.run("gcl")
+    ->Promise.mapOk(Js.String.trim)
+    ->Promise.mapError(e => Error.PathSearch(e));
+  } else {
+    Promise.resolved(Ok(storedPath));
+  };
+};
+
+let validateGCLPath = (path): Promise.t(result(string, Error.t)) =>
+  Process.Validation.run(path ++ " --help", output =>
+    if (Js.Re.test_([%re "/^GCL/"], output)) {
+      Ok(path);
+    } else {
+      Error(path);
+    }
+  )
+  ->Promise.mapError(e => Error.Validation(e));
+
 let make = (): Promise.t(result(t, Error.t)) => {
-  Process.PathSearch.run("gcl")
-  ->Promise.map(
-      fun
-      | Error(e) => Error(Error.PathSearch(e))
-      | Ok(v) => Ok(v),
-    )
+  getGCLPath()
+  ->Promise.flatMapOk(validateGCLPath)
+  ->Promise.tapOk(path => Atom.Config.set("gcl-atom.path", path) |> ignore)
   ->Promise.mapOk(path => {
       let process = Process.make(path, [||]);
       {path, process, emitter: Event.make()};
     })
-  ->Promise.tapOk(connection => wire(connection));
+  ->Promise.tapOk(wire);
 };
 
 let send = (request, connection): Promise.t(result(Js.Json.t, Error.t)) => {

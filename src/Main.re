@@ -183,3 +183,14 @@ let deactivate = _ =>
     Instances.destroyAll();
     CompositeDisposable.dispose(subscriptions);
   };
+
+// https://atom.io/docs/api/latest/Config
+let config = {
+  "path": {
+    "title": "GCL path",
+    "description": "Path to the executable of GCL, automatically inferred when possible. Overwrite to override.",
+    "type": "string",
+    "default": "",
+    "order": 1,
+  },
+};
