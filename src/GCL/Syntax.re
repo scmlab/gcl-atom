@@ -1,5 +1,4 @@
-open Rebase;
-open Rebase.Fn;
+open Belt;
 
 open Base;
 
@@ -161,8 +160,8 @@ module Expr = {
     | [] => Lit(Bool(false), NoLoc)
     | [x] => x
     | [x, ...xs] => conj(x, conjunct'(xs));
-  let disjunct = List.fromArray >> disjunct';
-  let conjunct = List.fromArray >> conjunct';
+  let disjunct = xs => xs->List.fromArray->disjunct';
+  let conjunct = xs => xs->List.fromArray->conjunct';
 
   open Util.Decode;
   open Json.Decode;
@@ -326,7 +325,7 @@ module Expr = {
           "< "
           ++ toString(0, op)
           ++ " "
-          ++ Js.String.concatMany(Array.map(Lower.toString, vars), " ")
+          ++ Js.String.concatMany(Array.map(vars, Lower.toString), " ")
           ++ " : "
           ++ toString(0, p)
           ++ " : "
@@ -406,12 +405,12 @@ module Pred = {
     | LoopInvariant(e, _, _) => e
     | GuardIf(e, _) => e
     | GuardLoop(e, _) => e
-    | Conjunct(xs) => xs |> Array.map(toExpr) |> Expr.conjunct
+    | Conjunct(xs) => xs->Array.map(toExpr)->Expr.conjunct
     // xs |> Array.map(toExpr) |> Expr.conjunct
-    | Disjunct(xs) => xs |> Array.map(toExpr) |> Expr.disjunct
-    | Negate(x) => x |> toExpr |> Expr.negate;
+    | Disjunct(xs) => xs->Array.map(toExpr)->Expr.disjunct
+    | Negate(x) => x->toExpr->Expr.negate;
 
-  let toString = toExpr >> Expr.toString;
+  let toString = xs => xs->toExpr->Expr.toString;
 };
 
 module Type = {

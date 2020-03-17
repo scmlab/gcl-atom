@@ -1,4 +1,4 @@
-open! Rebase;
+open Belt;
 
 module Process = AgdaMode.Process;
 
@@ -57,8 +57,9 @@ let wire = connection => {
 
 let getGCLPath = (): Promise.t(result(string, Error.t)) => {
   let storedPath =
-    Atom.Config.get("gcl-atom.path") |> Option.getOr("") |> Js.String.trim;
-  if (String.isEmpty(storedPath) || storedPath == ".") {
+    Atom.Config.get("gcl-atom.path")
+    ->Option.mapWithDefault("", Js.String.trim);
+  if (storedPath == "" || storedPath == ".") {
     Process.PathSearch.run("gcl")
     ->Promise.mapOk(Js.String.trim)
     ->Promise.mapError(e => Error.PathSearch(e));

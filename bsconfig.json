@@ -7,14 +7,18 @@
   "reason": {
     "react-jsx": 3
   },
-  "sources": [{
-    "dir" : "src",
-    "subdirs" : true
-  }],
-  "package-specs": [{
-    "module": "commonjs",
-    "in-source": false
-  }],
+  "sources": [
+    {
+      "dir": "src",
+      "subdirs": true
+    }
+  ],
+  "package-specs": [
+    {
+      "module": "commonjs",
+      "in-source": false
+    }
+  ],
   "suffix": ".bs.js",
   "namespace": true,
   "bs-dependencies": [
@@ -22,13 +26,16 @@
     "reason-react",
     "agda-mode",
     "@glennsl/bs-json",
-    "@glennsl/rebase",
     "bs-atom2",
     "bs-webapi",
     "bs-nd",
     "reason-promise"
   ],
-  "ppx-flags": ["bs-let/ppx"],
-  "bsc-flags": ["-bs-g"]  ,
+  "ppx-flags": [
+    "bs-let/ppx"
+  ],
+  "bsc-flags": [
+    "-bs-g"
+  ],
   "refmt": 3
 }

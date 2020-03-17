@@ -1,4 +1,3 @@
-// open Rebase;
 open React;
 open Base;
 

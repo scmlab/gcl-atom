@@ -1,4 +1,4 @@
-open Rebase;
+open Belt;
 
 open! Response;
 open Task__Types;
@@ -8,20 +8,17 @@ open Types.Command;
 let handle = (response): list(Task__Types.t) => {
   switch (response) {
   | Error(errors) =>
-    errors
-    |> Array.map(Task__Error.handle)
-    |> List.fromArray
-    |> Js.List.flatten
+    errors->Array.map(Task__Error.handle)->List.fromArray->Js.List.flatten
   | OK(obligations, specifications) => [
       SetSpecifications(specifications),
       AddDecorations(
         (specifications, editor) =>
           specifications
-          |> Array.map(Fn.flip(Decoration.markSpec, editor))
-          |> Array.map(List.fromArray)
-          |> List.fromArray
-          |> Js.List.flatten
-          |> Array.fromList,
+          ->Array.map(Decoration.markSpec(editor))
+          ->Array.map(List.fromArray)
+          ->List.fromArray
+          ->Js.List.flatten
+          ->List.toArray,
       ),
       Display(Plain("Proof Obligations"), ProofObligations(obligations)),
     ]

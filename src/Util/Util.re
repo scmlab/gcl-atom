@@ -1,5 +1,4 @@
-open! Rebase;
-open Rebase.Fn;
+open Belt;
 
 type range = Atom.Range.t;
 
@@ -34,13 +33,13 @@ module Decode = {
       let source: array(Js.Json.t) = Obj.magic(json: Js.Json.t);
       let length = Js.Array.length(source);
       if (length == 5) {
-        try (
+        try((
           decodeA(Js.Array.unsafe_get(source, 0)),
           decodeB(Js.Array.unsafe_get(source, 1)),
           decodeC(Js.Array.unsafe_get(source, 2)),
           decodeD(Js.Array.unsafe_get(source, 3)),
           decodeE(Js.Array.unsafe_get(source, 4)),
-        ) {
+        )) {
         | DecodeError(msg) => raise(DecodeError(msg ++ "\n\tin tuple5"))
         };
       } else {
@@ -58,23 +57,24 @@ module Decode = {
 module React = {
   open ReasonReact;
 
-  let manyIn = elem =>
-    ReactDOMRe.createDOMElementVariadic(elem, ~props=ReactDOMRe.domProps());
+  let manyIn = (elems, elem) =>
+    ReactDOMRe.createDOMElementVariadic(
+      elem,
+      ~props=ReactDOMRe.domProps(),
+      elems,
+    );
 
-  let manyIn2 = (elem, props) =>
-    ReactDOMRe.createDOMElementVariadic(elem, ~props);
+  let manyIn2 = (elems, elem, props) =>
+    ReactDOMRe.createDOMElementVariadic(elem, ~props, elems);
 
-  let sepBy' = (sep: reactElement, item: list(reactElement)) =>
+  let sepBy' = (item: list(reactElement), sep: reactElement) =>
     switch (item) {
     | [] => <> </>
     | [x] => x
     | [x, ...xs] =>
-      {
-        Array.fromList([x, ...List.map(i => <> sep i </>, xs)]);
-      }
-      |> manyIn("span")
+      [x, ...List.map(xs, i => <> sep i </>)]->List.toArray->manyIn("span")
     };
-  let sepBy = (sep: reactElement) => List.fromArray >> sepBy'(sep);
+  let sepBy = (sep: reactElement, xs) => xs->List.fromArray->sepBy'(sep);
 
   let enclosedBy =
       (front: reactElement, back: reactElement, item: reactElement) =>
@@ -97,33 +97,13 @@ module JsError = {
 module Result = {
   type t('a, 'e) = result('a, 'e);
   let every = (xs: array(t('a, 'e))): t(array('a), 'e) =>
-    Array.reduce(
-      (acc, x) =>
-        switch (acc, x) {
-        | (Ok(xs), Ok(v)) =>
-          xs |> Js.Array.push(v) |> ignore;
-          Ok(xs);
-        | (_, Error(e)) => Error(e)
-        | (Error(e), _) => Error(e)
-        },
-      Ok([||]),
-      xs,
+    Array.reduce(xs, Ok([||]), (acc, x) =>
+      switch (acc, x) {
+      | (Ok(xs), Ok(v)) =>
+        Js.Array.push(v, xs) |> ignore;
+        Ok(xs);
+      | (_, Error(e)) => Error(e)
+      | (Error(e), _) => Error(e)
+      }
     );
 };
-
-// module Promise = {
-//   type t('a, 'e) = result('a, 'e);
-//   let every = (xs: array(t('a, 'e))): t(array('a), 'e) =>
-//     Array.reduce(
-//       (acc, x) =>
-//         switch (acc, x) {
-//         | (Ok(xs), Ok(v)) =>
-//           xs |> Js.Array.push(v) |> ignore;
-//           Ok(xs);
-//         | (_, Error(e)) => Error(e)
-//         | (Error(e), _) => Error(e)
-//         },
-//       Ok([||]),
-//       xs,
-//     );
-// };

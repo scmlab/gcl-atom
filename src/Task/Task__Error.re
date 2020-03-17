@@ -1,4 +1,3 @@
-open Rebase;
 open Syntax;
 
 open Task__Types;
@@ -81,7 +80,7 @@ let handle = error => {
       AddDecorations(Decoration.markSite(site)),
       Display(
         Error("Parse Error"),
-        Plain(messages |> List.fromArray |> String.joinWith("\n")),
+        Plain(messages->Js.String.concatMany("\n")),
       ),
     ]
   | StructError(error) => StructError.handle(site, error)

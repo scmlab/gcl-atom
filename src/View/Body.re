@@ -1,5 +1,5 @@
 // open Type.View;
-open Rebase;
+open Belt;
 open React;
 
 open Response;
@@ -40,26 +40,23 @@ let make = (~body: t) => {
   | ProofObligations(ps) =>
     let list =
       ps
-      |> Array.map(payload => <ProofObligation payload />)
-      |> Util.React.manyIn2(
-           "ul",
-             ReactDOMRe.domProps(~className="gcl-proof-obligation-list", ())
-         );
+      ->Array.map(payload => <ProofObligation payload />)
+      ->Util.React.manyIn2(
+          "ul",
+          ReactDOMRe.domProps(~className="gcl-proof-obligation-list", ()),
+        );
     <div className="gcl-body"> list </div>;
 
   | Plain(s) =>
     let paragraphs =
       s
-      |> Js.String.split("\n")
-      |> Array.filter(x => !String.isEmpty(x))
-      |> Array.map(s => <p> {string(s)} </p>)
-      |> Util.React.manyIn2(
-           "div",
-             ReactDOMRe.domProps(
-               ~className="gcl-plain-text gcl-body-item",
-               (),
-             ),
-         );
+      ->Js.String.split("\n")
+      ->Array.keep(x => x !== "")
+      ->Array.map(s => <p> {string(s)} </p>)
+      ->Util.React.manyIn2(
+          "div",
+          ReactDOMRe.domProps(~className="gcl-plain-text gcl-body-item", ()),
+        );
     <div className="gcl-body"> paragraphs </div>;
   };
 };

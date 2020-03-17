@@ -1,4 +1,4 @@
-open! Rebase;
+open Belt;
 
 module Error = {
   type t =
@@ -72,17 +72,17 @@ let sendRequest = (request, state): Promise.t(result(Response.t, Error.t)) => {
 
 let destroy = state => {
   state.toggle = false;
-  state.view.setActivation(false) |> ignore;
-  state.editor |> View.destroy;
+  state.view.setActivation(false)->ignore;
+  state.editor->View.destroy;
 
-  state.decorations |> Array.forEach(Atom.Decoration.destroy);
+  state.decorations->Array.forEach(Atom.Decoration.destroy);
   state.specifications = [||];
   state.history = None;
 
   // connection
   state.connection
-  |> Option.forEach(conn => {
-       Connection.disconnect(conn) |> ignore;
-       state.connection = None;
-     });
+  ->Option.forEach(conn => {
+      Connection.disconnect(conn)->ignore;
+      state.connection = None;
+    });
 };

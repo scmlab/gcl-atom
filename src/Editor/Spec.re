@@ -1,51 +1,49 @@
-open Rebase;
+open Belt;
 open Base;
 open State;
 open Response.Specification;
 
 let fromCursorPosition = state => {
-  open Atom;
-
   let cursor = Atom.TextEditor.getCursorBufferPosition(state.editor);
   // find the smallest hole containing the cursor
   let smallestHole = ref(None);
   state.specifications
-  |> Array.filter(spec =>
-       Range.containsPoint(cursor, Loc.toRange(spec.loc))
-     )
-  |> Array.forEach(spec =>
-       switch (smallestHole^) {
-       | None => smallestHole := Some(spec)
-       | Some(spec') =>
-         if (Range.containsRange(
-               Loc.toRange(spec.loc),
-               Loc.toRange(spec'.loc),
-             )) {
-           smallestHole := Some(spec);
-         }
-       }
-     );
+  ->Array.keep(spec =>
+      Atom.Range.containsPoint(cursor, Loc.toRange(spec.loc))
+    )
+  ->Array.forEach(spec =>
+      switch (smallestHole^) {
+      | None => smallestHole := Some(spec)
+      | Some(spec') =>
+        if (Atom.Range.containsRange(
+              Loc.toRange(spec.loc),
+              Loc.toRange(spec'.loc),
+            )) {
+          smallestHole := Some(spec);
+        }
+      }
+    );
 
   smallestHole^;
 };
 
 let getPayloadRange = (spec, state) => {
-  open Atom;
-
-  let startingRow = Point.row(Range.start(Loc.toRange(spec.loc))) + 1;
-  let endingRow = Point.row(Range.end_(Loc.toRange(spec.loc))) - 1;
+  let startingRow =
+    Atom.Point.row(Atom.Range.start(Loc.toRange(spec.loc))) + 1;
+  let endingRow =
+    Atom.Point.row(Atom.Range.end_(Loc.toRange(spec.loc))) - 1;
 
   let start =
     state.editor
-    |> TextEditor.getBuffer
-    |> TextBuffer.rangeForRow(startingRow, true)
-    |> Range.start;
+    |> Atom.TextEditor.getBuffer
+    |> Atom.TextBuffer.rangeForRow(startingRow, true)
+    |> Atom.Range.start;
   let end_ =
     state.editor
-    |> TextEditor.getBuffer
-    |> TextBuffer.rangeForRow(endingRow, true)
-    |> Range.end_;
-  Range.make(start, end_);
+    |> Atom.TextEditor.getBuffer
+    |> Atom.TextBuffer.rangeForRow(endingRow, true)
+    |> Atom.Range.end_;
+  Atom.Range.make(start, end_);
 };
 
 let getPayload = (spec, state) => {
@@ -58,25 +56,23 @@ let getPayload = (spec, state) => {
 };
 
 let resolve = (i, state) => {
-  open Atom;
-
-  let specs = state.specifications |> Array.filter(spec => spec.id == i);
+  let specs = state.specifications->Array.keep(spec => spec.id == i);
   specs[0]
-  |> Option.forEach(spec => {
-       let payload = getPayload(spec, state);
-       Js.log2("!!!! [ payload ]", payload);
-       let start = Range.start(Loc.toRange(spec.loc));
+  ->Option.forEach(spec => {
+      let payload = getPayload(spec, state);
+      Js.log2("!!!! [ payload ]", payload);
+      let start = Atom.Range.start(Loc.toRange(spec.loc));
 
-       state.editor
-       |> TextEditor.getBuffer
-       |> TextBuffer.delete(Loc.toRange(spec.loc))
-       |> ignore;
+      state.editor
+      |> Atom.TextEditor.getBuffer
+      |> Atom.TextBuffer.delete(Loc.toRange(spec.loc))
+      |> ignore;
 
-       state.editor
-       |> TextEditor.getBuffer
-       |> TextBuffer.insert(start, Js.String.trim(payload))
-       |> ignore;
-     });
+      state.editor
+      |> Atom.TextEditor.getBuffer
+      |> Atom.TextBuffer.insert(start, Js.String.trim(payload))
+      |> ignore;
+    });
   Promise.resolved();
 };
 
@@ -87,14 +83,12 @@ module Site = {
     switch (site) {
     | Global(loc) => loc
     | Local(loc, i) =>
-      let specs = specifications |> Array.filter(spec => spec.id == i);
+      let specs = specifications->Array.keep(spec => spec.id == i);
 
       specs[0]
-      |> Option.mapOr(
-           spec =>
-             spec.loc |> Loc.translate(loc) |> Loc.translateBy(1, 0, 1, 0),
-           loc,
-         );
+      ->Option.mapWithDefault(loc, spec =>
+          spec.loc |> Loc.translate(loc) |> Loc.translateBy(1, 0, 1, 0)
+        );
     };
   };
   let toRange = (site, specifications) =>
@@ -104,19 +98,21 @@ module Site = {
 // rewrite "?" to "{!!}"
 let digHole = (site, state) => {
   let range = Site.toRange(site, state.specifications);
-  open Atom;
-  let start = Range.start(range);
+  let start = Atom.Range.start(range);
   // add indentation to the hole
-  let indent = Js.String.repeat(Point.column(start), " ");
+  let indent = Js.String.repeat(Atom.Point.column(start), " ");
   let holeText = "{!\n" ++ indent ++ "\n" ++ indent ++ "!}";
   let holeRange =
-    Range.make(start, Point.translate(start, Point.make(0, 1)));
+    Atom.Range.make(
+      start,
+      Atom.Point.translate(start, Atom.Point.make(0, 1)),
+    );
   state.editor
-  |> TextEditor.setTextInBufferRange(holeRange, holeText)
+  |> Atom.TextEditor.setTextInBufferRange(holeRange, holeText)
   |> ignore;
   // set the cursor inside the hole
-  let cursorPos = Point.translate(start, Point.make(1, 0));
-  state.editor |> TextEditor.setCursorBufferPosition(cursorPos);
+  let cursorPos = Atom.Point.translate(start, Atom.Point.make(1, 0));
+  state.editor |> Atom.TextEditor.setCursorBufferPosition(cursorPos);
   Promise.resolved();
 };
 

@@ -1,4 +1,4 @@
-open! Rebase;
+open Belt;
 open Types.Command;
 open Task__Types;
 
@@ -35,7 +35,7 @@ let dispatch =
   | Save => [
       WithState(
         state => {
-          state.decorations |> Array.forEach(Atom.Decoration.destroy);
+          state.decorations->Array.forEach(Atom.Decoration.destroy);
           state.editor
           ->Atom.TextEditor.save
           ->Promise.Js.fromBsPromise
@@ -60,13 +60,13 @@ let dispatch =
       WithState(
         state =>
           Spec.fromCursorPosition(state)
-          |> Option.mapOr(
-               spec => {
-                 let payload = Spec.getPayload(spec, state);
-                 Promise.resolved([SendRequest(Refine(spec.id, payload))]);
-               },
-               Promise.resolved([]),
-             ),
+          ->Option.mapWithDefault(
+              Promise.resolved([]),
+              spec => {
+                let payload = Spec.getPayload(spec, state);
+                Promise.resolved([SendRequest(Refine(spec.id, payload))]);
+              },
+            ),
       ),
     ]
   | InsertAssertion => [

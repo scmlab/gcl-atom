@@ -1,12 +1,12 @@
-open Rebase;
+open Belt;
 open Base;
 
 let mark = (type_, class_, loc, editor) => {
   open Atom;
   let range = Loc.toRange(loc);
-  let marker = editor |> TextEditor.markBufferRange(range);
+  let marker = TextEditor.markBufferRange(range, editor);
   let option = TextEditor.decorateMarkerOptions(~type_, ~class_, ());
-  editor |> Atom.TextEditor.decorateMarker(marker, option);
+  Atom.TextEditor.decorateMarker(marker, option, editor);
 };
 
 let markLineSpecSoft = mark("highlight", "highlight-spec-soft");
@@ -66,7 +66,7 @@ let overlayError = (loc, editor) => {
 };
 
 let markSpec =
-    (spec: Response.Specification.t, editor): array(Atom.Decoration.t) => {
+    (editor, spec: Response.Specification.t): array(Atom.Decoration.t) => {
   Response.Specification.(
     switch (spec.loc) {
     | NoLoc => [||]
@@ -77,7 +77,7 @@ let markSpec =
 
       let trim = s =>
         if (String.length(s) > 77) {
-          String.sub(~from=0, ~length=73, s) ++ " ...";
+          String.sub(s, 0, 73) ++ " ...";
         } else {
           s;
         };
@@ -96,7 +96,7 @@ let markSpec =
           markLineSpecSoft(endLoc, editor),
         ],
       ])
-      |> Array.fromList;
+      |> List.toArray;
     }
   );
 };
@@ -107,7 +107,7 @@ let markSite = (site, specifications, editor) => {
     overlayError(loc, editor),
     [mark("line-number", "line-number-error", loc, editor)],
   ])
-  |> Array.fromList;
+  |> List.toArray;
 };
 
 let markLink = mark("highlight", "highlight-link");

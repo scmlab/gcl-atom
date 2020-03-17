@@ -1,4 +1,4 @@
-open! Rebase;
+open Belt;
 
 let activated: ref(bool) = ref(false);
 
@@ -12,7 +12,7 @@ module Instances = {
   let get = textEditor => {
     Js.Dict.get(states, textEditorID(textEditor));
   };
-  let getThen = (f, textEditor) => textEditor |> get |> Option.forEach(f);
+  let getThen = (f, textEditor) => textEditor->get->Option.forEach(f);
 
   let add = textEditor => {
     switch (get(textEditor)) {
@@ -37,11 +37,11 @@ module Instances = {
   // destroy all State in `states` and empty it
   let destroyAll = () => {
     states
-    |> Js.Dict.entries
-    |> Array.forEach(((id, states)) => {
-         State.destroy(states);
-         delete_(id) |> ignore;
-       });
+    ->Js.Dict.entries
+    ->Array.forEach(((id, states)) => {
+        State.destroy(states);
+        delete_(id) |> ignore;
+      });
   };
   let contains = textEditor => {
     switch (get(textEditor)) {
@@ -57,7 +57,7 @@ module Instances = {
 // if it ends with '.gcl'
 let isGCLFile = (textEditor): bool => {
   let filepath =
-    textEditor |> Atom.TextEditor.getPath |> Option.getOr("untitled");
+    textEditor->Atom.TextEditor.getPath->Option.getWithDefault("untitled");
   Js.Re.test_([%re "/\\.gcl$/i"], filepath);
 };
 
@@ -70,7 +70,7 @@ let onEditorActivationChange = () => {
   let previous = ref(Workspace.getActiveTextEditor());
   Workspace.onDidChangeActiveTextEditor(next => {
     /* decativate the previously activated editor */
-    previous^ |> Option.forEach(Instances.getThen(State.hideView));
+    (previous^)->Option.forEach(Instances.getThen(State.hideView));
     /* activate the next editor */
     switch (next) {
     | None => ()
@@ -94,33 +94,32 @@ let eventTargetEditor = (event: Webapi.Dom.Event.t): option(TextEditor.t) => {
   // the <TextEditor>s that contain the event target
   let targetedEditors =
     Workspace.getTextEditors()
-    |> Array.filter(x =>
-         x
-         |> Views.getView
-         |> Webapi.Dom.HtmlElement.asNode
-         |> Webapi.Dom.Node.contains(targetSubElement)
-       );
+    ->Array.keep(x =>
+        x
+        |> Views.getView
+        |> Webapi.Dom.HtmlElement.asNode
+        |> Webapi.Dom.Node.contains(targetSubElement)
+      );
 
   targetedEditors[0];
 };
 
 /* register keymap bindings and emit commands */
 let onTriggerCommand = () => {
-  Types.Command.names
-  |> Array.forEach(command =>
-       Commands.add(
-         `CSSSelector("atom-text-editor"), "gcl-atom:" ++ command, event =>
-         event
-         |> eventTargetEditor
-         |> Option.flatMap(Instances.get)
-         |> Option.forEach(state =>
-              Task__Command.dispatch(Types.Command.parse(command))
-              |> TaskRunner.run(state)
-              |> ignore
-            )
-       )
-       |> CompositeDisposable.add(subscriptions)
-     );
+  Types.Command.names->Array.forEach(command =>
+    Commands.add(
+      `CSSSelector("atom-text-editor"), "gcl-atom:" ++ command, event =>
+      event
+      ->eventTargetEditor
+      ->Option.flatMap(Instances.get)
+      ->Option.forEach(state =>
+          Task__Command.dispatch(Types.Command.parse(command))
+          |> TaskRunner.run(state)
+          |> ignore
+        )
+    )
+    |> CompositeDisposable.add(subscriptions)
+  );
 };
 
 // triggered everytime when a new text editor is opened

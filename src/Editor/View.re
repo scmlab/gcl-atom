@@ -1,4 +1,4 @@
-open Rebase;
+open Belt;
 open Base;
 open Types.View;
 
@@ -29,16 +29,17 @@ module PanelContainer = {
 
     let containers =
       Atom.Workspace.getBottomPanels()
-      |> Array.map(Atom.Views.getView)
-      |> Array.flatMap(xs =>
-           xs
-           |> HtmlElement.childNodes
-           |> NodeList.toArray
-           |> Array.filterMap(HtmlElement.ofNode)
-         )
-      |> Array.filter(elem =>
-           elem |> HtmlElement.className == "gcl-panel-container"
-         );
+      ->Array.map(Atom.Views.getView)
+      ->Array.map(xs =>
+          xs
+          ->HtmlElement.childNodes
+          ->NodeList.toArray
+          ->Array.keepMap(HtmlElement.ofNode)
+        )
+      ->Array.concatMany
+      ->Array.keep(elem =>
+          HtmlElement.className(elem) == "gcl-panel-container"
+        );
 
     switch (containers[0]) {
     | None => createBottomPanelContainer()
@@ -79,7 +80,7 @@ let make = (editor: Atom.TextEditor.t) => {
   ReactDOMRe.render(component, element);
   // <Links>
   let linkDict: Js.Dict.t(Atom.Decoration.t) = Js.Dict.empty();
-  let delete_: string => unit = [%raw  "function (id) {delete linkDict[id]}"];
+  let delete_: string => unit = [%raw "function (id) {delete linkDict[id]}"];
   open Link;
   channels.link.on(
     fun
@@ -89,7 +90,7 @@ let make = (editor: Atom.TextEditor.t) => {
       }
     | MouseOut(loc) => {
         let key = Loc.toString(loc);
-        Js.Dict.get(linkDict, key) |> Option.forEach(Atom.Decoration.destroy);
+        Js.Dict.get(linkDict, key)->Option.forEach(Atom.Decoration.destroy);
         delete_(key);
       }
     | MouseClick(loc) => {
@@ -109,12 +110,12 @@ let destroy = (editor: Atom.TextEditor.t) => {
 
   // unmount the component
   let id = "gcl:" ++ string_of_int(Atom.TextEditor.id(editor));
-  document
-  |> Document.getElementById(id)
-  |> Option.forEach(element => {
-       ReactDOMRe.unmountComponentAtNode(element);
-       Element.remove(element);
-     });
+
+  Document.getElementById(id, document)
+  ->Option.forEach(element => {
+      ReactDOMRe.unmountComponentAtNode(element);
+      Element.remove(element);
+    });
 
   // remove "gcl" from the class-list of the editor
   editor

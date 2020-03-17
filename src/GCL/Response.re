@@ -1,4 +1,4 @@
-open Rebase;
+open Belt;
 open Syntax;
 
 module Origin = {
@@ -103,16 +103,12 @@ module Error = {
         switch (site) {
         | Global(loc) => loc
         | Local(loc, i) =>
-          let specs = specifications |> Array.filter(spec => spec.id == i);
+          let specs = specifications->Array.keep(spec => spec.id == i);
 
           specs[0]
-          |> Option.mapOr(
-               spec =>
-                 spec.loc
-                 |> Loc.translate(loc)
-                 |> Loc.translateBy(1, 0, 1, 0),
-               loc,
-             );
+          ->Option.mapWithDefault(loc, spec =>
+              spec.loc |> Loc.translate(loc) |> Loc.translateBy(1, 0, 1, 0)
+            );
         }
       );
     };
@@ -219,7 +215,7 @@ module Error = {
       | "SyntacticError" =>
         Contents(
           array(pair(Loc.decode, string))
-          |> map(pairs => SyntacticError(pairs |> Array.map(snd))),
+          |> map(pairs => SyntacticError(pairs->Array.map(snd))),
         )
       | "StructError2" =>
         Contents(json => StructError(json |> StructError.decode))

@@ -1,4 +1,4 @@
-open Rebase;
+open Belt;
 
 let useDidUpdateEffect = (f, inputs) => {
   let didMountRef = React.useRef(false);
@@ -51,7 +51,7 @@ let useAtomListenerWhen = (listener, shouldListen) => {
         setDestructor(_ => Some(() => Atom.Disposable.dispose(destructor)));
       } else {
         // execute the destructor
-        destructor |> Option.forEach(f => f());
+        destructor->Option.forEach(f => f());
       };
 
       // return the destructor in case that it got unmounted
@@ -70,11 +70,10 @@ let useListenWhen = (listener, shouldListen) => {
         setDestructor(_ => listener());
       } else {
         // execute the destructor
-        destructor
-        |> Option.forEach(f => {
-             f();
-             setDestructor(_ => None);
-           });
+        destructor->Option.forEach(f => {
+          f();
+          setDestructor(_ => None);
+        });
       };
       None;
     },

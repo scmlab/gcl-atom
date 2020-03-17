@@ -41,7 +41,6 @@ module View = {
 };
 
 module Request = {
-  open Rebase.Fn;
   type t =
     | Load(string)
     | Refine(int, string)
@@ -67,7 +66,7 @@ module Request = {
       | Debug => object_([("tag", string("Debug"))]);
   };
 
-  let encode: t => string = Encode.request >> Json.stringify;
+  let encode: t => string = x => x->Encode.request->Json.stringify;
 };
 
 module Command = {
