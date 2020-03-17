@@ -26,17 +26,17 @@ let handle = (response): list(Task__Types.t) => {
       Display(Plain("Proof Obligations"), ProofObligations(obligations)),
     ]
   | Resolve(i) => [
-      WithInstance(
-        instance => {
-          let%P _ = Spec.resolve(i, instance);
+      WithState(
+        state => {
+          let%P _ = Spec.resolve(i, state);
           Promise.resolved([DispatchCommand(Save)]);
         },
       ),
     ]
   | InsertAssertion(i, expr) => [
-      WithInstance(
-        instance => {
-          Spec.insert(i, expr, instance);
+      WithState(
+        state => {
+          Spec.insert(i, expr, state);
           Promise.resolved([DispatchCommand(Save)]);
         },
       ),

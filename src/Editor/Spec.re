@@ -1,15 +1,15 @@
 open Rebase;
 open Base;
-open Instance;
+open State;
 open Response.Specification;
 
-let fromCursorPosition = instance => {
+let fromCursorPosition = state => {
   open Atom;
 
-  let cursor = instance.editor |> Atom.TextEditor.getCursorBufferPosition;
+  let cursor = Atom.TextEditor.getCursorBufferPosition(state.editor);
   // find the smallest hole containing the cursor
   let smallestHole = ref(None);
-  instance.specifications
+  state.specifications
   |> Array.filter(spec =>
        Range.containsPoint(cursor, Loc.toRange(spec.loc))
      )
@@ -29,50 +29,50 @@ let fromCursorPosition = instance => {
   smallestHole^;
 };
 
-let getPayloadRange = (spec, instance) => {
+let getPayloadRange = (spec, state) => {
   open Atom;
 
   let startingRow = Point.row(Range.start(Loc.toRange(spec.loc))) + 1;
   let endingRow = Point.row(Range.end_(Loc.toRange(spec.loc))) - 1;
 
   let start =
-    instance.editor
+    state.editor
     |> TextEditor.getBuffer
     |> TextBuffer.rangeForRow(startingRow, true)
     |> Range.start;
   let end_ =
-    instance.editor
+    state.editor
     |> TextEditor.getBuffer
     |> TextBuffer.rangeForRow(endingRow, true)
     |> Range.end_;
   Range.make(start, end_);
 };
 
-let getPayload = (spec, instance) => {
+let getPayload = (spec, state) => {
   open Atom;
   // return the text in the targeted hole
-  let innerRange = getPayloadRange(spec, instance);
-  instance.editor
+  let innerRange = getPayloadRange(spec, state);
+  state.editor
   |> TextEditor.getBuffer
   |> TextBuffer.getTextInRange(innerRange);
 };
 
-let resolve = (i, instance) => {
+let resolve = (i, state) => {
   open Atom;
 
-  let specs = instance.specifications |> Array.filter(spec => spec.id == i);
+  let specs = state.specifications |> Array.filter(spec => spec.id == i);
   specs[0]
   |> Option.forEach(spec => {
-       let payload = getPayload(spec, instance);
+       let payload = getPayload(spec, state);
        Js.log2("!!!! [ payload ]", payload);
        let start = Range.start(Loc.toRange(spec.loc));
 
-       instance.editor
+       state.editor
        |> TextEditor.getBuffer
        |> TextBuffer.delete(Loc.toRange(spec.loc))
        |> ignore;
 
-       instance.editor
+       state.editor
        |> TextEditor.getBuffer
        |> TextBuffer.insert(start, Js.String.trim(payload))
        |> ignore;
@@ -102,8 +102,8 @@ module Site = {
 };
 
 // rewrite "?" to "{!!}"
-let digHole = (site, instance) => {
-  let range = instance.specifications |> Site.toRange(site);
+let digHole = (site, state) => {
+  let range = Site.toRange(site, state.specifications);
   open Atom;
   let start = Range.start(range);
   // add indentation to the hole
@@ -111,23 +111,23 @@ let digHole = (site, instance) => {
   let holeText = "{!\n" ++ indent ++ "\n" ++ indent ++ "!}";
   let holeRange =
     Range.make(start, Point.translate(start, Point.make(0, 1)));
-  instance.editor
+  state.editor
   |> TextEditor.setTextInBufferRange(holeRange, holeText)
   |> ignore;
   // set the cursor inside the hole
   let cursorPos = Point.translate(start, Point.make(1, 0));
-  instance.editor |> TextEditor.setCursorBufferPosition(cursorPos);
+  state.editor |> TextEditor.setCursorBufferPosition(cursorPos);
   Promise.resolved();
 };
 
-let insert = (lineNo, expr, instance) => {
+let insert = (lineNo, expr, state) => {
   open Atom;
 
   let assertion = "{ " ++ Syntax.Expr.toString(expr) ++ " }\n";
 
   // set the cursor at the line
   let point = Point.make(lineNo - 1, 0);
-  TextEditor.setCursorScreenPosition(point, instance.editor);
+  TextEditor.setCursorScreenPosition(point, state.editor);
   // insert the assertion
-  TextEditor.insertText(assertion, instance.editor) |> ignore;
+  TextEditor.insertText(assertion, state.editor) |> ignore;
 };

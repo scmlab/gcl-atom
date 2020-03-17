@@ -6,31 +6,25 @@ open Task__Types;
 let dispatch =
   fun
   | Toggle => [
-      WithInstance(
-        instance =>
-          if (instance.Instance.toggle) {
-            instance.toggle = false;
-            instance.view.setActivation(false) |> ignore;
-            // destroy all decorations
-            instance.decorations |> Array.forEach(Atom.Decoration.destroy);
-            // destroy the connection
-            instance |> Instance.Connection_.destroy;
-
+      WithState(
+        state =>
+          if (state.State.toggle) {
+            State.destroy(state);
             Promise.resolved([]);
           } else {
-            instance.toggle = true;
-            instance.view.setActivation(true) |> ignore;
+            state.toggle = true;
+            state.view.setActivation(true) |> ignore;
 
-            switch (instance.connection) {
+            switch (state.connection) {
             | Some(_) => Promise.resolved([])
             | None =>
-              instance
-              ->Instance.Connection_.establish
+              state
+              ->State.establishConnection
               ->Promise.map(
                   fun
                   | Ok(_) => [DispatchCommand(Save)]
                   | Error(error) => {
-                      let (header, body) = Instance.Error.toString(error);
+                      let (header, body) = State.Error.toString(error);
                       [Display(Error(header), Plain(body))];
                     },
                 )
@@ -39,15 +33,15 @@ let dispatch =
       ),
     ]
   | Save => [
-      WithInstance(
-        instance => {
-          instance.decorations |> Array.forEach(Atom.Decoration.destroy);
-          instance.editor
+      WithState(
+        state => {
+          state.decorations |> Array.forEach(Atom.Decoration.destroy);
+          state.editor
           ->Atom.TextEditor.save
           ->Promise.Js.fromBsPromise
           ->Promise.Js.catch(_ => Promise.resolved())
           ->Promise.map(() => {
-              let filepath = Atom.TextEditor.getPath(instance.editor);
+              let filepath = Atom.TextEditor.getPath(state.editor);
               switch (filepath) {
               | Some(path) => [SendRequest(Load(path))]
               | None => [
@@ -63,12 +57,12 @@ let dispatch =
     ]
   | Refine => [
       DispatchCommand(Save),
-      WithInstance(
-        instance =>
-          Spec.fromCursorPosition(instance)
+      WithState(
+        state =>
+          Spec.fromCursorPosition(state)
           |> Option.mapOr(
                spec => {
-                 let payload = Spec.getPayload(spec, instance);
+                 let payload = Spec.getPayload(spec, state);
                  Promise.resolved([SendRequest(Refine(spec.id, payload))]);
                },
                Promise.resolved([]),
@@ -77,10 +71,9 @@ let dispatch =
     ]
   | InsertAssertion => [
       DispatchCommand(Save),
-      WithInstance(
-        instance => {
-          let cursor =
-            Atom.TextEditor.getCursorBufferPosition(instance.editor);
+      WithState(
+        state => {
+          let cursor = Atom.TextEditor.getCursorBufferPosition(state.editor);
           open Base.Pos;
           let Pos(_, line, _) = Base.Pos.fromPoint("whatever", cursor);
           Promise.resolved([SendRequest(InsertAssertion(line))]);

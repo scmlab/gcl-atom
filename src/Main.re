@@ -2,7 +2,7 @@ open! Rebase;
 
 let activated: ref(bool) = ref(false);
 
-let instances: Js.Dict.t(Instance.t) = Js.Dict.empty();
+let states: Js.Dict.t(State.t) = Js.Dict.empty();
 
 module Instances = {
   let textEditorID = textEditor =>
@@ -10,47 +10,47 @@ module Instances = {
   // let textEditorID = Atom.TextEditor.id >> string_of_int;
 
   let get = textEditor => {
-    Js.Dict.get(instances, textEditorID(textEditor));
+    Js.Dict.get(states, textEditorID(textEditor));
   };
   let getThen = (f, textEditor) => textEditor |> get |> Option.forEach(f);
 
   let add = textEditor => {
     switch (get(textEditor)) {
-    | Some(_instance) => ()
+    | Some(_) => ()
     | None =>
-      Instance.make(textEditor)
-      |> Js.Dict.set(instances, textEditorID(textEditor))
+      State.make(textEditor)
+      |> Js.Dict.set(states, textEditorID(textEditor))
     };
   };
 
-  let delete_: string => unit = [%raw id => "{delete instances[id]}"];
-  // destroy a certain Instance and remove it from `instances`
+  let delete_: string => unit = [%raw id => "{delete states[id]}"];
+  // destroy a certain Instance and remove it from `states`
   let remove = textEditor => {
     let id = textEditorID(textEditor);
-    switch (Js.Dict.get(instances, id)) {
-    | Some(instance) =>
-      Instance.destroy(instance);
+    switch (Js.Dict.get(states, id)) {
+    | Some(state) =>
+      State.destroy(state);
       delete_(id) |> ignore;
     | None => ()
     };
   };
-  // destroy all Instance in `instances` and empty it
+  // destroy all State in `states` and empty it
   let destroyAll = () => {
-    instances
+    states
     |> Js.Dict.entries
-    |> Array.forEach(((id, instance)) => {
-         Instance.destroy(instance);
+    |> Array.forEach(((id, states)) => {
+         State.destroy(states);
          delete_(id) |> ignore;
        });
   };
   let contains = textEditor => {
     switch (get(textEditor)) {
-    | Some(_instance) => true
+    | Some(_) => true
     | None => false
     };
   };
   let size = () => {
-    instances |> Js.Dict.keys |> Array.length;
+    states |> Js.Dict.keys |> Array.length;
   };
 };
 
@@ -70,12 +70,12 @@ let onEditorActivationChange = () => {
   let previous = ref(Workspace.getActiveTextEditor());
   Workspace.onDidChangeActiveTextEditor(next => {
     /* decativate the previously activated editor */
-    previous^ |> Option.forEach(Instances.getThen(Instance.View.hide));
+    previous^ |> Option.forEach(Instances.getThen(State.hideView));
     /* activate the next editor */
     switch (next) {
     | None => ()
     | Some(nextEditor) =>
-      nextEditor |> Instances.getThen(Instance.View.show);
+      nextEditor |> Instances.getThen(State.showView);
       previous := Some(nextEditor);
     };
   })
@@ -113,9 +113,9 @@ let onTriggerCommand = () => {
          event
          |> eventTargetEditor
          |> Option.flatMap(Instances.get)
-         |> Option.forEach(instance =>
+         |> Option.forEach(state =>
               Task__Command.dispatch(Types.Command.parse(command))
-              |> TaskRunner.run(instance)
+              |> TaskRunner.run(state)
               |> ignore
             )
        )

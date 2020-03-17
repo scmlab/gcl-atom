@@ -51,10 +51,10 @@ module StructError = {
         ),
       ]
     | DigHole => [
-        WithInstance(
-          instance => {
-            let%P _ = instance |> Spec.digHole(site);
-            switch (instance.history) {
+        WithState(
+          state => {
+            let%P _ = state |> Spec.digHole(site);
+            switch (state.history) {
             | Some(Types.Request.Refine(_)) =>
               Promise.resolved([
                 DispatchCommand(Save),

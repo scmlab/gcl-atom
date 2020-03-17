@@ -1,5 +1,5 @@
 type t =
-  | WithInstance(Instance.t => Promise.t(list(t)))
+  | WithState(State.t => Promise.t(list(t)))
   | SetSpecifications(array(Response.Specification.t))
   | AddDecorations(
       (array(Response.Specification.t), Atom.TextEditor.t) =>
