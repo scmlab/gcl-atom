@@ -1,6 +1,6 @@
 module View = {
   type header =
-    | AllGood
+    | Loading
     | Plain(string)
     | Error(string);
 

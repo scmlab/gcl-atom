@@ -3,7 +3,7 @@ open! Types.View;
 [@react.component]
 let make = (~channels: Channels.t) => {
   open React;
-  let (header, setHeader) = Hook.useState(AllGood);
+  let (header, setHeader) = Hook.useState(Loading);
   let (body, setBody) = Hook.useState(Body.Nothing);
   let (activated, setActivation) = Hook.useState(false);
 
@@ -19,9 +19,9 @@ let make = (~channels: Channels.t) => {
 
   let headerElem =
     switch (header) {
-    | AllGood =>
+    | Loading =>
       <h2 className="gcl-header">
-        <div className="text-success"> {string("All Good")} </div>
+        <div className="text-plain"> {string("Loading ...")} </div>
       </h2>
     | Plain(s) => <h2 className="gcl-header"> <div> {string(s)} </div> </h2>
     | Error(s) =>

@@ -41,10 +41,9 @@ let make = (~body: t) => {
     let list =
       ps
       |> Array.map(payload => <ProofObligation payload />)
-      |> Util.React.manyIn(
+      |> Util.React.manyIn2(
            "ul",
-           ~props=
-             ReactDOMRe.domProps(~className="gcl-proof-obligation-list", ()),
+             ReactDOMRe.domProps(~className="gcl-proof-obligation-list", ())
          );
     <div className="gcl-body"> list </div>;
 
@@ -54,9 +53,8 @@ let make = (~body: t) => {
       |> Js.String.split("\n")
       |> Array.filter(x => !String.isEmpty(x))
       |> Array.map(s => <p> {string(s)} </p>)
-      |> Util.React.manyIn(
+      |> Util.React.manyIn2(
            "div",
-           ~props=
              ReactDOMRe.domProps(
                ~className="gcl-plain-text gcl-body-item",
                (),

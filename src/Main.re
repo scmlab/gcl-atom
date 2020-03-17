@@ -23,7 +23,7 @@ module Instances = {
     };
   };
 
-  let delete_: string => unit = [%raw id => "{delete states[id]}"];
+  let delete_: string => unit = [%raw "function (id) {delete states[id]}"];
   // destroy a certain Instance and remove it from `states`
   let remove = textEditor => {
     let id = textEditorID(textEditor);

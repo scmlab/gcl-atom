@@ -58,10 +58,11 @@ module Decode = {
 module React = {
   open ReasonReact;
 
-  let manyIn = (elem, ~props=ReactDOMRe.domProps()) =>
-    ReactDOMRe.createDOMElementVariadic(elem, ~props);
+  let manyIn = elem =>
+    ReactDOMRe.createDOMElementVariadic(elem, ~props=ReactDOMRe.domProps());
 
-  let manyInFragment = ReactDOMRe.createElement(ReasonReact.fragment);
+  let manyIn2 = (elem, props) =>
+    ReactDOMRe.createDOMElementVariadic(elem, ~props);
 
   let sepBy' = (sep: reactElement, item: list(reactElement)) =>
     switch (item) {

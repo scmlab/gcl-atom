@@ -47,10 +47,6 @@ module PanelContainer = {
   };
 };
 
-// type body =
-//   | Plain(string)
-//   | Error(string);
-
 let make = (editor: Atom.TextEditor.t) => {
   open Webapi.Dom;
   let container = PanelContainer.make();
@@ -83,7 +79,7 @@ let make = (editor: Atom.TextEditor.t) => {
   ReactDOMRe.render(component, element);
   // <Links>
   let linkDict: Js.Dict.t(Atom.Decoration.t) = Js.Dict.empty();
-  let delete_: string => unit = [%raw id => "{delete linkDict[id]}"];
+  let delete_: string => unit = [%raw  "function (id) {delete linkDict[id]}"];
   open Link;
   channels.link.on(
     fun
