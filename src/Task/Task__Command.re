@@ -8,11 +8,11 @@ let dispatch =
   | Toggle => [
       WithState(
         state =>
-          if (state.State.toggle) {
+          if (state.State.loaded) {
             State.destroy(state);
             Promise.resolved([]);
           } else {
-            state.toggle = true;
+            state.loaded = true;
             state.view.setActivation(true) |> ignore;
 
             switch (state.connection) {
