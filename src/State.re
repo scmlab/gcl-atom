@@ -88,10 +88,9 @@ let sendRequest = (request, state): Promise.t(result(Response.t, Error.t)) => {
   };
 };
 
-let destroy = state => {
+let cleanup = state => {
+  hideView(state);
   state.loaded = false;
-  state.view.setActivation(false)->ignore;
-  state.editor->View.destroy;
 
   state.decorations->Array.forEach(Atom.Decoration.destroy);
   state.specifications = [||];
@@ -103,4 +102,9 @@ let destroy = state => {
       Connection.disconnect(conn)->ignore;
       state.connection = None;
     });
+};
+
+let destroy = state => {
+  cleanup(state);
+  View.destroy(state.editor);
 };

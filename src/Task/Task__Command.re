@@ -9,7 +9,7 @@ let dispatch =
       WithState(
         state =>
           if (state.State.loaded) {
-            State.destroy(state);
+            State.cleanup(state);
             Promise.resolved([]);
           } else {
             state.loaded = true;
