@@ -1,11 +1,12 @@
 open! Types.View;
 
 [@react.component]
-let make = (~channels: Channels.t) => {
+let make = (~channels: Channels.t, ~events: Events.t) => {
   open React;
   let (header, setHeader) = Hook.useState(Loading);
   let (body, setBody) = Hook.useState(Body.Nothing);
   let (activated, setActivation) = Hook.useState(false);
+  let (mode, setMode) = Hook.useState(WP1);
 
   Hook.useChannel(
     x => x |> setHeader |> Promise.resolved,
@@ -17,18 +18,42 @@ let make = (~channels: Channels.t) => {
     channels.setActivation,
   );
 
-  let headerElem =
-    switch (header) {
-    | Loading =>
-      <h2 className="gcl-header">
-        <div className="text-plain"> {string("Loading ...")} </div>
-      </h2>
-    | Plain(s) => <h2 className="gcl-header"> <div> {string(s)} </div> </h2>
-    | Error(s) =>
-      <h2 className="gcl-header">
-        <div className="text-error"> {string(s)} </div>
-      </h2>
-    };
+  let onChange = _ => {
+    let newMode =
+      switch (mode) {
+      | WP1 => WP2
+      | WP2 => WP1
+      };
+    events.onSetMode.emit(newMode);
+    setMode(newMode);
+  };
+
+  let headerElem = {
+    <h2 className="gcl-header">
+      {switch (header) {
+       | Loading =>
+         <div className="text-plain"> {string("Loading ...")} </div>
+       | Plain(s) => <div> {string(s)} </div>
+       | Error(s) => <div className="text-error"> {string(s)} </div>
+       }}
+      <div className="gcl-mode">
+        <label className="input-label">
+          <input
+            className="input-toggle"
+            type_="checkbox"
+            checked={
+              switch (mode) {
+              | WP1 => false
+              | WP2 => true
+              }
+            }
+            onChange
+          />
+          {string("WP2")}
+        </label>
+      </div>
+    </h2>;
+  };
 
   <Link.Provider value={channels.link}>
     <section className={activated ? "" : "hidden"}>

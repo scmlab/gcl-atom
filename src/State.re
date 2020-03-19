@@ -18,6 +18,7 @@ type t = {
   editor: Atom.TextEditor.t,
   view: Types.View.Interface.t,
   mutable loaded: bool,
+  mutable mode: Types.View.mode,
   mutable connection: option(Connection.t),
   mutable decorations: array(Atom.Decoration.t),
   mutable specifications: array(Response.Specification.t),
@@ -25,13 +26,22 @@ type t = {
 };
 
 let make = (editor: Atom.TextEditor.t): t => {
-  editor,
-  view: View.make(editor),
-  loaded: false,
-  connection: None,
-  decorations: [||],
-  specifications: [||],
-  history: None,
+  let view = View.make(editor);
+  let state = {
+    editor,
+    view,
+    loaded: false,
+    mode: WP1,
+    connection: None,
+    decorations: [||],
+    specifications: [||],
+    history: None,
+  };
+
+  // NOTE: dispose this!
+  let _ = view.onSetMode.on(mode => {state.mode = mode});
+
+  state;
 };
 
 let showView = state =>

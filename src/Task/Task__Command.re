@@ -43,7 +43,11 @@ let dispatch =
           ->Promise.map(() => {
               let filepath = Atom.TextEditor.getPath(state.editor);
               switch (filepath) {
-              | Some(path) => [SendRequest(Load(path))]
+              | Some(path) =>
+                switch (state.mode) {
+                | WP1 => [SendRequest(Load(path))]
+                | WP2 => [SendRequest(Load2(path))]
+                }
               | None => [
                   Display(
                     Error("Cannot read filepath"),
