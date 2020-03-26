@@ -18,13 +18,13 @@
   "suffix": ".bs.js",
   "namespace": true,
   "bs-dependencies": [
-    "bs-mocha",
-    "reason-react",
     "agda-mode",
-    "@glennsl/bs-json",
     "bs-atom2",
     "bs-webapi",
     "bs-nd",
+    "guacamole",
+    "@glennsl/bs-json",
+    "reason-react",
     "reason-promise"
   ],
   "ppx-flags": [
