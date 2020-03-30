@@ -70,11 +70,12 @@ let make = (editor: Atom.TextEditor.t) => {
 
   // channels for communicating with the view
   let channels = Channels.make();
+  let events = Events.make();
   // render
   let component =
     React.createElementVariadic(
       Panel.make,
-      Panel.makeProps(~channels, ()),
+      Panel.makeProps(~channels, ~events, ()),
       [||],
     );
   ReactDOMRe.render(component, element);
@@ -102,7 +103,7 @@ let make = (editor: Atom.TextEditor.t) => {
   |> ignore;
 
   // expose the interface
-  Interface.make(channels);
+  Interface.make(channels, events);
 };
 
 let destroy = (editor: Atom.TextEditor.t) => {

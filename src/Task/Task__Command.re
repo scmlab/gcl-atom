@@ -8,11 +8,11 @@ let dispatch =
   | Toggle => [
       WithState(
         state =>
-          if (state.State.toggle) {
-            State.destroy(state);
+          if (state.State.loaded) {
+            State.cleanup(state);
             Promise.resolved([]);
           } else {
-            state.toggle = true;
+            state.loaded = true;
             state.view.setActivation(true) |> ignore;
 
             switch (state.connection) {
@@ -43,7 +43,11 @@ let dispatch =
           ->Promise.map(() => {
               let filepath = Atom.TextEditor.getPath(state.editor);
               switch (filepath) {
-              | Some(path) => [SendRequest(Load(path))]
+              | Some(path) =>
+                switch (state.mode) {
+                | WP1 => [SendRequest(Load(path))]
+                | WP2 => [SendRequest(Load2(path))]
+                }
               | None => [
                   Display(
                     Error("Cannot read filepath"),

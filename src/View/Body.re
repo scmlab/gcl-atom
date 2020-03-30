@@ -40,23 +40,25 @@ let make = (~body: t) => {
   | ProofObligations(ps) =>
     let list =
       ps
-      ->Array.map(payload => <ProofObligation payload />)
-      ->Util.React.manyIn2(
-          "ul",
-          ReactDOMRe.domProps(~className="gcl-proof-obligation-list", ()),
-        );
-    <div className="gcl-body"> list </div>;
+      ->Array.mapWithIndex((i, payload) =>
+          <ProofObligation payload key={string_of_int(i)} />
+        )
+      ->React.array;
+    <div className="gcl-body">
+      <ul className="gcl-proof-obligation-list"> list </ul>
+    </div>;
 
   | Plain(s) =>
     let paragraphs =
       s
       ->Js.String.split("\n")
       ->Array.keep(x => x !== "")
-      ->Array.map(s => <p> {string(s)} </p>)
-      ->Util.React.manyIn2(
-          "div",
-          ReactDOMRe.domProps(~className="gcl-plain-text gcl-body-item", ()),
-        );
-    <div className="gcl-body"> paragraphs </div>;
+      ->Array.mapWithIndex((i, s) =>
+          <p key={string_of_int(i)}> {string(s)} </p>
+        )
+      ->React.array;
+    <div className="gcl-body">
+      <div className="gcl-plain-text gcl-body-item"> paragraphs </div>
+    </div>;
   };
 };

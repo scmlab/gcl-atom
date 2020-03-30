@@ -17,7 +17,8 @@ module Error = {
 type t = {
   editor: Atom.TextEditor.t,
   view: Types.View.Interface.t,
-  mutable toggle: bool,
+  mutable loaded: bool,
+  mutable mode: Types.View.mode,
   mutable connection: option(Connection.t),
   mutable decorations: array(Atom.Decoration.t),
   mutable specifications: array(Response.Specification.t),
@@ -25,17 +26,34 @@ type t = {
 };
 
 let make = (editor: Atom.TextEditor.t): t => {
-  editor,
-  view: View.make(editor),
-  toggle: false,
-  connection: None,
-  decorations: [||],
-  specifications: [||],
-  history: None,
+  let view = View.make(editor);
+  let state = {
+    editor,
+    view,
+    loaded: false,
+    mode: WP1,
+    connection: None,
+    decorations: [||],
+    specifications: [||],
+    history: None,
+  };
+
+  // NOTE: dispose this!
+  let _ = view.onSetMode.on(mode => {state.mode = mode});
+
+  state;
 };
 
-let showView = state => state.view.setActivation(true) |> ignore;
-let hideView = state => state.view.setActivation(true) |> ignore;
+let showView = state =>
+  if (state.loaded) {
+    state.view.setActivation(true) |> ignore;
+  };
+
+let hideView = state =>
+  if (state.loaded) {
+    state.view.setActivation(false) |> ignore;
+  };
+
 let displayError = (header, body, state) => {
   state.view.setHeader(Error(header)) |> ignore;
   state.view.setBody(Plain(body)) |> ignore;
@@ -70,10 +88,9 @@ let sendRequest = (request, state): Promise.t(result(Response.t, Error.t)) => {
   };
 };
 
-let destroy = state => {
-  state.toggle = false;
-  state.view.setActivation(false)->ignore;
-  state.editor->View.destroy;
+let cleanup = state => {
+  hideView(state);
+  state.loaded = false;
 
   state.decorations->Array.forEach(Atom.Decoration.destroy);
   state.specifications = [||];
@@ -85,4 +102,9 @@ let destroy = state => {
       Connection.disconnect(conn)->ignore;
       state.connection = None;
     });
+};
+
+let destroy = state => {
+  cleanup(state);
+  View.destroy(state.editor);
 };

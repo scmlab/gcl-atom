@@ -1,4 +1,8 @@
 module View = {
+  type mode =
+    | WP1
+    | WP2;
+
   type header =
     | Loading
     | Plain(string)
@@ -12,6 +16,7 @@ module View = {
       setActivation: Channel.t(bool, unit),
       setHeader: Channel.t(header, unit),
       setBody: Channel.t(Body.t, unit),
+      onSetMode: Event.t(mode),
       link: Event.t(Link.event),
     };
 
@@ -20,7 +25,15 @@ module View = {
       setActivation: Channel.make(),
       setHeader: Channel.make(),
       setBody: Channel.make(),
+      onSetMode: Event.make(),
       link: Event.make(),
+    };
+  };
+  module Events = {
+    type t = {onSetMode: Event.t(mode)};
+
+    let make = () => {
+      {onSetMode: Event.make()};
     };
   };
 
@@ -30,12 +43,14 @@ module View = {
       setActivation: bool => Promise.t(unit),
       setHeader: header => Promise.t(unit),
       setBody: Body.t => Promise.t(unit),
+      onSetMode: Event.t(mode),
     };
 
-    let make = (channels: Channels.t) => {
+    let make = (channels: Channels.t, events: Events.t) => {
       setActivation: Channel.sendTo(channels.setActivation),
       setHeader: Channel.sendTo(channels.setHeader),
       setBody: Channel.sendTo(channels.setBody),
+      onSetMode: events.onSetMode,
     };
   };
 };
@@ -43,6 +58,7 @@ module View = {
 module Request = {
   type t =
     | Load(string)
+    | Load2(string)
     | Refine(int, string)
     | InsertAssertion(int)
     | Debug;
@@ -53,6 +69,11 @@ module Request = {
       fun
       | Load(filepath) =>
         object_([("tag", string("Load")), ("contents", string(filepath))])
+      | Load2(filepath) =>
+        object_([
+          ("tag", string("Load2")),
+          ("contents", string(filepath)),
+        ])
       | Refine(id, payload) =>
         object_([
           ("tag", string("Refine")),
