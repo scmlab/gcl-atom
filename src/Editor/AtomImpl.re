@@ -1,5 +1,10 @@
-module Impl: Guacamole.Editor.Interface = {
-  open Atom;
+open Atom;
+
+module Impl:
+  Guacamole.Editor.Sig with
+    type editor = TextEditor.t and
+    type context = CompositeDisposable.t and
+    type disposable = Disposable.t = {
   open Belt;
 
   type editor = TextEditor.t;
@@ -94,9 +99,14 @@ module Impl: Guacamole.Editor.Interface = {
       targetedEditors[0];
     };
 
-    Commands.add(`CSSSelector("atom-text-editor"), "gcl-atom:" ++ name, event => {
-      eventTargetEditor(event)->Option.forEach(callback)
-    });
+    Commands.add(
+      `CSSSelector("atom-text-editor"),
+      "gcl-atom:" ++ name,
+      event => {
+        Js.log2("!!! ", event);
+        eventTargetEditor(event)->Option.forEach(callback);
+      },
+    );
   };
 
   // let getActiveEditor = () => Window.activeTextEditor;

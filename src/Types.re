@@ -98,12 +98,12 @@ module Command = {
     | InsertAssertion
     | Debug;
 
-  let names = [|"toggle", "save", "refine", "insert-assertion", "debug"|];
+  let names = [|"toggle", "load", "refine", "insert-assertion", "debug"|];
 
   let parse =
     fun
     | "toggle" => Toggle
-    | "save" => Save
+    | "load" => Save
     | "refine" => Refine
     | "insert-assertion" => InsertAssertion
     | "debug" => Debug

@@ -1,6 +1,6 @@
 {
   "name": "gcl-atom",
-  "main": "./lib/js/src/Main.bs",
+  "main": "./lib/js/src/Main2.bs",
   "version": "0.0.0",
   "description": "A short description of your package",
   "keywords": [],
@@ -9,7 +9,7 @@
     "build": "bsb -make-world && npx webpack --mode=production"
   },
   "activationCommands": {
-    "atom-text-editor": "gcl-atom:toggle"
+    "atom-text-editor": "gcl-atom:load"
   },
   "repository": "https://github.com/atom/gcl-atom",
   "license": "MIT",
