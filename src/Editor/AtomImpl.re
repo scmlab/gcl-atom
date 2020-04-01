@@ -99,14 +99,9 @@ module Impl:
       targetedEditors[0];
     };
 
-    Commands.add(
-      `CSSSelector("atom-text-editor"),
-      "gcl-atom:" ++ name,
-      event => {
-        Js.log2("!!! ", event);
-        eventTargetEditor(event)->Option.forEach(callback);
-      },
-    );
+    Commands.add(`CSSSelector("atom-text-editor"), "gcl-atom:" ++ name, event => {
+      eventTargetEditor(event)->Option.forEach(callback)
+    });
   };
 
   // let getActiveEditor = () => Window.activeTextEditor;
