@@ -12,7 +12,10 @@ module View = {
   module Channels = {
     type t = {
       updateConnection:
-        Channel.t((Connection.t, option(AgdaMode.Process.Error.t)), unit),
+        Channel.t(
+          (Guacamole.Connection.t, option(AgdaMode.Process.Error.t)),
+          unit,
+        ),
       setActivation: Channel.t(bool, unit),
       setHeader: Channel.t(header, unit),
       setBody: Channel.t(Body.t, unit),

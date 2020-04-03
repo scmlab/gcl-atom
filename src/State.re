@@ -1,25 +1,13 @@
 open Belt;
 
-module Error = {
-  type t =
-    | Connection(Connection.Error.t)
-    | Decode(string, Js.Json.t);
-
-  let toString =
-    fun
-    | Connection(e) => Connection.Error.toString(e)
-    | Decode(msg, json) => (
-        {js|JSON Decode Error|js},
-        msg ++ "\n" ++ "JSON from GCL: \n" ++ Js.Json.stringify(json),
-      );
-};
+module Error = Guacamole.State.Error;
 
 type t = {
   editor: Atom.TextEditor.t,
   view: Types.View.Interface.t,
   mutable loaded: bool,
   mutable mode: Types.View.mode,
-  mutable connection: option(Connection.t),
+  mutable connection: option(Guacamole.Connection.t),
   mutable decorations: array(Atom.Decoration.t),
   mutable specifications: array(Response.Specification.t),
   mutable history: option(Types.Request.t),
@@ -60,10 +48,11 @@ let displayError = (header, body, state) => {
 };
 
 // connect if not connected yet
-let establishConnection = (state): Promise.t(result(Connection.t, Error.t)) => {
+let establishConnection =
+    (state): Promise.t(result(Guacamole.Connection.t, Error.t)) => {
   switch (state.connection) {
   | None =>
-    Connection.make()
+    Guacamole.Connection.make(AtomImpl.getGCLPath, AtomImpl.setGCLPath)
     ->Promise.mapError(e => Error.Connection(e))
     ->Promise.tapOk(conn => state.connection = Some(conn))
   | Some(connection) => Promise.resolved(Ok(connection))
@@ -76,7 +65,8 @@ let sendRequest = (request, state): Promise.t(result(Response.t, Error.t)) => {
 
   let%Ok conn = state->establishConnection;
   let%Ok result =
-    Connection.send(value, conn)->Promise.mapError(e => Error.Connection(e));
+    Guacamole.Connection.send(value, conn)
+    ->Promise.mapError(e => Error.Connection(e));
 
   Js.log2(">>>", result);
 
@@ -99,7 +89,7 @@ let cleanup = state => {
   // connection
   state.connection
   ->Option.forEach(conn => {
-      Connection.disconnect(conn)->ignore;
+      Guacamole.Connection.disconnect(conn)->ignore;
       state.connection = None;
     });
 };
