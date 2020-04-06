@@ -1,6 +1,6 @@
 {
   "atom-text-editor": {
-    "ctrl-c ctrl-x": "gcl-atom:load"
+    "ctrl-c ctrl-x": "gcl-atom:toggle"
   },
   "atom-text-editor.gcl": {
     "cmd-s": "gcl-atom:load",

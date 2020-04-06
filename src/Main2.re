@@ -1,6 +1,6 @@
 open Belt;
 
-module Main = Guacamole.Main.Impl(AtomImpl, State2.Impl);
+module Main = Guacamole.Main.Impl(AtomImpl.Impl, State2.Impl);
 
 // semaphore with Atom.CompositeDisposable.t
 let activated: ref(option(Atom.CompositeDisposable.t)) = ref(None);

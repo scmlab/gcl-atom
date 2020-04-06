@@ -1,7 +1,14 @@
 open Atom;
+//
+// View
+//
+module View = (Editor: Guacamole.Sig.Editor) => {
+  let make = (_, _) => ();
+  let destroy = _ => ()
+};
 
-module Impl:
-  Guacamole.Editor.Sig with
+module rec Impl:
+  Guacamole.Sig.Editor with
     type editor = TextEditor.t and
     type context = CompositeDisposable.t and
     type disposable = Disposable.t = {
@@ -10,14 +17,9 @@ module Impl:
   type editor = TextEditor.t;
   type context = CompositeDisposable.t;
   type disposable = Disposable.t;
+  type view = unit;
   type fileName = string;
 
-  type t = {
-    editor,
-    context,
-  };
-
-  let make = (editor, _) => {editor, context: CompositeDisposable.make()};
 
   // // if it ends with '.gcl'
   // let isGCLFile = (editor): bool => {
@@ -29,7 +31,7 @@ module Impl:
   let getExtensionPath = _ =>
     Packages.resolvePackagePath("gcl-atom")->Option.getWithDefault("");
 
-  let editorFileName = editor =>
+  let getFileName = editor =>
     TextEditor.getPath(editor)->Option.getWithDefault("");
 
   let addToSubscriptions = (disposable, subscriptions) =>
@@ -106,11 +108,13 @@ module Impl:
 
   // let getActiveEditor = () => Window.activeTextEditor;
 
-  let setGCLPath = value => {
-    Config.set("gcl-atom.path", value) |> ignore;
-    Promise.resolved();
+  module Config = {
+    let setGCLPath = value => {
+      Config.set("gcl-atom.path", value) |> ignore;
+      Promise.resolved();
+    };
+    let getGCLPath = () => Config.get("gcl-atom.path");
   };
-  let getGCLPath = () => Config.get("gcl-atom.path");
-};
 
-include Impl;
+  module View = View(Impl);
+};

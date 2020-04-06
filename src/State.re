@@ -52,7 +52,7 @@ let establishConnection =
     (state): Promise.t(result(Guacamole.Connection.t, Error.t)) => {
   switch (state.connection) {
   | None =>
-    Guacamole.Connection.make(AtomImpl.getGCLPath, AtomImpl.setGCLPath)
+    Guacamole.Connection.make(AtomImpl.Impl.Config.getGCLPath, AtomImpl.Impl.Config.setGCLPath)
     ->Promise.mapError(e => Error.Connection(e))
     ->Promise.tapOk(conn => state.connection = Some(conn))
   | Some(connection) => Promise.resolved(Ok(connection))

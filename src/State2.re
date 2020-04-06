@@ -1,5 +1,5 @@
 module Impl: Guacamole.State.Sig =
-  (Editor: Guacamole.Editor.Sig) => {
+  (Editor: Guacamole.Sig.Editor) => {
     type editor = Editor.editor;
     type context = Editor.context;
 
@@ -10,11 +10,14 @@ module Impl: Guacamole.State.Sig =
       mutable connection: option(Guacamole.Connection.t),
     };
 
+    // getters
+    let getEditor = state => state.editor;
+
     // connect if not connected yet
     let connect = state =>
       switch (state.connection) {
       | None =>
-        Guacamole.Connection.make(Editor.getGCLPath, Editor.setGCLPath)
+        Guacamole.Connection.make(Editor.Config.getGCLPath, Editor.Config.setGCLPath)
         ->Promise.mapError(e => Guacamole.State.Error.Connection(e))
         ->Promise.tapOk(conn => state.connection = Some(conn))
       | Some(connection) => Promise.resolved(Ok(connection))
