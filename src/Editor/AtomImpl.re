@@ -67,14 +67,17 @@ module rec Impl:
 
   let onDidChangeActivation = callback => {
     let previous = ref(Workspace.getActiveTextEditor());
-    Workspace.onDidChangeActiveTextEditor(next =>
-      if (next != previous^) {
+    Workspace.onDidChangeActiveTextEditor(next => {
+      let previousFileName = (previous^)->Option.flatMap(TextEditor.getPath);
+      let nextFileName = next->Option.flatMap(TextEditor.getPath);
+      if (previousFileName != nextFileName) {
         callback(
-          (previous^)->Option.flatMap(TextEditor.getPath),
-          next->Option.flatMap(TextEditor.getPath),
+          previousFileName,
+          nextFileName,
         );
         previous := next;
       }
+    }
     );
   };
 
