@@ -3,8 +3,8 @@ open Atom;
 // View
 //
 module View = (Editor: Guacamole.Sig.Editor) => {
-  let make = (_, _) => ();
-  let destroy = _ => ()
+  let make = (_, editor) => View.make2(editor);
+  let destroy = view => View.destroy2(view);
 };
 
 module rec Impl:
@@ -17,7 +17,7 @@ module rec Impl:
   type editor = TextEditor.t;
   type context = CompositeDisposable.t;
   type disposable = Disposable.t;
-  type view = unit;
+  type view = Types.View.Interface.t;
   type fileName = string;
 
 

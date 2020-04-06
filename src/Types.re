@@ -43,13 +43,15 @@ module View = {
   // Out facing interface of the view
   module Interface = {
     type t = {
+      editor: Atom.TextEditor.t,
       setActivation: bool => Promise.t(unit),
       setHeader: header => Promise.t(unit),
       setBody: Body.t => Promise.t(unit),
       onSetMode: Event.t(mode),
     };
 
-    let make = (channels: Channels.t, events: Events.t) => {
+    let make = (editor: Atom.TextEditor.t, channels: Channels.t, events: Events.t) => {
+      editor,
       setActivation: Channel.sendTo(channels.setActivation),
       setHeader: Channel.sendTo(channels.setHeader),
       setBody: Channel.sendTo(channels.setBody),

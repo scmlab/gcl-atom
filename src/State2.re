@@ -1,11 +1,10 @@
-module Impl: Guacamole.State.Sig =
-  (Editor: Guacamole.Sig.Editor) => {
+module Impl: Guacamole.State.Sig = (Editor: Guacamole.Sig.Editor) => {
     type editor = Editor.editor;
     type context = Editor.context;
 
     type t = {
       editor,
-      mutable loaded: bool,
+      view: Editor.view,
       mutable mode: Types.View.mode,
       mutable connection: option(Guacamole.Connection.t),
     };
@@ -28,14 +27,32 @@ module Impl: Guacamole.State.Sig =
       | Some(connection) => Guacamole.Connection.disconnect(connection)
       };
 
-    let make = (_, editor) => {
-      editor,
-      loaded: false,
-      mode: WP1,
-      connection: None,
+    let make = (context, editor) => {
+
+      // view initialization
+      let view = Editor.View.make(context, editor);
+
+      let state = {
+        editor,
+        view,
+        mode: WP1,
+        connection: None,
+      };
+
+      // connection initialization
+      state
+      ->connect
+      ->Promise.get(
+          fun
+          | Error(e) => Js.log2("[ connection error ]", Guacamole.State.Error.toString(e))
+          | Ok(c) => Js.log2("[ connection success ]", c),
+        );
+
+      state;
     };
+
     let destroy = state => {
-      state.loaded = false;
+      state.view->Editor.View.destroy;
       state->disconnect;
     };
   };

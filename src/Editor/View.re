@@ -103,7 +103,7 @@ let make = (editor: Atom.TextEditor.t) => {
   |> ignore;
 
   // expose the interface
-  Interface.make(channels, events);
+  Interface.make(editor, channels, events);
 };
 
 let destroy = (editor: Atom.TextEditor.t) => {
@@ -124,3 +124,12 @@ let destroy = (editor: Atom.TextEditor.t) => {
   |> Webapi.Dom.HtmlElement.classList
   |> Webapi.Dom.DomTokenList.remove("gcl");
 };
+
+
+let make2 = (editor) => {
+  let view = make(editor);
+  view.setActivation(true) |> ignore;
+  view;
+};
+
+let destroy2 = (view: Types.View.Interface.t) => destroy(view.editor);
