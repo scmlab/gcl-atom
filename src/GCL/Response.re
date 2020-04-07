@@ -2,7 +2,8 @@ open Belt;
 open Syntax;
 
 module Origin = {
-  open Base;
+  // open Base;
+  open Guacamole.View;
   type t =
     | AtAbort(loc)
     | AtSkip(loc)
@@ -73,7 +74,7 @@ module ProofObligation = {
 };
 
 module Specification = {
-  open Base;
+  open Guacamole.View;
   type t = {
     id: int,
     pre: Syntax.Pred.t,
@@ -92,7 +93,8 @@ module Specification = {
 };
 
 module Error = {
-  open Base;
+  open Guacamole.View;
+  
   module Site = {
     type t =
       | Global(loc)
@@ -114,7 +116,7 @@ module Error = {
     };
 
     let toRange = (site, specifications) =>
-      toLoc(site, specifications) |> Loc.toRange;
+      toLoc(site, specifications) |> Base2.Loc.toRange;
 
     let toString = site => {
       switch (site) {

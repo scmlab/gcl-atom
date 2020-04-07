@@ -13,9 +13,6 @@ module View = {
     | Show
     | Hide
     | Display(header, Body.t);
-  type response =
-    | SetMode(mode)
-    | Link(Link.event);
 
   // Internal channels for facilitating communication with view components
   module Channels = {
@@ -41,7 +38,7 @@ module View = {
   module Events = {
     type t = {
       onSetMode: Event.t(mode),
-      onLink: Event.t(Link.event),
+      onLink: Event.t(Guacamole.View.Response.linkEvent),
     };
 
     let make = () => {onSetMode: Event.make(), onLink: Event.make()};
@@ -56,7 +53,7 @@ module View = {
     setHeader: header => Promise.t(unit),
     setBody: Body.t => Promise.t(unit),
     onSetMode: Event.t(mode),
-    onLink: Event.t(Link.event),
+    onLink: Event.t(Guacamole.View.Response.linkEvent),
   };
 
   let make =
@@ -89,14 +86,14 @@ module View = {
         self.setBody(body) |> ignore;
       };
 
-  let recv = (self, callback) => {
-    self.onSetMode.on(x => callback(SetMode(x)))
-    ->Js.Array.push(self.subscriptions)
-    ->ignore;
-    self.onLink.on(x => callback(Link(x)))
-    ->Js.Array.push(self.subscriptions)
-    ->ignore;
-  };
+  // let recv = (self, callback) => {
+  //   self.onSetMode.on(x => callback(SetMode(x)))
+  //   ->Js.Array.push(self.subscriptions)
+  //   ->ignore;
+  //   self.onLink.on(x => callback(Link(x)))
+  //   ->Js.Array.push(self.subscriptions)
+  //   ->ignore;
+  // };
 };
 
 module Request = {

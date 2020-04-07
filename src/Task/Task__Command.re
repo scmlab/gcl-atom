@@ -78,8 +78,8 @@ let dispatch =
       WithState(
         state => {
           let cursor = Atom.TextEditor.getCursorBufferPosition(state.editor);
-          open Base.Pos;
-          let Pos(_, line, _) = Base.Pos.fromPoint("whatever", cursor);
+          open Guacamole.View.Pos;
+          let Pos(_, line, _) = Base2.Pos.fromPoint("whatever", cursor);
           Promise.resolved([SendRequest(InsertAssertion(line))]);
         },
       ),

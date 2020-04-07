@@ -1,5 +1,5 @@
 open Belt;
-open Base;
+open Guacamole.View;
 open Types.View;
 
 module PanelContainer = {
@@ -85,7 +85,6 @@ let make = (editor: Atom.TextEditor.t) => {
   // <Links>
   let linkDict: Js.Dict.t(Atom.Decoration.t) = Js.Dict.empty();
   let delete_: string => unit = [%raw "function (id) {delete linkDict[id]}"];
-  open Link;
   events.onLink.on(
     fun
     | MouseOver(loc) => {
@@ -98,7 +97,7 @@ let make = (editor: Atom.TextEditor.t) => {
         delete_(key);
       }
     | MouseClick(loc) => {
-        let range = Loc.toRange(loc);
+        let range = Base2.Loc.toRange(loc);
         // select the range
         Atom.TextEditor.setSelectedScreenRange(range, editor);
       },

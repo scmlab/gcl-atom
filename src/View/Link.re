@@ -1,11 +1,6 @@
-open Base;
+// open Base;
 
-type event =
-  | MouseOver(loc)
-  | MouseOut(loc)
-  | MouseClick(loc);
-
-let emitter: Event.t(event) = Event.make();
+let emitter: Event.t(Guacamole.View.Response.linkEvent) = Event.make();
 let eventContext = React.createContext(emitter);
 
 module Provider = {

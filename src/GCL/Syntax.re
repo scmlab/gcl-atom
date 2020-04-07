@@ -1,6 +1,7 @@
 open Belt;
 
-open Base;
+// open Base;
+open Guacamole.View;
 
 // for pretty printing
 module VarArg = {

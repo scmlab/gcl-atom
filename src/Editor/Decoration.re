@@ -1,9 +1,9 @@
 open Belt;
-open Base;
+
 
 let mark = (type_, class_, loc, editor) => {
   open Atom;
-  let range = Loc.toRange(loc);
+  let range = Base2.Loc.toRange(loc);
   let marker = TextEditor.markBufferRange(range, editor);
   let option = TextEditor.decorateMarkerOptions(~type_, ~class_, ());
   Atom.TextEditor.decorateMarker(marker, option, editor);
@@ -18,7 +18,7 @@ let overlay =
     (text, class_, tail: bool, translation: (int, int), loc, editor) => {
   open Atom;
   open Webapi.Dom;
-  let range = Loc.toRange(loc);
+  let range = Base2.Loc.toRange(loc);
 
   // create an element for the overlay
   let element = Webapi.Dom.document |> Document.createElement("div");
@@ -59,7 +59,7 @@ let overlaySpec = text => overlay(text, "overlay-spec-text", false, (0, 1));
 let overlayError = (loc, editor) => {
   let length =
     editor
-    |> Atom.TextEditor.getTextInBufferRange(Loc.toRange(loc))
+    |> Atom.TextEditor.getTextInBufferRange(Base2.Loc.toRange(loc))
     |> Js.String.length;
   let text = Js.String.repeat(length, "&nbsp;");
   overlay(text, "overlay-error", true, (0, 0), loc, editor);
@@ -71,9 +71,9 @@ let markSpec =
     switch (spec.loc) {
     | NoLoc => [||]
     | Loc(start, end_) =>
-      open Loc;
-      let startLoc = Loc(start, Pos.translateBy(0, 2, start));
-      let endLoc = Loc(Pos.translateBy(0, -2, end_), end_);
+      open Guacamole.View.Loc;
+      let startLoc = Loc(start,  Guacamole.View.Pos.translateBy(0, 2, start));
+      let endLoc = Loc(Guacamole.View.Pos.translateBy(0, -2, end_), end_);
 
       let trim = s =>
         if (String.length(s) > 77) {

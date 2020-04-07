@@ -1,5 +1,4 @@
 open Belt;
-open Base;
 open State;
 open Response.Specification;
 
@@ -9,15 +8,15 @@ let fromCursorPosition = state => {
   let smallestHole = ref(None);
   state.specifications
   ->Array.keep(spec =>
-      Atom.Range.containsPoint(cursor, Loc.toRange(spec.loc))
+      Atom.Range.containsPoint(cursor, Base2.Loc.toRange(spec.loc))
     )
   ->Array.forEach(spec =>
       switch (smallestHole^) {
       | None => smallestHole := Some(spec)
       | Some(spec') =>
         if (Atom.Range.containsRange(
-              Loc.toRange(spec.loc),
-              Loc.toRange(spec'.loc),
+              Base2.Loc.toRange(spec.loc),
+              Base2.Loc.toRange(spec'.loc),
             )) {
           smallestHole := Some(spec);
         }
@@ -29,9 +28,9 @@ let fromCursorPosition = state => {
 
 let getPayloadRange = (spec, state) => {
   let startingRow =
-    Atom.Point.row(Atom.Range.start(Loc.toRange(spec.loc))) + 1;
+    Atom.Point.row(Atom.Range.start(Base2.Loc.toRange(spec.loc))) + 1;
   let endingRow =
-    Atom.Point.row(Atom.Range.end_(Loc.toRange(spec.loc))) - 1;
+    Atom.Point.row(Atom.Range.end_(Base2.Loc.toRange(spec.loc))) - 1;
 
   let start =
     state.editor
@@ -61,11 +60,11 @@ let resolve = (i, state) => {
   ->Option.forEach(spec => {
       let payload = getPayload(spec, state);
       Js.log2("!!!! [ payload ]", payload);
-      let start = Atom.Range.start(Loc.toRange(spec.loc));
+      let start = Atom.Range.start(Base2.Loc.toRange(spec.loc));
 
       state.editor
       |> Atom.TextEditor.getBuffer
-      |> Atom.TextBuffer.delete(Loc.toRange(spec.loc))
+      |> Atom.TextBuffer.delete(Base2.Loc.toRange(spec.loc))
       |> ignore;
 
       state.editor
@@ -87,12 +86,12 @@ module Site = {
 
       specs[0]
       ->Option.mapWithDefault(loc, spec =>
-          spec.loc |> Loc.translate(loc) |> Loc.translateBy(1, 0, 1, 0)
+          spec.loc |> Guacamole.View.Loc.translate(loc) |> Guacamole.View.Loc.translateBy(1, 0, 1, 0)
         );
     };
   };
   let toRange = (site, specifications) =>
-    toLoc(site, specifications) |> Loc.toRange;
+    toLoc(site, specifications) |> Base2.Loc.toRange;
 };
 
 // rewrite "?" to "{!!}"

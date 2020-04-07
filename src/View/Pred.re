@@ -1,5 +1,6 @@
 open React;
-open Base;
+// open Base;
+open Guacamole.View;
 
 open Syntax.Pred;
 
