@@ -134,4 +134,6 @@ module Impl = (Editor: Guacamole.Sig.Editor) => {
 
   let show = view => view->send(Show);
   let hide = view => view->send(Hide);
+  // messaging
+  let recv = (view, callback) => view->Types.View.recv(callback);
 };

@@ -6,7 +6,7 @@ module Impl: Guacamole.State.Sig =
     type t = {
       editor,
       view: Editor.view,
-      mutable mode: Types.View.mode,
+      mutable mode: Guacamole.View.Response.mode,
       mutable connection: option(Guacamole.Connection.t),
     };
 
@@ -35,8 +35,17 @@ module Impl: Guacamole.State.Sig =
       // view initialization
       let view = Editor.View.make(context, editor);
 
-      let state = {editor, view, mode: WP1, connection: None};
 
+      let state = {editor, view, mode: WP1, connection: None};
+      // on view receiving message
+      Guacamole.View.Response.(
+        view->Editor.View.recv(
+          fun
+          | SetMode(WP1) => state.mode = WP1
+          | SetMode(WP2) => state.mode = WP2
+          | Link(ev) => Js.log2("[ view ][ recv ][ link ]", ev),
+        )
+      );
       // connection initialization
       state
       ->connect

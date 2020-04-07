@@ -6,7 +6,7 @@ type t = {
   editor: Atom.TextEditor.t,
   view: Types.View.t,
   mutable loaded: bool,
-  mutable mode: Types.View.mode,
+  mutable mode: Guacamole.View.Response.mode,
   mutable connection: option(Guacamole.Connection.t),
   mutable decorations: array(Atom.Decoration.t),
   mutable specifications: array(Response.Specification.t),

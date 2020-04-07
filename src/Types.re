@@ -1,8 +1,4 @@
 module View = {
-  type mode =
-    | WP1
-    | WP2;
-
   type header =
     | Loading
     | Plain(string)
@@ -37,7 +33,7 @@ module View = {
 
   module Events = {
     type t = {
-      onSetMode: Event.t(mode),
+      onSetMode: Event.t(Guacamole.View.Response.mode),
       onLink: Event.t(Guacamole.View.Response.linkEvent),
     };
 
@@ -52,7 +48,7 @@ module View = {
     setActivation: bool => Promise.t(unit),
     setHeader: header => Promise.t(unit),
     setBody: Body.t => Promise.t(unit),
-    onSetMode: Event.t(mode),
+    onSetMode: Event.t(Guacamole.View.Response.mode),
     onLink: Event.t(Guacamole.View.Response.linkEvent),
   };
 
@@ -86,14 +82,16 @@ module View = {
         self.setBody(body) |> ignore;
       };
 
-  // let recv = (self, callback) => {
-  //   self.onSetMode.on(x => callback(SetMode(x)))
-  //   ->Js.Array.push(self.subscriptions)
-  //   ->ignore;
-  //   self.onLink.on(x => callback(Link(x)))
-  //   ->Js.Array.push(self.subscriptions)
-  //   ->ignore;
-  // };
+  open Guacamole.View.Response;
+
+  let recv = (self, callback) => {
+    self.onSetMode.on(x => callback(SetMode(x)))
+    ->Js.Array.push(self.subscriptions)
+    ->ignore;
+    self.onLink.on(x => callback(Link(x)))
+    ->Js.Array.push(self.subscriptions)
+    ->ignore;
+  };
 };
 
 module Request = {

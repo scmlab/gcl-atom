@@ -6,7 +6,7 @@ let make = (~channels: Channels.t, ~events: Events.t) => {
   let (header, setHeader) = Hook.useState(Loading);
   let (body, setBody) = Hook.useState(Body.Nothing);
   let (activated, setActivation) = Hook.useState(false);
-  let (mode, setMode) = Hook.useState(WP1);
+  let (mode, setMode) = Hook.useState(Guacamole.View.Response.WP1);
 
   Hook.useChannel(
     x => x |> setHeader |> Promise.resolved,
@@ -19,6 +19,7 @@ let make = (~channels: Channels.t, ~events: Events.t) => {
   );
 
   let onChange = _ => {
+    open Guacamole.View.Response;
     let newMode =
       switch (mode) {
       | WP1 => WP2
