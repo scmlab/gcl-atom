@@ -1,6 +1,5 @@
 open Belt;
 
-
 let mark = (type_, class_, loc, editor) => {
   open Atom;
   let range = Base2.Loc.toRange(loc);
@@ -66,14 +65,15 @@ let overlayError = (loc, editor) => {
 };
 
 let markSpec =
-    (editor, spec: Response.Specification.t): array(Atom.Decoration.t) => {
-  Response.Specification.(
+    (editor, spec: Guacamole.GCL.Response.Specification.t)
+    : array(Atom.Decoration.t) => {
+  Guacamole.GCL.Response.Specification.(
     switch (spec.loc) {
     | NoLoc => [||]
     | Loc(start, end_) =>
-      open Guacamole.View.Loc;
-      let startLoc = Loc(start,  Guacamole.View.Pos.translateBy(0, 2, start));
-      let endLoc = Loc(Guacamole.View.Pos.translateBy(0, -2, end_), end_);
+      open Guacamole.GCL;
+      let startLoc = Loc.Loc(start, Pos.translateBy(0, 2, start));
+      let endLoc = Loc.Loc(Pos.translateBy(0, -2, end_), end_);
 
       let trim = s =>
         if (String.length(s) > 77) {
@@ -102,7 +102,7 @@ let markSpec =
 };
 
 let markSite = (site, specifications, editor) => {
-  let loc = specifications |> Response.Error.Site.toLoc(site);
+  let loc = specifications |> Guacamole.GCL.Response.Error.Site.toLoc(site);
   Js.List.flatten([
     overlayError(loc, editor),
     [mark("line-number", "line-number-error", loc, editor)],

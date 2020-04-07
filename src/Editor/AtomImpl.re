@@ -29,20 +29,26 @@ module rec Impl:
 
   let toPoint =
     fun
-    | Guacamole.View.Pos.Pos(_, line, column) => Atom.Point.make(line - 1, column - 1);
+    | Guacamole.GCL.Pos.Pos(_, line, column) =>
+      Atom.Point.make(line - 1, column - 1);
   let fromPoint = (filepath, point) => {
-    Guacamole.View.Pos.Pos(filepath, Atom.Point.row(point) + 1, Atom.Point.column(point) + 1);
+    Guacamole.GCL.Pos.Pos(
+      filepath,
+      Atom.Point.row(point) + 1,
+      Atom.Point.column(point) + 1,
+    );
   };
-  
+
   let toRange =
     fun
-    | Guacamole.View.Loc.NoLoc => Atom.Range.make(Atom.Point.make(0, 0), Atom.Point.make(0, 0))
+    | Guacamole.GCL.Loc.NoLoc =>
+      Atom.Range.make(Atom.Point.make(0, 0), Atom.Point.make(0, 0))
     | Loc(x, Pos(_, line, column)) =>
       Atom.Range.make(toPoint(x), Atom.Point.make(line - 1, column));
   let fromRange = (filepath, range) => {
     let start = Atom.Range.start(range);
     let end_ = Atom.Range.end_(range);
-    Guacamole.View.Loc.Loc(
+    Guacamole.GCL.Loc.Loc(
       Pos(
         filepath,
         Atom.Point.row(start) + 1,

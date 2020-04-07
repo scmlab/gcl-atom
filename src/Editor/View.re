@@ -1,5 +1,4 @@
 open Belt;
-open Guacamole.View;
 open Types.View;
 
 module PanelContainer = {
@@ -88,11 +87,11 @@ let make = (editor: Atom.TextEditor.t) => {
   events.onLink.on(
     fun
     | MouseOver(loc) => {
-        let key = Loc.toString(loc);
+        let key = Guacamole.GCL.Loc.toString(loc);
         Js.Dict.set(linkDict, key, Decoration.markLink(loc, editor));
       }
     | MouseOut(loc) => {
-        let key = Loc.toString(loc);
+        let key = Guacamole.GCL.Loc.toString(loc);
         Js.Dict.get(linkDict, key)->Option.forEach(Atom.Decoration.destroy);
         delete_(key);
       }
@@ -135,5 +134,6 @@ module Impl = (Editor: Guacamole.Sig.Editor) => {
   let show = view => view->send(Show);
   let hide = view => view->send(Hide);
   // messaging
+  let send = (view, request) => view->Types.View.send(request);
   let recv = (view, callback) => view->Types.View.recv(callback);
 };

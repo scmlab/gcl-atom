@@ -1,10 +1,10 @@
 type t =
   | WithState(State.t => Promise.t(list(t)))
-  | SetSpecifications(array(Response.Specification.t))
+  | SetSpecifications(array(Guacamole.GCL.Response.Specification.t))
   | AddDecorations(
-      (array(Response.Specification.t), Atom.TextEditor.t) =>
+      (array(Guacamole.GCL.Response.Specification.t), Atom.TextEditor.t) =>
       array(Atom.Decoration.t),
     )
   | DispatchCommand(Types.Command.t)
   | SendRequest(Types.Request.t)
-  | Display(Types.View.header, Body.t);
+  | Display(Guacamole.View.Request.header, Guacamole.View.Request.body);

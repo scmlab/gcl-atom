@@ -1,15 +1,4 @@
 module View = {
-  type header =
-    | Loading
-    | Plain(string)
-    | Error(string);
-
-  //
-  type request =
-    | Show
-    | Hide
-    | Display(header, Body.t);
-
   // Internal channels for facilitating communication with view components
   module Channels = {
     type t = {
@@ -19,8 +8,8 @@ module View = {
           unit,
         ),
       setActivation: Channel.t(bool, unit),
-      setHeader: Channel.t(header, unit),
-      setBody: Channel.t(Body.t, unit),
+      setHeader: Channel.t(Guacamole.View.Request.header, unit),
+      setBody: Channel.t(Guacamole.View.Request.body, unit),
     };
 
     let make = () => {
@@ -46,8 +35,8 @@ module View = {
     element: Webapi.Dom.Element.t,
     subscriptions: array(unit => unit),
     setActivation: bool => Promise.t(unit),
-    setHeader: header => Promise.t(unit),
-    setBody: Body.t => Promise.t(unit),
+    setHeader: Guacamole.View.Request.header => Promise.t(unit),
+    setBody: Guacamole.View.Request.body => Promise.t(unit),
     onSetMode: Event.t(Guacamole.View.Response.mode),
     onLink: Event.t(Guacamole.View.Response.linkEvent),
   };
@@ -75,7 +64,7 @@ module View = {
 
   let send = self =>
     fun
-    | Show => self.setActivation(true) |> ignore
+    | Guacamole.View.Request.Show => self.setActivation(true) |> ignore
     | Hide => self.setActivation(false) |> ignore
     | Display(header, body) => {
         self.setHeader(header) |> ignore;

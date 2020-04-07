@@ -1,10 +1,5 @@
 open React;
-// open Base;
 
-open Guacamole.View;
-// open Syntax.VarArg;
-
-//
 module Paren = {
   [@react.component]
   let make = (~activate, ~children) => {
@@ -47,20 +42,20 @@ module Space = {
 
 module Low = {
   [@react.component]
-  let make = (~value: Syntax.Lower.t) =>
-    <div> {string(Syntax.Lower.toString(value))} </div>;
+  let make = (~value: Guacamole.GCL.Syntax.Lower.t) =>
+    <div> {string(Guacamole.GCL.Syntax.Lower.toString(value))} </div>;
 };
 
 module Operator = {
-  open Syntax.Op;
+  open Guacamole.GCL.Syntax.Op;
 
   [@react.component]
-  let make = (~value: t, ~loc: loc) =>
+  let make = (~value: t, ~loc: Guacamole.GCL.loc) =>
     <Link loc> {string(toString(value))} </Link>;
 };
 
 module Prec = {
-  open Syntax;
+  open Guacamole.GCL.Syntax;
   open VarArg;
   // module VarArg = Syntax.VarArg;
 
@@ -69,7 +64,7 @@ module Prec = {
       let make = make;
       let makeProps = makeProps;
     };
-    switch (Syntax.Expr.Precedence.classify(op)) {
+    switch (Guacamole.GCL.Syntax.Expr.Precedence.classify(op)) {
     | Infix(m) =>
       let%VarArg p = var;
       let%VarArg q = var;
@@ -131,7 +126,7 @@ module Prec = {
       let make = make;
       let makeProps = makeProps;
     };
-    Syntax.Expr.(
+    Guacamole.GCL.Syntax.Expr.(
       fun
       | Var(s, loc) => Complete(<Link loc> {string(s)} </Link>)
       | Const(s, loc) => Complete(<Link loc> {string(s)} </Link>)
@@ -187,5 +182,5 @@ module Prec = {
 };
 
 [@react.component]
-let make = (~value: Syntax.Expr.t) =>
+let make = (~value: Guacamole.GCL.Syntax.Expr.t) =>
   <div className="expr"> <Prec prec=0 value /> </div>;

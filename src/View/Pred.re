@@ -1,8 +1,6 @@
 open React;
-// open Base;
-open Guacamole.View;
 
-open Syntax.Pred;
+open Guacamole.GCL.Syntax.Pred;
 
 type kind =
   | Guard
@@ -15,7 +13,8 @@ type sort =
 
 module Marker = {
   [@react.component]
-  let make = (~kind=?, ~sort=?, ~text=?, ~loc=Loc.NoLoc, ~children) => {
+  let make =
+      (~kind=?, ~sort=?, ~text=?, ~loc=Guacamole.GCL.Loc.NoLoc, ~children) => {
     let kind =
       switch (kind) {
       | None => ""

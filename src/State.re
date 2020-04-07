@@ -9,7 +9,7 @@ type t = {
   mutable mode: Guacamole.View.Response.mode,
   mutable connection: option(Guacamole.Connection.t),
   mutable decorations: array(Atom.Decoration.t),
-  mutable specifications: array(Response.Specification.t),
+  mutable specifications: array(Guacamole.GCL.Response.Specification.t),
   mutable history: option(Types.Request.t),
 };
 
@@ -62,7 +62,8 @@ let establishConnection =
   };
 };
 
-let sendRequest = (request, state): Promise.t(result(Response.t, Error.t)) => {
+let sendRequest =
+    (request, state): Promise.t(result(Guacamole.GCL.Response.t, Error.t)) => {
   let value = Types.Request.encode(request);
   Js.log2("<<<", value);
 
@@ -74,7 +75,7 @@ let sendRequest = (request, state): Promise.t(result(Response.t, Error.t)) => {
   Js.log2(">>>", result);
 
   // catching exceptions occured when decoding JSON values
-  switch (Response.decode(result)) {
+  switch (Guacamole.GCL.Response.decode(result)) {
   | value => Promise.resolved(Ok(value))
   | exception (Json.Decode.DecodeError(msg)) =>
     Promise.resolved(Error(Error.Decode(msg, result)))

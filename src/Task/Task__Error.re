@@ -1,10 +1,10 @@
-open Syntax;
+open Guacamole.GCL.Syntax;
 
 open Task__Types;
-open! Response.Error;
+open! Guacamole.GCL.Response.Error;
 
 module StructError = {
-  open Response.Error.StructError;
+  open Guacamole.GCL.Response.Error.StructError;
   let handle = site =>
     fun
     | MissingBound => [
@@ -73,7 +73,7 @@ let handle = error => {
       AddDecorations(Decoration.markSite(site)),
       Display(
         Error("Lexical Error"),
-        Plain(Response.Error.Site.toString(site)),
+        Plain(Guacamole.GCL.Response.Error.Site.toString(site)),
       ),
     ]
   | SyntacticError(messages) => [

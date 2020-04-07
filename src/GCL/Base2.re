@@ -1,5 +1,5 @@
 module Pos = {
-  open Guacamole.View.Pos;
+  open Guacamole.GCL.Pos;
   let toPoint =
     fun
     | Pos(_, line, column) => Atom.Point.make(line - 1, column - 1);
@@ -9,7 +9,7 @@ module Pos = {
 };
 
 module Loc = {
-  open Guacamole.View.Loc;
+  open Guacamole.GCL.Loc;
   let toRange =
     fun
     | NoLoc => Atom.Range.make(Atom.Point.make(0, 0), Atom.Point.make(0, 0))

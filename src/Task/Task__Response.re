@@ -1,6 +1,6 @@
 open Belt;
 
-open! Response;
+open! Guacamole.GCL.Response;
 open Task__Types;
 open Types.Command;
 

@@ -1,6 +1,6 @@
 open Belt;
 open State;
-open Response.Specification;
+open Guacamole.GCL.Response.Specification;
 
 let fromCursorPosition = state => {
   let cursor = Atom.TextEditor.getCursorBufferPosition(state.editor);
@@ -77,7 +77,7 @@ let resolve = (i, state) => {
 
 // NOTE: move this somewhere else
 module Site = {
-  open Response.Error.Site;
+  open Guacamole.GCL.Response.Error.Site;
   let toLoc = (site, specifications) => {
     switch (site) {
     | Global(loc) => loc
@@ -86,7 +86,9 @@ module Site = {
 
       specs[0]
       ->Option.mapWithDefault(loc, spec =>
-          spec.loc |> Guacamole.View.Loc.translate(loc) |> Guacamole.View.Loc.translateBy(1, 0, 1, 0)
+          spec.loc
+          |> Guacamole.GCL.Loc.translate(loc)
+          |> Guacamole.GCL.Loc.translateBy(1, 0, 1, 0)
         );
     };
   };
@@ -118,7 +120,7 @@ let digHole = (site, state) => {
 let insert = (lineNo, expr, state) => {
   open Atom;
 
-  let assertion = "{ " ++ Syntax.Expr.toString(expr) ++ " }\n";
+  let assertion = "{ " ++ Guacamole.GCL.Syntax.Expr.toString(expr) ++ " }\n";
 
   // set the cursor at the line
   let point = Point.make(lineNo - 1, 0);

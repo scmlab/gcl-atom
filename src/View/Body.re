@@ -2,12 +2,7 @@
 open Belt;
 open React;
 
-open Response;
-
-type t =
-  | Nothing
-  | ProofObligations(array(ProofObligation.t))
-  | Plain(string);
+open Guacamole.GCL.Response;
 
 module ProofObligation = {
   [@react.component]
@@ -33,7 +28,7 @@ module ProofObligation = {
 };
 
 [@react.component]
-let make = (~body: t) => {
+let make = (~body: Guacamole.View.Request.body) => {
   switch (body) {
   | Nothing => <> </>
   | ProofObligations([||]) => <> </>
