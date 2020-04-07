@@ -1,16 +1,17 @@
 open Atom;
+open! Belt;
 
 module rec Impl:
   Guacamole.Sig.Editor with
     type editor = TextEditor.t and
     type context = CompositeDisposable.t and
     type disposable = Disposable.t = {
-  open Belt;
-
   type editor = TextEditor.t;
   type context = CompositeDisposable.t;
   type disposable = Disposable.t;
   type view = Types.View.t;
+  type point = Point.t;
+  type range = Atom.Range.t;
   type fileName = string;
 
   // // if it ends with '.gcl'
@@ -25,6 +26,31 @@ module rec Impl:
 
   let getFileName = editor =>
     TextEditor.getPath(editor)->Option.getWithDefault("");
+
+  let toPoint =
+    fun
+    | Guacamole.View.Pos.Pos(_, line, column) => Atom.Point.make(line - 1, column - 1);
+  let fromPoint = (filepath, point) => {
+    Guacamole.View.Pos.Pos(filepath, Atom.Point.row(point) + 1, Atom.Point.column(point) + 1);
+  };
+  
+  let toRange =
+    fun
+    | Guacamole.View.Loc.NoLoc => Atom.Range.make(Atom.Point.make(0, 0), Atom.Point.make(0, 0))
+    | Loc(x, Pos(_, line, column)) =>
+      Atom.Range.make(toPoint(x), Atom.Point.make(line - 1, column));
+  let fromRange = (filepath, range) => {
+    let start = Atom.Range.start(range);
+    let end_ = Atom.Range.end_(range);
+    Guacamole.View.Loc.Loc(
+      Pos(
+        filepath,
+        Atom.Point.row(start) + 1,
+        Atom.Point.column(start) + 1,
+      ),
+      Pos(filepath, Atom.Point.row(end_) + 1, Atom.Point.column(end_)),
+    );
+  };
 
   let addToSubscriptions = (disposable, subscriptions) =>
     disposable |> CompositeDisposable.add(subscriptions);
