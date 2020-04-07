@@ -1,13 +1,4 @@
 open Atom;
-//
-// View
-//
-module View = (Editor: Guacamole.Sig.Editor) => {
-  let make = (_, editor) => View.make2(editor);
-  let destroy = view => View.destroy2(view);
-  let show = view => View.show(view)
-  let hide = view => View.hide(view)
-};
 
 module rec Impl:
   Guacamole.Sig.Editor with
@@ -19,9 +10,8 @@ module rec Impl:
   type editor = TextEditor.t;
   type context = CompositeDisposable.t;
   type disposable = Disposable.t;
-  type view = Types.View.Interface.t;
+  type view = Types.View.t;
   type fileName = string;
-
 
   // // if it ends with '.gcl'
   // let isGCLFile = (editor): bool => {
@@ -73,14 +63,10 @@ module rec Impl:
       let previousFileName = (previous^)->Option.flatMap(TextEditor.getPath);
       let nextFileName = next->Option.flatMap(TextEditor.getPath);
       if (previousFileName != nextFileName) {
-        callback(
-          previousFileName,
-          nextFileName,
-        );
+        callback(previousFileName, nextFileName);
         previous := next;
-      }
-    }
-    );
+      };
+    });
   };
 
   let registerCommand = (name, callback) => {
@@ -121,5 +107,5 @@ module rec Impl:
     let getGCLPath = () => Config.get("gcl-atom.path");
   };
 
-  module View = View(Impl);
+  module View = View.Impl(Impl);
 };

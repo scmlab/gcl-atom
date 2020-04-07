@@ -8,9 +8,9 @@ module PanelContainer = {
   external asElement:
     Webapi.Dom.HtmlElement.t_htmlElement => Webapi.Dom.Element.t =
     "%identity";
+  open Webapi.Dom;
 
-  let make = (): Webapi.Dom.Element.t => {
-    open Webapi.Dom;
+  let make = (): Element.t => {
     open DomTokenList;
 
     // create "article.gcl-panel-container"
@@ -27,6 +27,7 @@ module PanelContainer = {
       panelContainer;
     };
 
+    // see if the container has already been created
     let containers =
       Atom.Workspace.getBottomPanels()
       ->Array.map(Atom.Views.getView)
@@ -46,6 +47,9 @@ module PanelContainer = {
     | Some(container) => asElement(container)
     };
   };
+
+  let add = (container, element) =>
+    container |> Element.appendChild(element);
 };
 
 let make = (editor: Atom.TextEditor.t) => {
@@ -63,10 +67,9 @@ let make = (editor: Atom.TextEditor.t) => {
   element |> Element.setAttribute("tabIndex", "-1");
   element |> Element.classList |> DomTokenList.add("gcl-panel");
   element |> Element.classList |> DomTokenList.add("native-key-bindings");
-  //
-  let id = "gcl:" ++ string_of_int(Atom.TextEditor.id(editor));
-  Element.setId(element, id);
-  container |> Element.appendChild(element);
+
+  // add the element to the container
+  PanelContainer.add(container, element);
 
   // channels for communicating with the view
   let channels = Channels.make();
@@ -103,36 +106,33 @@ let make = (editor: Atom.TextEditor.t) => {
   |> ignore;
 
   // expose the interface
-  Interface.make(editor, channels, events);
+  Types.View.make(editor, element, channels, events);
 };
 
-let destroy = (editor: Atom.TextEditor.t) => {
-  open Webapi.Dom;
+//
+// View
+//
+module Impl = (Editor: Guacamole.Sig.Editor) => {
+  let make = (_, editor) => {
+    let view = make(editor);
+    // show the panel
+    view->send(Show);
+    view;
+  };
+  let destroy = (view: t) => {
+    open Webapi.Dom;
 
-  // unmount the component
-  let id = "gcl:" ++ string_of_int(Atom.TextEditor.id(editor));
+    // unmount the component
+    ReactDOMRe.unmountComponentAtNode(view.element);
+    Element.remove(view.element);
 
-  Document.getElementById(id, document)
-  ->Option.forEach(element => {
-      ReactDOMRe.unmountComponentAtNode(element);
-      Element.remove(element);
-    });
+    // remove "gcl" from the class-list of the editor
+    view.editor
+    |> Atom.Views.getView
+    |> Webapi.Dom.HtmlElement.classList
+    |> Webapi.Dom.DomTokenList.remove("gcl");
+  };
 
-  // remove "gcl" from the class-list of the editor
-  editor
-  |> Atom.Views.getView
-  |> Webapi.Dom.HtmlElement.classList
-  |> Webapi.Dom.DomTokenList.remove("gcl");
+  let show = view => view->send(Show);
+  let hide = view => view->send(Hide);
 };
-
-
-let make2 = (editor) => {
-  let view = make(editor);
-  view.setActivation(true) |> ignore;
-  view;
-};
-
-let destroy2 = (view: Types.View.Interface.t) => destroy(view.editor);
-
-let show = (view: Types.View.Interface.t) => view.setActivation(true) |> ignore;
-let hide = (view: Types.View.Interface.t) => view.setActivation(false) |> ignore;

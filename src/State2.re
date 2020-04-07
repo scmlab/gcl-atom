@@ -1,4 +1,5 @@
-module Impl: Guacamole.State.Sig = (Editor: Guacamole.Sig.Editor) => {
+module Impl: Guacamole.State.Sig =
+  (Editor: Guacamole.Sig.Editor) => {
     type editor = Editor.editor;
     type context = Editor.context;
 
@@ -16,7 +17,10 @@ module Impl: Guacamole.State.Sig = (Editor: Guacamole.Sig.Editor) => {
     let connect = state =>
       switch (state.connection) {
       | None =>
-        Guacamole.Connection.make(Editor.Config.getGCLPath, Editor.Config.setGCLPath)
+        Guacamole.Connection.make(
+          Editor.Config.getGCLPath,
+          Editor.Config.setGCLPath,
+        )
         ->Promise.mapError(e => Guacamole.State.Error.Connection(e))
         ->Promise.tapOk(conn => state.connection = Some(conn))
       | Some(connection) => Promise.resolved(Ok(connection))
@@ -28,23 +32,21 @@ module Impl: Guacamole.State.Sig = (Editor: Guacamole.Sig.Editor) => {
       };
 
     let make = (context, editor) => {
-
       // view initialization
       let view = Editor.View.make(context, editor);
 
-      let state = {
-        editor,
-        view,
-        mode: WP1,
-        connection: None,
-      };
+      let state = {editor, view, mode: WP1, connection: None};
 
       // connection initialization
       state
       ->connect
       ->Promise.get(
           fun
-          | Error(e) => Js.log2("[ connection error ]", Guacamole.State.Error.toString(e))
+          | Error(e) =>
+            Js.log2(
+              "[ connection error ]",
+              Guacamole.State.Error.toString(e),
+            )
           | Ok(c) => Js.log2("[ connection success ]", c),
         );
 
@@ -56,9 +58,9 @@ module Impl: Guacamole.State.Sig = (Editor: Guacamole.Sig.Editor) => {
       state->disconnect;
     };
 
-    // 
+    //
     // View-related
-    // 
-    let show = state => state.view->Editor.View.show
-    let hide = state => state.view->Editor.View.hide
+    //
+    let show = state => state.view->Editor.View.show;
+    let hide = state => state.view->Editor.View.hide;
   };

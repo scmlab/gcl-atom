@@ -4,7 +4,7 @@ module Error = Guacamole.State.Error;
 
 type t = {
   editor: Atom.TextEditor.t,
-  view: Types.View.Interface.t,
+  view: Types.View.t,
   mutable loaded: bool,
   mutable mode: Types.View.mode,
   mutable connection: option(Guacamole.Connection.t),
@@ -52,7 +52,10 @@ let establishConnection =
     (state): Promise.t(result(Guacamole.Connection.t, Error.t)) => {
   switch (state.connection) {
   | None =>
-    Guacamole.Connection.make(AtomImpl.Impl.Config.getGCLPath, AtomImpl.Impl.Config.setGCLPath)
+    Guacamole.Connection.make(
+      AtomImpl.Impl.Config.getGCLPath,
+      AtomImpl.Impl.Config.setGCLPath,
+    )
     ->Promise.mapError(e => Error.Connection(e))
     ->Promise.tapOk(conn => state.connection = Some(conn))
   | Some(connection) => Promise.resolved(Ok(connection))
@@ -96,5 +99,6 @@ let cleanup = state => {
 
 let destroy = state => {
   cleanup(state);
-  View.destroy(state.editor);
+  module View = View.Impl(AtomImpl.Impl);
+  View.destroy(state.view);
 };
