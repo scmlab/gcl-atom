@@ -133,3 +133,6 @@ let make2 = (editor) => {
 };
 
 let destroy2 = (view: Types.View.Interface.t) => destroy(view.editor);
+
+let show = (view: Types.View.Interface.t) => view.setActivation(true) |> ignore;
+let hide = (view: Types.View.Interface.t) => view.setActivation(false) |> ignore;

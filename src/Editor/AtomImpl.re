@@ -5,6 +5,8 @@ open Atom;
 module View = (Editor: Guacamole.Sig.Editor) => {
   let make = (_, editor) => View.make2(editor);
   let destroy = view => View.destroy2(view);
+  let show = view => View.show(view)
+  let hide = view => View.hide(view)
 };
 
 module rec Impl:

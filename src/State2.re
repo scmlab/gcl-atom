@@ -55,4 +55,10 @@ module Impl: Guacamole.State.Sig = (Editor: Guacamole.Sig.Editor) => {
       state.view->Editor.View.destroy;
       state->disconnect;
     };
+
+    // 
+    // View-related
+    // 
+    let show = state => state.view->Editor.View.show
+    let hide = state => state.view->Editor.View.hide
   };
