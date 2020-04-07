@@ -55,7 +55,7 @@ let make = (~channels: Channels.t, ~events: Events.t) => {
     </h2>;
   };
 
-  <Link.Provider value={channels.link}>
+  <Link.Provider value={events.onLink}>
     <section className={activated ? "" : "hidden"}>
       headerElem
       <Body body />

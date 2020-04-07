@@ -8,6 +8,15 @@ module View = {
     | Plain(string)
     | Error(string);
 
+  //
+  type request =
+    | Show
+    | Hide
+    | Display(header, Body.t);
+  type response =
+    | SetMode(mode)
+    | Link(Link.event);
+
   // Internal channels for facilitating communication with view components
   module Channels = {
     type t = {
@@ -19,8 +28,6 @@ module View = {
       setActivation: Channel.t(bool, unit),
       setHeader: Channel.t(header, unit),
       setBody: Channel.t(Body.t, unit),
-      onSetMode: Event.t(mode),
-      link: Event.t(Link.event),
     };
 
     let make = () => {
@@ -28,34 +35,61 @@ module View = {
       setActivation: Channel.make(),
       setHeader: Channel.make(),
       setBody: Channel.make(),
-      onSetMode: Event.make(),
-      link: Event.make(),
     };
   };
-  module Events = {
-    type t = {onSetMode: Event.t(mode)};
 
-    let make = () => {
-      {onSetMode: Event.make()};
+  module Events = {
+    type t = {
+      onSetMode: Event.t(mode),
+      onLink: Event.t(Link.event),
     };
+
+    let make = () => {onSetMode: Event.make(), onLink: Event.make()};
   };
 
   // Out facing interface of the view
   module Interface = {
     type t = {
       editor: Atom.TextEditor.t,
+      subscriptions: array(unit => unit),
       setActivation: bool => Promise.t(unit),
       setHeader: header => Promise.t(unit),
       setBody: Body.t => Promise.t(unit),
       onSetMode: Event.t(mode),
+      onLink: Event.t(Link.event),
     };
 
-    let make = (editor: Atom.TextEditor.t, channels: Channels.t, events: Events.t) => {
+    let make =
+        (editor: Atom.TextEditor.t, channels: Channels.t, events: Events.t) => {
       editor,
+      subscriptions: [||],
       setActivation: Channel.sendTo(channels.setActivation),
       setHeader: Channel.sendTo(channels.setHeader),
       setBody: Channel.sendTo(channels.setBody),
       onSetMode: events.onSetMode,
+      onLink: events.onLink,
+    };
+
+    let destroy = self => {
+      self.subscriptions -> Belt.Array.forEach(destructor => destructor());
+    };
+
+    let send = self =>
+      fun
+      | Show => self.setActivation(true) |> ignore
+      | Hide => self.setActivation(false) |> ignore
+      | Display(header, body) => {
+          self.setHeader(header) |> ignore;
+          self.setBody(body) |> ignore;
+        };
+
+    let recv = (self, callback) => {
+      self.onSetMode.on(x => callback(SetMode(x)))
+      -> Js.Array.push(self.subscriptions)
+      -> ignore;
+      self.onLink.on(x => callback(Link(x)))
+      -> Js.Array.push(self.subscriptions)
+      -> ignore;
     };
   };
 };

@@ -83,7 +83,7 @@ let make = (editor: Atom.TextEditor.t) => {
   let linkDict: Js.Dict.t(Atom.Decoration.t) = Js.Dict.empty();
   let delete_: string => unit = [%raw "function (id) {delete linkDict[id]}"];
   open Link;
-  channels.link.on(
+  events.onLink.on(
     fun
     | MouseOver(loc) => {
         let key = Loc.toString(loc);
