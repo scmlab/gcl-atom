@@ -24,8 +24,18 @@ module rec Impl:
   let getExtensionPath = _ =>
     Packages.resolvePackagePath("gcl-atom")->Option.getWithDefault("");
 
-  let getFileName = editor =>
-    TextEditor.getPath(editor)->Option.getWithDefault("");
+  let getFileName = editor => TextEditor.getPath(editor);
+
+  let save = editor =>
+    editor
+    ->TextEditor.save
+    ->Promise.Js.fromBsPromise
+    ->Promise.Js.toResult
+    ->Promise.map(
+        fun
+        | Error(_) => false
+        | Ok(_) => true,
+      );
 
   let toPoint =
     fun

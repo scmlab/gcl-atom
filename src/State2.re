@@ -7,11 +7,14 @@ module Impl: Guacamole.State.Sig =
       editor,
       view: Editor.view,
       mutable mode: Guacamole.View.Response.mode,
+      mutable specifications: array(Guacamole.GCL.Response.Specification.t),
       mutable connection: option(Guacamole.Connection.t),
     };
 
     // getters
     let getEditor = state => state.editor;
+    let setSpecifications = (state, specifications) =>
+      state.specifications = specifications;
 
     // connect if not connected yet
     let connect = state =>
@@ -21,7 +24,7 @@ module Impl: Guacamole.State.Sig =
           Editor.Config.getGCLPath,
           Editor.Config.setGCLPath,
         )
-        ->Promise.mapError(e => Guacamole.State.Error.Connection(e))
+        ->Promise.mapError(e => Guacamole.Sig.Error.Connection(e))
         ->Promise.tapOk(conn => state.connection = Some(conn))
       | Some(connection) => Promise.resolved(Ok(connection))
       };
@@ -30,13 +33,36 @@ module Impl: Guacamole.State.Sig =
       | None => Promise.resolved()
       | Some(connection) => Guacamole.Connection.disconnect(connection)
       };
+    let sendRequest = (state, request) => {
+      let value = Guacamole.Types.Request.encode(request);
+      Js.log2("<<<", value);
+
+      let%Ok conn = state->connect;
+      let%Ok result =
+        Guacamole.Connection.send(value, conn)
+        ->Promise.mapError(e => Guacamole.Sig.Error.Connection(e));
+
+      Js.log2(">>>", result);
+
+      // catching exceptions occured when decoding JSON values
+      switch (Guacamole.GCL.Response.decode(result)) {
+      | value => Promise.resolved(Ok(value))
+      | exception (Json.Decode.DecodeError(msg)) =>
+        Promise.resolved(Error(Guacamole.Sig.Error.Decode(msg, result)))
+      };
+    };
 
     let make = (context, editor) => {
       // view initialization
       let view = Editor.View.make(context, editor);
 
-
-      let state = {editor, view, mode: WP1, connection: None};
+      let state = {
+        editor,
+        view,
+        mode: WP1,
+        specifications: [||],
+        connection: None,
+      };
       // on view receiving message
       Guacamole.View.Response.(
         view->Editor.View.recv(
@@ -52,10 +78,7 @@ module Impl: Guacamole.State.Sig =
       ->Promise.get(
           fun
           | Error(e) =>
-            Js.log2(
-              "[ connection error ]",
-              Guacamole.State.Error.toString(e),
-            )
+            Js.log2("[ connection error ]", Guacamole.Sig.Error.toString(e))
           | Ok(c) => Js.log2("[ connection success ]", c),
         );
 

@@ -1,6 +1,6 @@
 open Belt;
 
-module Error = Guacamole.State.Error;
+module Error = Guacamole.Sig.Error;
 
 type t = {
   editor: Atom.TextEditor.t,
