@@ -71,7 +71,8 @@ module Impl: Guacamole.State.Sig =
           | SetMode(WP2) => state.mode = WP2
           | Link(ev) => Js.log2("[ view ][ recv ][ link ]", ev),
         )
-      );
+      )
+      ->Editor.addToSubscriptions(context);
       // connection initialization
       state
       ->connect
@@ -95,4 +96,7 @@ module Impl: Guacamole.State.Sig =
     //
     let show = state => state.view->Editor.View.show;
     let hide = state => state.view->Editor.View.hide;
+    let display = (state, header, body) =>
+      state.view
+      ->Editor.View.send(Guacamole.View.Request.Display(header, body));
   };

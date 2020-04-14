@@ -128,8 +128,10 @@ module Prec = {
     };
     Guacamole.GCL.Syntax.Expr.(
       fun
-      | Var(s, loc) => Complete(<Link loc> {string(s)} </Link>)
-      | Const(s, loc) => Complete(<Link loc> {string(s)} </Link>)
+      | Var(s, loc) =>
+        Complete(<Link loc> {string(Lower.toString(s))} </Link>)
+      | Const(s, loc) =>
+        Complete(<Link loc> {string(Upper.toString(s))} </Link>)
       | Lit(lit, loc) =>
         Complete(<Link loc> {string(Lit.toString(lit))} </Link>)
       | Op(op, loc) => handleOperator(n, op, loc)

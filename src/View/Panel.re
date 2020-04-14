@@ -1,14 +1,13 @@
 open! Types.View;
-open Guacamole.View.Response;
-open! Guacamole.View.Request;
+open Guacamole.View;
 
 [@react.component]
 let make = (~channels: Channels.t, ~events: Events.t) => {
   open React;
-  let (header, setHeader) = Hook.useState(Loading);
-  let (body, setBody) = Hook.useState(Nothing);
+  let (header, setHeader) = Hook.useState(Request.Header.Loading);
+  let (body, setBody) = Hook.useState(Request.Body.Nothing);
   let (activated, setActivation) = Hook.useState(false);
-  let (mode, setMode) = Hook.useState(WP1);
+  let (mode, setMode) = Hook.useState(Response.WP1);
 
   Hook.useChannel(
     x => x |> setHeader |> Promise.resolved,
@@ -23,7 +22,7 @@ let make = (~channels: Channels.t, ~events: Events.t) => {
   let onChange = _ => {
     let newMode =
       switch (mode) {
-      | WP1 => WP2
+      | WP1 => Response.WP2
       | WP2 => WP1
       };
     events.onSetMode.emit(newMode);

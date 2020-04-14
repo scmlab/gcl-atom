@@ -8,8 +8,8 @@ module View = {
           unit,
         ),
       setActivation: Channel.t(bool, unit),
-      setHeader: Channel.t(Guacamole.View.Request.header, unit),
-      setBody: Channel.t(Guacamole.View.Request.body, unit),
+      setHeader: Channel.t(Guacamole.View.Request.Header.t, unit),
+      setBody: Channel.t(Guacamole.View.Request.Body.t, unit),
     };
 
     let make = () => {
@@ -35,8 +35,8 @@ module View = {
     element: Webapi.Dom.Element.t,
     subscriptions: array(unit => unit),
     setActivation: bool => Promise.t(unit),
-    setHeader: Guacamole.View.Request.header => Promise.t(unit),
-    setBody: Guacamole.View.Request.body => Promise.t(unit),
+    setHeader: Guacamole.View.Request.Header.t => Promise.t(unit),
+    setBody: Guacamole.View.Request.Body.t => Promise.t(unit),
     onSetMode: Event.t(Guacamole.View.Response.mode),
     onLink: Event.t(Guacamole.View.Response.linkEvent),
   };

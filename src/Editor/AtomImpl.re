@@ -1,7 +1,7 @@
 open Atom;
 open! Belt;
 
-module rec Impl:
+module Impl:
   Guacamole.Sig.Editor with
     type editor = TextEditor.t and
     type context = CompositeDisposable.t and
@@ -20,6 +20,8 @@ module rec Impl:
   //     editor->TextEditor.getPath->Option.getWithDefault("untitled");
   //   Js.Re.test_([%re "/\\.gcl$/i"], filepath);
   // };
+
+  let editorType = Guacamole.Sig.Atom;
 
   let getExtensionPath = _ =>
     Packages.resolvePackagePath("gcl-atom")->Option.getWithDefault("");
@@ -149,5 +151,38 @@ module rec Impl:
     let getGCLPath = () => Config.get("gcl-atom.path");
   };
 
-  module View = View.Impl(Impl);
+  module View = {
+    let make = (_, editor) => {
+      let view = PanelContainer.make(editor);
+      // show the panel
+      // view->send(Show);
+      view;
+    };
+    let destroy = view => {
+      // // unmount the component
+      // ReactDOMRe.unmountComponentAtNode(view.element);
+      // Element.remove(view.element);
+
+      // // remove "gcl" from the class-list of the editor
+      // view.editor
+      // |> Atom.Views.getView
+      // |> Webapi.Dom.HtmlElement.classList
+      // |> Webapi.Dom.DomTokenList.remove("gcl");
+
+      ();
+      ();
+    };
+
+    let show = view => ();
+    //  view->send(Show);
+    let hide = view => ();
+    //  view->send(Hide);
+    // messaging
+    let send = (view, request) => Promise.resolved(true);
+    // view->Types.View.send(request);
+    let recv = (view, callback) => {
+      Atom.Disposable.make(_ => ());
+    };
+    //  view->Types.View.recv(callback);
+  };
 };

@@ -106,34 +106,3 @@ let make = (editor: Atom.TextEditor.t) => {
   // expose the interface
   Types.View.make(editor, element, channels, events);
 };
-
-//
-// View
-//
-module Impl = (Editor: Guacamole.Sig.Editor) => {
-  let make = (_, editor) => {
-    let view = make(editor);
-    // show the panel
-    view->send(Show);
-    view;
-  };
-  let destroy = (view: t) => {
-    open Webapi.Dom;
-
-    // unmount the component
-    ReactDOMRe.unmountComponentAtNode(view.element);
-    Element.remove(view.element);
-
-    // remove "gcl" from the class-list of the editor
-    view.editor
-    |> Atom.Views.getView
-    |> Webapi.Dom.HtmlElement.classList
-    |> Webapi.Dom.DomTokenList.remove("gcl");
-  };
-
-  let show = view => view->send(Show);
-  let hide = view => view->send(Hide);
-  // messaging
-  let send = (view, request) => view->Types.View.send(request);
-  let recv = (view, callback) => view->Types.View.recv(callback);
-};
