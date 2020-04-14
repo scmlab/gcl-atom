@@ -3,11 +3,10 @@ open Guacamole.View;
 
 [@react.component]
 let make = (~channels: Channels.t, ~events: Events.t) => {
-  open React;
   let (header, setHeader) = Hook.useState(Request.Header.Loading);
   let (body, setBody) = Hook.useState(Request.Body.Nothing);
   let (activated, setActivation) = Hook.useState(false);
-  let (mode, setMode) = Hook.useState(Response.WP1);
+  let (mode, setMode) = React.useState(_ => Response.WP1);
 
   Hook.useChannel(
     x => x |> setHeader |> Promise.resolved,
@@ -19,46 +18,24 @@ let make = (~channels: Channels.t, ~events: Events.t) => {
     channels.setActivation,
   );
 
-  let onChange = _ => {
-    let newMode =
-      switch (mode) {
-      | WP1 => Response.WP2
-      | WP2 => WP1
-      };
-    events.onSetMode.emit(newMode);
-    setMode(newMode);
-  };
-
-  let headerElem = {
-    <h2 className="gcl-header">
-      {switch (header) {
-       | Loading =>
-         <div className="text-plain"> {string("Loading ...")} </div>
-       | Plain(s) => <div> {string(s)} </div>
-       | Error(s) => <div className="text-error"> {string(s)} </div>
-       }}
-      <div className="gcl-mode">
-        <label className="input-label">
-          <input
-            className="input-toggle"
-            type_="checkbox"
-            checked={
-              switch (mode) {
-              | WP1 => false
-              | WP2 => true
-              }
-            }
-            onChange
-          />
-          {string("WP2")}
-        </label>
-      </div>
-    </h2>;
-  };
+  // mode
+  let onChangeMode = mode => setMode(_ => mode);
+  React.useEffect1(
+    () => {
+      events.onSetMode.emit(mode);
+      None;
+    },
+    [|mode|],
+  );
 
   <Link.Provider value={events.onLink}>
     <section className={activated ? "" : "hidden"}>
-      headerElem
+      <Guacamole.Header
+        header
+        editorType=Guacamole.Sig.Atom
+        mode
+        onChangeMode
+      />
       <Body body />
     </section>
   </Link.Provider>;
