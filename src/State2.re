@@ -1,4 +1,4 @@
-module Impl: Guacamole.State.Sig =
+module Impl: Guacamole.Sig.State =
   (Editor: Guacamole.Sig.Editor) => {
     type editor = Editor.editor;
     type context = Editor.context;

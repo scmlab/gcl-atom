@@ -64,11 +64,12 @@ module View = {
 
   let send = self =>
     fun
-    | Guacamole.View.Request.Show => self.setActivation(true) |> ignore
-    | Hide => self.setActivation(false) |> ignore
+    | Guacamole.View.Request.Show =>
+      self.setActivation(true)->Promise.map(_ => true)
+    | Hide => self.setActivation(false)->Promise.map(_ => true)
     | Display(header, body) => {
         self.setHeader(header) |> ignore;
-        self.setBody(body) |> ignore;
+        self.setBody(body)->Promise.map(_ => true);
       };
 
   open Guacamole.View.Response;
