@@ -34,7 +34,7 @@ module Impl: Guacamole.Sig.State =
       | Some(connection) => Guacamole.Connection.disconnect(connection)
       };
     let sendRequest = (state, request) => {
-      let value = Guacamole.Types.Request.encode(request);
+      let value = Guacamole.Request.encode(request);
       Js.log2("<<<", value);
 
       let%Ok conn = state->connect;

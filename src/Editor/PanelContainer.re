@@ -1,5 +1,4 @@
 open Belt;
-open Types.View;
 
 module PanelContainer = {
   // get "article.gcl-panel-container", create one if not found
@@ -52,6 +51,10 @@ module PanelContainer = {
 };
 
 let make = (editor: Atom.TextEditor.t) => {
+  let editorType = Guacamole.Sig.Atom;
+  // event emitters for communicating with the view
+  let onRequest = Guacamole.Event.make();
+  let onResponse = Guacamole.Event.make();
   open Webapi.Dom;
   let container = PanelContainer.make();
 
@@ -70,39 +73,41 @@ let make = (editor: Atom.TextEditor.t) => {
   // add the element to the container
   PanelContainer.add(container, element);
 
-  // channels for communicating with the view
-  let channels = Channels.make();
-  let events = Events.make();
   // render
-  let component =
-    React.createElementVariadic(
-      Panel.make,
-      Panel.makeProps(~channels, ~events, ()),
-      [||],
-    );
-  ReactDOMRe.render(component, element);
+  // let component =
+  //   React.createElementVariadic(
+  //     Guacamole.Panel.make,
+  //     Guacamole.Panel.makeProps(~editorType, ~onRequest, ~onResponse, ()),
+  //     [||],
+  //   );
+  // ReactDOMRe.render(
+  //   <Guacamole.Panel editorType onRequest onResponse />,
+  //   element,
+  // );
+
   // <Links>
   let linkDict: Js.Dict.t(Atom.Decoration.t) = Js.Dict.empty();
   let delete_: string => unit = [%raw "function (id) {delete linkDict[id]}"];
-  events.onLink.on(
+  onResponse.on(
     fun
-    | MouseOver(loc) => {
+    | Guacamole.View.Response.Link(MouseOver(loc)) => {
         let key = Guacamole.GCL.Loc.toString(loc);
         Js.Dict.set(linkDict, key, Decoration.markLink(loc, editor));
       }
-    | MouseOut(loc) => {
+    | Link(MouseOut(loc)) => {
         let key = Guacamole.GCL.Loc.toString(loc);
         Js.Dict.get(linkDict, key)->Option.forEach(Atom.Decoration.destroy);
         delete_(key);
       }
-    | MouseClick(loc) => {
+    | Link(MouseClick(loc)) => {
         let range = Base2.Loc.toRange(loc);
         // select the range
         Atom.TextEditor.setSelectedScreenRange(range, editor);
-      },
+      }
+    | SetMode(_mode) => (),
   )
   |> ignore;
 
   // expose the interface
-  Types.View.make(editor, element, channels, events);
+  Types.View.make(editor, element, onRequest, onResponse);
 };

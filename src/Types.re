@@ -34,53 +34,45 @@ module View = {
     editor: Atom.TextEditor.t,
     element: Webapi.Dom.Element.t,
     subscriptions: array(unit => unit),
-    setActivation: bool => Promise.t(unit),
-    setHeader: Guacamole.View.Request.Header.t => Promise.t(unit),
-    setBody: Guacamole.View.Request.Body.t => Promise.t(unit),
-    onSetMode: Event.t(Guacamole.View.Response.mode),
-    onLink: Event.t(Guacamole.View.Response.linkEvent),
+    onRequest: Guacamole.Event.t(Guacamole.View.Request.t),
+    onResponse: Guacamole.Event.t(Guacamole.View.Response.t),
+    // setActivation: bool => Promise.t(unit),
+    // setHeader: Guacamole.View.Request.Header.t => Promise.t(unit),
+    // setBody: Guacamole.View.Request.Body.t => Promise.t(unit),
+    // onSetMode: Event.t(Guacamole.View.Response.mode),
+    // onLink: Event.t(Guacamole.View.Response.linkEvent),
   };
 
   let make =
       (
         editor: Atom.TextEditor.t,
         element: Webapi.Dom.Element.t,
-        channels: Channels.t,
-        events: Events.t,
+        onRequest: Guacamole.Event.t(Guacamole.View.Request.t),
+        onResponse: Guacamole.Event.t(Guacamole.View.Response.t),
       ) => {
     editor,
     element,
     subscriptions: [||],
-    setActivation: Channel.sendTo(channels.setActivation),
-    setHeader: Channel.sendTo(channels.setHeader),
-    setBody: Channel.sendTo(channels.setBody),
-    onSetMode: events.onSetMode,
-    onLink: events.onLink,
+    onRequest,
+    onResponse,
+    // setActivation: Channel.sendTo(channels.setActivation),
+    // setHeader: Channel.sendTo(channels.setHeader),
+    // setBody: Channel.sendTo(channels.setBody),
+    // onSetMode: events.onSetMode,
+    // onLink: events.onLink,
   };
 
   let destroy = self => {
     self.subscriptions->Belt.Array.forEach(destructor => destructor());
   };
 
-  let send = self =>
-    fun
-    | Guacamole.View.Request.Show =>
-      self.setActivation(true)->Promise.map(_ => true)
-    | Hide => self.setActivation(false)->Promise.map(_ => true)
-    | Display(header, body) => {
-        self.setHeader(header) |> ignore;
-        self.setBody(body)->Promise.map(_ => true);
-      };
-
-  open Guacamole.View.Response;
+  let send = (self, request) => {
+    self.onRequest.emit(request);
+    Promise.resolved(true);
+  };
 
   let recv = (self, callback) => {
-    self.onSetMode.on(x => callback(SetMode(x)))
-    ->Js.Array.push(self.subscriptions)
-    ->ignore;
-    self.onLink.on(x => callback(Link(x)))
-    ->Js.Array.push(self.subscriptions)
-    ->ignore;
+    self.onResponse.on(callback)->Js.Array.push(self.subscriptions)->ignore;
   };
 };
 
