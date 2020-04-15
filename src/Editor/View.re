@@ -50,7 +50,29 @@ module PanelContainer = {
     container |> Element.appendChild(element);
 };
 
-let make = (editor: Atom.TextEditor.t) => {
+type t = {
+  editor: Atom.TextEditor.t,
+  element: Webapi.Dom.Element.t,
+  subscriptions: array(unit => unit),
+  onRequest: Guacamole.Event.t(Guacamole.View.Request.t),
+  onResponse: Guacamole.Event.t(Guacamole.View.Response.t),
+};
+
+// messaging
+let send = (view, request) => {
+  view.onRequest.emit(request);
+  Promise.resolved(true);
+};
+let recv = (view, callback) => {
+  view.onResponse.on(callback)->Js.Array.push(view.subscriptions)->ignore;
+  Atom.Disposable.make(_ => ());
+};
+
+// show/hide
+let show = view => view->send(Show)->ignore;
+let hide = view => view->send(Hide)->ignore;
+
+let make = (_context, editor: Atom.TextEditor.t) => {
   let editorType = Guacamole.Sig.Atom;
   // event emitters for communicating with the view
   let onRequest = Guacamole.Event.make();
@@ -102,6 +124,24 @@ let make = (editor: Atom.TextEditor.t) => {
   )
   |> ignore;
 
-  // expose the interface
-  Types.View.make(editor, element, onRequest, onResponse);
+  let view = {editor, element, subscriptions: [||], onRequest, onResponse};
+
+  // show the panel
+  view->send(Show)->ignore;
+
+  view;
+};
+
+let destroy = view => {
+  // unmount the component
+  ReactDOMRe.unmountComponentAtNode(view.element);
+  Webapi.Dom.Element.remove(view.element);
+
+  // remove "gcl" from the class-list of the editor
+  view.editor
+  |> Atom.Views.getView
+  |> Webapi.Dom.HtmlElement.classList
+  |> Webapi.Dom.DomTokenList.remove("gcl");
+
+  view.subscriptions->Belt.Array.forEach(destructor => destructor());
 };

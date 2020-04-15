@@ -9,7 +9,7 @@ module Impl:
   type editor = TextEditor.t;
   type context = CompositeDisposable.t;
   type disposable = Disposable.t;
-  type view = Types.View.t;
+  type view = View.t;
   type point = Point.t;
   type range = Atom.Range.t;
   type fileName = string;
@@ -151,34 +151,5 @@ module Impl:
     let getGCLPath = () => Config.get("gcl-atom.path");
   };
 
-  module View = {
-    let make = (_, editor) => {
-      let view = PanelContainer.make(editor);
-      // show the panel
-      view->Types.View.send(Show);
-      view;
-    };
-    let destroy = view => {
-      open Types.View;
-      // unmount the component
-      ReactDOMRe.unmountComponentAtNode(view.element);
-      Webapi.Dom.Element.remove(view.element);
-
-      // remove "gcl" from the class-list of the editor
-      view.editor
-      |> Atom.Views.getView
-      |> Webapi.Dom.HtmlElement.classList
-      |> Webapi.Dom.DomTokenList.remove("gcl");
-    };
-
-    let show = view => view->Types.View.send(Show)->ignore;
-    //
-    let hide = view => view->Types.View.send(Hide)->ignore;
-    // messaging
-    let send = (view, request) => view->Types.View.send(request);
-    let recv = (view, callback) => {
-      Atom.Disposable.make(_ => ());
-    };
-    //  view->Types.View.recv(callback);
-  };
+  module View = View;
 };
