@@ -74,16 +74,10 @@ let make = (editor: Atom.TextEditor.t) => {
   PanelContainer.add(container, element);
 
   // render
-  // let component =
-  //   React.createElementVariadic(
-  //     Guacamole.Panel.make,
-  //     Guacamole.Panel.makeProps(~editorType, ~onRequest, ~onResponse, ()),
-  //     [||],
-  //   );
-  // ReactDOMRe.render(
-  //   <Guacamole.Panel editorType onRequest onResponse />,
-  //   element,
-  // );
+  ReactDOMRe.render(
+    <Guacamole.Panel editorType onRequest onResponse />,
+    element,
+  );
 
   // <Links>
   let linkDict: Js.Dict.t(Atom.Decoration.t) = Js.Dict.empty();

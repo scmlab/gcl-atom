@@ -23,16 +23,18 @@
   "dependencies": {
     "@glennsl/bs-json": "^5.0.1",
     "agda-mode": "github:banacorn/agda-mode#dev",
-    "guacamole": "~/reason/gcl-vscode",
     "bs-atom2": "^1.40.1",
     "bs-let": "^0.1.11",
     "bs-nd": "^0.1.5",
     "bs-platform": "^7.2",
     "bs-webapi": "^0.15.3",
-    "react": "^16.9.0",
-    "react-dom": "^16.9.0",
+    "guacamole": "/Users/banacorn/reason/gcl-vscode",
     "reason-promise": "^1.0.1",
     "reason-react": ">=0.7.0",
     "reason-react-update": "^0.1.1"
+  },
+  "resolutions": {
+    "**/react": "16.9.0",
+    "**/react-dom": "16.9.0"
   }
 }

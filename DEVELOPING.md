@@ -24,8 +24,8 @@ Requests and responses are encoded in JSON format.
 ```
 git clone git@github.com:scmlab/gcl-atom.git
 apm develop gcl-atom <cloned directory>
-cd <cloned directory> && npm install
-npm run build
+cd <cloned directory> && yarn
+yarn run build
 ```
 
 To open some file in the development mode:
@@ -37,7 +37,7 @@ atom -d file.gcl
 To keep the BuckleScript transpiler running in watch mode:
 
 ```
-npm run start
+yarn run start
 ```
 
 ## Files
