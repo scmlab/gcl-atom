@@ -136,7 +136,10 @@ module Prec = {
       | Const(s, loc) => Complete(<Link loc> {string(s)} </Link>)
       | Lit(lit, loc) =>
         Complete(<Link loc> {string(Lit.toString(lit))} </Link>)
-      | Op(op, loc) => handleOperator(n, op, loc)
+      | Op(op, loc) =>
+        // HACK: if the precedence is smaller than 0, display the operator directly
+        n >= 0
+          ? handleOperator(n, op, loc) : Complete(<Operator value=op loc />)
       | App(p, q, _) =>
         switch (handleExpr(n, p)) {
         | Expect(f) => f(q)
@@ -156,7 +159,7 @@ module Prec = {
           <Link loc>
             {string("<")}
             <Space />
-            <Self prec=0 value=op />
+            <Self prec=(-1) value=op />
             <Space />
             {Util.React.sepBy(
                <Space />,
