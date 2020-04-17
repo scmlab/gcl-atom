@@ -3,12 +3,14 @@ open! Belt;
 
 module Impl:
   Guacamole.Sig.Editor with
-    type editor = TextEditor.t and
-    type context = CompositeDisposable.t and
-    type disposable = Disposable.t = {
+    type editor = TextEditor.t and type context = CompositeDisposable.t = {
   type editor = TextEditor.t;
   type context = CompositeDisposable.t;
-  type disposable = Disposable.t;
+  module Disposable = {
+    type t = Disposable.t;
+    let make = Disposable.make;
+    let dispose = Disposable.dispose;
+  };
   type view = View.t;
   type point = Point.t;
   type range = Atom.Range.t;

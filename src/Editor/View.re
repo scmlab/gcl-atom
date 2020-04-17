@@ -120,7 +120,8 @@ let make = (_context, editor: Atom.TextEditor.t) => {
         // select the range
         Atom.TextEditor.setSelectedScreenRange(range, editor);
       }
-    | SetMode(_mode) => (),
+    | SetMode(_mode) => ()
+    | Destroy => (),
   )
   |> ignore;
 
