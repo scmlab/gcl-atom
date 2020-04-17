@@ -47,6 +47,42 @@ rm -rf lib
 yarn run build && apm rebuild
 ```
 
+## Developing gcl-atom along side gcl-vscode
+
+Since `gcl-atom` depends on `gcl-vscode`, it would be nice for `gcl-atom` to have direct access to `gcl-vscode` on the disk, so that any changes made to `gcl-vscode` would also reflect on `gcl-atom`.
+
+To achieve this, we first we need to create a "link". 
+Assuming `gcl-atom` and `gcl-vscode` are siblings in the same directory.
+This should create a link called "guacamole":
+
+```
+cd gcl-vscode/
+yarn link
+```
+
+This should redirect the dependency to the one on you disk.
+
+```
+cd ../gcl-atom
+yarn link guacamole
+```
+
+However, this would create 2 copies of `react` on the `gcl-atom` side, and [break the view](https://reactjs.org/warnings/invalid-hook-call-warning.html). To solve this, we will do the trick again. This time we are creating a link for `react`.
+
+First, go to `gcl-vscode`'s `node_modules/react` (assuming you have executed `yarn` on `gcl-vscode`), and create the link called `react`.
+
+```
+cd gcl-vscode/node_modules/react
+yarn link
+```
+
+Then go back to `gcl-vscode` to use the link:
+
+```
+cd ../gcl-atom
+yarn link react
+```
+
 ## Files
 
 ```
