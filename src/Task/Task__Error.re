@@ -23,13 +23,13 @@ module StructError = {
           Plain("Assertion before the DO construct is missing"),
         ),
       ]
-    | MissingLoopInvariant => [
-        AddDecorations(Decoration.markSite(site)),
-        Display(
-          Error("Loop Invariant Missing"),
-          Plain("Loop invariant before the DO construct is missing"),
-        ),
-      ]
+    // | MissingLoopInvariant => [
+    //     AddDecorations(Decoration.markSite(site)),
+    //     Display(
+    //       Error("Loop Invariant Missing"),
+    //       Plain("Loop invariant before the DO construct is missing"),
+    //     ),
+    //   ]
     | ExcessBound => [
         AddDecorations(Decoration.markSite(site)),
         Display(
@@ -37,6 +37,69 @@ module StructError = {
           Plain("Unnecessary bound annotation at this assertion"),
         ),
       ]
+    // | MissingPrecondition => [
+    //     Display(
+    //       Error("Precondition Missing"),
+    //       Plain("The first statement of the program should be an assertion"),
+    //     ),
+    //   ]
+    | MissingPostcondition => [
+        Display(
+          Error("Postcondition Missing"),
+          Plain("The last statement of the program should be an assertion"),
+        ),
+      ]
+    | DigHole => [
+        WithState(
+          state => {
+            let%P _ = state |> Spec.digHole(site);
+            switch (state.history) {
+            | Some(Types.Request.Refine(_)) =>
+              Promise.resolved([
+                DispatchCommand(Save),
+                DispatchCommand(Refine),
+              ])
+            | _ => Promise.resolved([DispatchCommand(Save)])
+            };
+          },
+        ),
+      ];
+};
+
+module StructError2 = {
+  open Response.Error.StructError2;
+  let handle = site =>
+    fun
+    | MissingBound => [
+        AddDecorations(Decoration.markSite(site)),
+        Display(
+          Error("Bound Missing"),
+          Plain(
+            "Bound missing at the end of the assertion before the DO construct \" , bnd : ... }\"",
+          ),
+        ),
+      ]
+    // | MissingAssertion => [
+    //     AddDecorations(Decoration.markSite(site)),
+    //     Display(
+    //       Error("Assertion Missing"),
+    //       Plain("Assertion before the DO construct is missing"),
+    //     ),
+    //   ]
+    | MissingLoopInvariant => [
+        AddDecorations(Decoration.markSite(site)),
+        Display(
+          Error("Loop Invariant Missing"),
+          Plain("Loop invariant before the DO construct is missing"),
+        ),
+      ]
+    // | ExcessBound => [
+    //     AddDecorations(Decoration.markSite(site)),
+    //     Display(
+    //       Error("Excess Bound"),
+    //       Plain("Unnecessary bound annotation at this assertion"),
+    //     ),
+    //   ]
     | MissingPrecondition => [
         Display(
           Error("Precondition Missing"),
@@ -48,6 +111,9 @@ module StructError = {
           Error("Postcondition Missing"),
           Plain("The last statement of the program should be an assertion"),
         ),
+      ]
+    | PreconditionUnknown => [
+        Display(Error("Precondition Unknown"), Plain("")),
       ]
     | DigHole => [
         WithState(
@@ -84,6 +150,7 @@ let handle = error => {
       ),
     ]
   | StructError(error) => StructError.handle(site, error)
+  | StructError2(error) => StructError2.handle(site, error)
   | TypeError(NotInScope(name)) => [
       AddDecorations(Decoration.markSite(site)),
       Display(
