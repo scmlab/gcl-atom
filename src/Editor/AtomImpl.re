@@ -154,4 +154,24 @@ module Impl:
   };
 
   module View = View;
+
+  // rewrite "?" to "{!!}"
+  let digHole = (editor, range) => {
+    let start = Atom.Range.start(range);
+    // add indentation to the hole
+    let indent = Js.String.repeat(Atom.Point.column(start), " ");
+    let holeText = "{!\n" ++ indent ++ "\n" ++ indent ++ "!}";
+    let holeRange =
+      Atom.Range.make(
+        start,
+        Atom.Point.translate(start, Atom.Point.make(0, 1)),
+      );
+    editor
+    |> Atom.TextEditor.setTextInBufferRange(holeRange, holeText)
+    |> ignore;
+    // set the cursor inside the hole
+    let cursorPos = Atom.Point.translate(start, Atom.Point.make(1, 0));
+    editor |> Atom.TextEditor.setCursorBufferPosition(cursorPos);
+    Promise.resolved();
+  };
 };
