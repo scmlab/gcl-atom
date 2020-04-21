@@ -14,6 +14,7 @@ module Impl:
   type view = View.t;
   type point = Point.t;
   type range = Atom.Range.t;
+  type decoration = Atom.Decoration.t;
   type fileName = string;
 
   // // if it ends with '.gcl'
@@ -155,23 +156,83 @@ module Impl:
 
   module View = View;
 
-  // rewrite "?" to "{!!}"
-  let digHole = (editor, range) => {
-    let start = Atom.Range.start(range);
-    // add indentation to the hole
-    let indent = Js.String.repeat(Atom.Point.column(start), " ");
-    let holeText = "{!\n" ++ indent ++ "\n" ++ indent ++ "!}";
-    let holeRange =
-      Atom.Range.make(
-        start,
-        Atom.Point.translate(start, Atom.Point.make(0, 1)),
-      );
-    editor
-    |> Atom.TextEditor.setTextInBufferRange(holeRange, holeText)
-    |> ignore;
-    // set the cursor inside the hole
-    let cursorPos = Atom.Point.translate(start, Atom.Point.make(1, 0));
-    editor |> Atom.TextEditor.setCursorBufferPosition(cursorPos);
-    Promise.resolved();
+  module Decoration = {
+    // rewrite "?" to "{!!}"
+    let digHole = (editor, range) => {
+      let start = Atom.Range.start(range);
+      // add indentation to the hole
+      let indent = Js.String.repeat(Atom.Point.column(start), " ");
+      let holeText = "{!\n" ++ indent ++ "\n" ++ indent ++ "!}";
+      let holeRange =
+        Atom.Range.make(
+          start,
+          Atom.Point.translate(start, Atom.Point.make(0, 1)),
+        );
+      editor
+      |> Atom.TextEditor.setTextInBufferRange(holeRange, holeText)
+      |> ignore;
+      // set the cursor inside the hole
+      let cursorPos = Atom.Point.translate(start, Atom.Point.make(1, 0));
+      editor |> Atom.TextEditor.setCursorBufferPosition(cursorPos);
+    };
+
+    let markBackground = (editor: editor, range: range) => {
+      let createOverlay =
+          (text, class_, tail: bool, translation: (int, int), range, editor) => {
+        open Webapi.Dom;
+
+        // create an element for the overlay
+        let element = Webapi.Dom.document |> Document.createElement("div");
+        Element.setInnerHTML(element, text);
+        element |> Element.classList |> DomTokenList.add(class_);
+
+        // adjusting the position of the overlay
+        // setStyle is not supported by Reason Webapi for the moment, so we use setAttribute instead
+
+        let (y, x) = translation;
+        let left = x;
+        let top = float_of_int(y - 1) *. 1.5;
+
+        element
+        |> Element.setAttribute(
+             "style",
+             "left: "
+             ++ string_of_int(left)
+             ++ "ex; top: "
+             ++ Js.Float.toString(top)
+             ++ "em",
+           );
+
+        // decorate
+        let marker = editor |> TextEditor.markBufferRange(range);
+        let option =
+          TextEditor.decorateMarkerOptions(
+            ~type_="overlay",
+            ~position=tail ? "tail" : "head",
+            ~item=Element.unsafeAsHtmlElement(element),
+            (),
+          );
+        TextEditor.decorateMarker(marker, option, editor);
+      };
+      let createMarker = (type_, class_, range, editor) => {
+        let marker = TextEditor.markBufferRange(range, editor);
+        let option = TextEditor.decorateMarkerOptions(~type_, ~class_, ());
+        Atom.TextEditor.decorateMarker(marker, option, editor);
+      };
+
+      // create a "empty string" of some length, we want the underline
+      let length =
+        editor
+        |> Atom.TextEditor.getTextInBufferRange(range)
+        |> Js.String.length;
+      let text = Js.String.repeat(length, "&nbsp;");
+      //
+      [|
+        createOverlay(text, "overlay-error", true, (0, 0), range, editor),
+        createMarker("line-number", "line-number-error", range, editor),
+      |];
+    };
+
+    let destroy = Atom.Decoration.destroy;
   };
 };
