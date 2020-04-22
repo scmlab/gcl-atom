@@ -12,8 +12,43 @@ module Impl:
     let dispose = Disposable.dispose;
   };
   type view = View.t;
-  type point = Point.t;
-  type range = Atom.Range.t;
+
+  module Point = {
+    type t = Point.t;
+    let make = Point.make;
+    let line = Point.row;
+    let column = Point.column;
+    let translate = (p, x, y) => Point.translate(Point.make(x, y), p);
+    open Guacamole.GCL.Pos;
+    let fromPos =
+      fun
+      | Pos(_, line, column) => make(line - 1, column - 1);
+    let toPos = (filepath, point) => {
+      Pos(filepath, line(point) + 1, column(point) + 1);
+    };
+  };
+
+  module Range = {
+    type t = Atom.Range.t;
+    let make = Atom.Range.make;
+    let start = Atom.Range.start;
+    let end_ = Atom.Range.end_;
+    open Guacamole.GCL.Loc;
+    let fromLoc =
+      fun
+      | NoLoc => make(Point.make(0, 0), Point.make(0, 0))
+      | Loc(x, Pos(_, line, column)) =>
+        make(Point.fromPos(x), Point.make(line - 1, column));
+    let toLoc = (filepath, range) => {
+      let start = start(range);
+      let end_ = end_(range);
+      Loc(
+        Pos(filepath, Point.line(start) + 1, Point.column(start) + 1),
+        Pos(filepath, Point.line(end_) + 1, Point.column(end_)),
+      );
+    };
+  };
+
   type decoration = Atom.Decoration.t;
   type fileName = string;
 
@@ -41,37 +76,6 @@ module Impl:
         | Error(_) => false
         | Ok(_) => true,
       );
-
-  let toPoint =
-    fun
-    | Guacamole.GCL.Pos.Pos(_, line, column) =>
-      Atom.Point.make(line - 1, column - 1);
-  let fromPoint = (filepath, point) => {
-    Guacamole.GCL.Pos.Pos(
-      filepath,
-      Atom.Point.row(point) + 1,
-      Atom.Point.column(point) + 1,
-    );
-  };
-
-  let toRange =
-    fun
-    | Guacamole.GCL.Loc.NoLoc =>
-      Atom.Range.make(Atom.Point.make(0, 0), Atom.Point.make(0, 0))
-    | Loc(x, Pos(_, line, column)) =>
-      Atom.Range.make(toPoint(x), Atom.Point.make(line - 1, column));
-  let fromRange = (filepath, range) => {
-    let start = Atom.Range.start(range);
-    let end_ = Atom.Range.end_(range);
-    Guacamole.GCL.Loc.Loc(
-      Pos(
-        filepath,
-        Atom.Point.row(start) + 1,
-        Atom.Point.column(start) + 1,
-      ),
-      Pos(filepath, Atom.Point.row(end_) + 1, Atom.Point.column(end_)),
-    );
-  };
 
   let addToSubscriptions = (disposable, subscriptions) =>
     disposable |> CompositeDisposable.add(subscriptions);
@@ -157,6 +161,10 @@ module Impl:
   module View = View;
 
   module Decoration = {
+    type kind =
+      | Error
+      | Spec;
+
     // rewrite "?" to "{!!}"
     let digHole = (editor, range) => {
       let start = Atom.Range.start(range);
@@ -176,13 +184,27 @@ module Impl:
       editor |> Atom.TextEditor.setCursorBufferPosition(cursorPos);
     };
 
-    let markBackground = (editor: editor, range: range) => {
+    let highlightBackground = (editor: editor, kind: kind, range: Range.t) => {
+      let createMarker = (class_, range) => {
+        let marker = TextEditor.markBufferRange(range, editor);
+        let option =
+          TextEditor.decorateMarkerOptions(~type_="highlight", ~class_, ());
+        Atom.TextEditor.decorateMarker(marker, option, editor);
+      };
+      switch (kind) {
+      | Error => [|createMarker("highlight-error", range)|]
+      | Spec => [|createMarker("highlight-spec", range)|]
+      };
+    };
+
+    let overlayText =
+        (editor: editor, kind: kind, text: string, range: Range.t) => {
       let createOverlay =
-          (text, class_, tail: bool, translation: (int, int), range, editor) => {
+          (text, class_, tail: bool, translation: (int, int), range) => {
         open Webapi.Dom;
 
         // create an element for the overlay
-        let element = Webapi.Dom.document |> Document.createElement("div");
+        let element = document |> Document.createElement("div");
         Element.setInnerHTML(element, text);
         element |> Element.classList |> DomTokenList.add(class_);
 
@@ -214,23 +236,15 @@ module Impl:
           );
         TextEditor.decorateMarker(marker, option, editor);
       };
-      let createMarker = (type_, class_, range, editor) => {
-        let marker = TextEditor.markBufferRange(range, editor);
-        let option = TextEditor.decorateMarkerOptions(~type_, ~class_, ());
-        Atom.TextEditor.decorateMarker(marker, option, editor);
-      };
 
-      // create a "empty string" of some length, we want the underline
-      let length =
-        editor
-        |> Atom.TextEditor.getTextInBufferRange(range)
-        |> Js.String.length;
-      let text = Js.String.repeat(length, "&nbsp;");
-      //
-      [|
-        createOverlay(text, "overlay-error", true, (0, 0), range, editor),
-        createMarker("line-number", "line-number-error", range, editor),
-      |];
+      switch (kind) {
+      | Error => [|
+          createOverlay(text, "overlay-error", true, (0, 0), range),
+        |]
+      | Spec => [|
+          createOverlay(text, "overlay-spec", false, (0, 1), range),
+        |]
+      };
     };
 
     let destroy = Atom.Decoration.destroy;

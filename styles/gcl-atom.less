@@ -11,40 +11,41 @@
   // original unshifted position would block some events (e.g. mouse clicks)
   // from getting through.
   atom-overlay {
-      pointer-events: none;
+    pointer-events: none;
   }
 
   // line-number
   .line-number-error {
-    @color: saturate(@background-color-error, 100%);
+    @color    : saturate(@background-color-error, 100%);
     background: fade(mix(@color, @syntax-background-color, 80%), 50%) !important;
   }
 
-  // overlay
+  // text overlays
+  .overlay-spec {
+    color   : @text-color-subtle;
+    position: relative;
+  }
+
   .overlay-error {
     border-bottom: dotted red 2px;
-    position: relative;
+    position     : relative;
   }
 
-  .overlay-spec-text {
-    color: @text-color-subtle;
-    position: relative;
-  }
 
-  // highlight
-  .highlight-spec-soft {
-    @color: saturate(@background-color-info, 100%);
-    background: fade(mix(@color, @syntax-background-color, 60%), 50%);
-  }
-
-  .highlight-spec-hard {
-    @color: saturate(@background-color-warning, 100%);
+  // background highlightings
+  .highlight-spec {
+    @color    : saturate(@background-color-info, 100%);
     background: fade(mix(@color, @syntax-background-color, 60%), 50%);
   }
 
   .highlight-link {
-    @color: saturate(@background-color-warning, 100%);
+    @color    : saturate(@background-color-warning, 100%);
     background: fade(mix(@color, @syntax-background-color, 60%), 50%);
+  }
+
+  .highlight-error {
+    @color    : saturate(@background-color-error, 100%);
+    background: fade(@background-color-error, 50%);
   }
 }
 
@@ -52,17 +53,19 @@
 .gcl-panel {
 
   // For hiding React components
-  .hidden { display: none }
+  .hidden {
+    display: none
+  }
 
-	font-size: var(--editor-font-size) !important;
-	line-height: var(--editor-line-height) !important;
+  font-size  : var(--editor-font-size) !important;
+  line-height: var(--editor-line-height) !important;
 
   .gcl-header {
     font-size: 100%;
-    margin: 0;
-    padding: @component-padding * 2 @component-padding;
+    margin   : 0;
+    padding  : @component-padding * 2 @component-padding;
 
-    display: flex;
+    display        : flex;
     justify-content: space-between;
 
     .gcl-mode {
@@ -78,8 +81,8 @@
     overflow-y: scroll;
 
     .gcl-body-item {
-      background: @base-background-color;
-      padding: @component-padding;
+      background   : @base-background-color;
+      padding      : @component-padding;
       margin-bottom: @component-padding * 2;
     }
 
@@ -95,29 +98,35 @@
 
     .gcl-proof-obligation-list {
       list-style: none;
-      padding: 0;
-      margin: 0;
+      padding   : 0;
+      margin    : 0;
 
       li {
-        display: flex;
-        flex-wrap: wrap;
+        display        : flex;
+        flex-wrap      : wrap;
         justify-content: space-between;
-        align-items: flex-start;
+        align-items    : flex-start;
 
         .gcl-proof-obligation-message {
           // display: none;
-          width: 100%;
+          width     : 100%;
 
-          font-size: 75%;
+          font-size   : 75%;
           font-variant: small-caps;
-          font-weight: bolder;
-          color: @text-color-subtle;
+          font-weight : bolder;
+          color       : @text-color-subtle;
         }
 
-        .gcl-proof-obligation-antecedent { width: 45% }
-        .gcl-proof-obligation-consequent { width: 45% }
-        .gcl-proof-obligation-arrow      {
-          width: 10%;
+        .gcl-proof-obligation-antecedent {
+          width: 45%
+        }
+
+        .gcl-proof-obligation-consequent {
+          width: 45%
+        }
+
+        .gcl-proof-obligation-arrow {
+          width     : 10%;
           text-align: center;
         }
       }
@@ -127,79 +136,126 @@
 
 
   .expr {
-    white-space:pre;
-    color: @text-color-highlight;
+    white-space: pre;
+    color      : @text-color-highlight;
 
     display: inline-flex;
 
     .expr-paren {
       cursor: zoom-out;
-      &.hovered { color: @text-color-selected }
-      &.collapsed { cursor: zoom-in }
+
+      &.hovered {
+        color: @text-color-selected
+      }
+
+      &.collapsed {
+        cursor: zoom-in
+      }
     }
 
     .expr-link {
       display: inline-flex;
-      &:hover { color: @text-color-selected }
+
+      &:hover {
+        color: @text-color-selected
+      }
     }
   }
 
   .marker {
-    display: inline-flex;
+    display       : inline-flex;
     flex-direction: column;
 
     // color: @background-color-success;
 
     // cursor: pointer;
 
-//     &.marker-assertion .marker-content {
-//       // color: desaturate(@text-color-error, 30%) !important;
-//       // color: red;
-// // @background-color-selected ;
-//     }
+    //     &.marker-assertion .marker-content {
+    //       // color: desaturate(@text-color-error, 30%) !important;
+    //       // color: red;
+    // // @background-color-selected ;
+    //     }
 
     .marker-line {
-      height: 8px;
+      height       : 8px;
       border-bottom: 4px @text-color-subtle;
 
 
-      &:hover { border-color: @text-color }
+      &:hover {
+        border-color: @text-color
+      }
 
-      &.marker-guard { border-bottom-style: dashed }
-      &.marker-assertion { border-bottom-style: solid }
+      &.marker-guard {
+        border-bottom-style: dashed
+      }
 
-      &.marker-if { border-color: desaturate(@background-color-success, 30%);  }
-      &.marker-if:hover { border-color: @text-color-success }
+      &.marker-assertion {
+        border-bottom-style: solid
+      }
 
-      &.marker-loop { border-color: desaturate(@background-color-info, 30%); }
-      &.marker-loop:hover { border-color: @text-color-info }
+      &.marker-if {
+        border-color: desaturate(@background-color-success, 30%);
+      }
+
+      &.marker-if:hover {
+        border-color: @text-color-success
+      }
+
+      &.marker-loop {
+        border-color: desaturate(@background-color-info, 30%);
+      }
+
+      &.marker-loop:hover {
+        border-color: @text-color-info
+      }
 
       &.marker-bound {
         border-bottom-style: solid;
-        border-color: desaturate(@background-color-warning, 30%);
+        border-color       : desaturate(@background-color-warning, 30%);
       }
-      &.marker-bound:hover { border-color: @text-color-warning }
 
-      &:marker { background: lighten(@background-color-selected, 5%) }
+      &.marker-bound:hover {
+        border-color: @text-color-warning
+      }
+
+      &:marker {
+        background: lighten(@background-color-selected, 5%)
+      }
     }
 
     .marker-text {
-      display: none;
+      display   : none;
       text-align: center;
 
-      font-size: 75%;
+      font-size   : 75%;
       font-variant: small-caps;
-      font-weight: bolder;
-      color: @text-color-subtle;
+      font-weight : bolder;
+      color       : @text-color-subtle;
 
-      &.marker-if { color: desaturate(@background-color-success, 30%) }
-      &.marker-if:hover { color: @text-color-success }
+      &.marker-if {
+        color: desaturate(@background-color-success, 30%)
+      }
+
+      &.marker-if:hover {
+        color: @text-color-success
+      }
+
       //
-      &.marker-loop { color: desaturate(@background-color-info, 30%) }
-      &.marker-loop:hover { color: @text-color-info }
+      &.marker-loop {
+        color: desaturate(@background-color-info, 30%)
+      }
 
-      &.marker-bound { color: desaturate(@background-color-warning, 30%); }
-      &.marker-bound:hover { color: @text-color-warning }
+      &.marker-loop:hover {
+        color: @text-color-info
+      }
+
+      &.marker-bound {
+        color: desaturate(@background-color-warning, 30%);
+      }
+
+      &.marker-bound:hover {
+        color: @text-color-warning
+      }
 
     }
 
@@ -209,8 +265,14 @@
 
 // prevents goal indices from floating above the status bar
 // see #14: https://github.com/banacorn/agda-mode/issues/14
-status-bar.status-bar           { z-index: 4 }
-atom-pane > [is="atom-tabs"]    { z-index: 5 }
+status-bar.status-bar {
+  z-index: 4
+}
+
+atom-pane>[is="atom-tabs"] {
+  z-index: 5
+}
+
 atom-text-editor[data-grammar~="gcl"] {
-    z-index: 0;
+  z-index: 0;
 }
