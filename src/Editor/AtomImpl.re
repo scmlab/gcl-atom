@@ -49,7 +49,6 @@ module Impl:
     };
   };
 
-  type decoration = Atom.Decoration.t;
   type fileName = string;
 
   let editorType = Guacamole.Sig.Atom;
@@ -153,4 +152,7 @@ module Impl:
 
   module View = View;
   module Decoration = GclAtom.Decoration;
+
+  let select = (editor, range) =>
+    Atom.TextEditor.setSelectedScreenRange(range, editor);
 };

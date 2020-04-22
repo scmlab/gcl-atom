@@ -1,7 +1,10 @@
 open Atom;
 
+type t = Atom.Decoration.t;
+
 type kind =
   | Error
+  | Highlight
   | Spec;
 
 // rewrite "?" to "{!!}"
@@ -32,6 +35,7 @@ let highlightBackground = (editor, kind: kind, range) => {
   };
   switch (kind) {
   | Error => [|createMarker("highlight-error", range)|]
+  | Highlight => [|createMarker("highlight-link", range)|]
   | Spec => [|createMarker("highlight-spec", range)|]
   };
 };
@@ -77,6 +81,9 @@ let overlayText = (editor, kind: kind, text: string, range: Range.t) => {
 
   switch (kind) {
   | Error => [|createOverlay(text, "overlay-error", true, (0, 0), range)|]
+  | Highlight => [|
+      createOverlay(text, "overlay-link", false, (0, 1), range),
+    |]
   | Spec => [|createOverlay(text, "overlay-spec", false, (0, 1), range)|]
   };
 };
