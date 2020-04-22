@@ -102,29 +102,30 @@ let make = (_context, editor: Atom.TextEditor.t) => {
   );
 
   // <Links>
-  let linkDict: Js.Dict.t(Atom.Decoration.t) = Js.Dict.empty();
-  let delete_: string => unit = [%raw "function (id) {delete linkDict[id]}"];
-  onResponse.on(
-    fun
-    | Guacamole.View.Response.Link(MouseOver(loc)) => {
-        let key = Guacamole.GCL.Loc.toString(loc);
-        Js.Dict.set(linkDict, key, Decoration.markLink(loc, editor));
-      }
-    | Link(MouseOut(loc)) => {
-        let key = Guacamole.GCL.Loc.toString(loc);
-        Js.Dict.get(linkDict, key)->Option.forEach(Atom.Decoration.destroy);
-        delete_(key);
-      }
-    | Link(MouseClick(loc)) => {
-        let range = Base2.Loc.toRange(loc);
-        // select the range
-        Atom.TextEditor.setSelectedScreenRange(range, editor);
-      }
-    | SetMode(_mode) => ()
-    | Initialized => ()
-    | Destroyed => (),
-  )
-  |> ignore;
+  // let linkDict: Js.Dict.t(Atom.Decoration.t) = Js.Dict.empty();
+  // let delete_: string => unit = [%raw "function (id) {delete linkDict[id]}"];
+  // onResponse.on(
+  //   fun
+  //   | Guacamole.View.Response.Link(MouseOver(loc)) => {
+  //       let key = Guacamole.GCL.Loc.toString(loc);
+  //       // Js.Dict.set(linkDict, key, Decoration.markLink(loc, editor));
+  //       ();
+  //     }
+  //   | Link(MouseOut(loc)) => {
+  //       let key = Guacamole.GCL.Loc.toString(loc);
+  //       Js.Dict.get(linkDict, key)->Option.forEach(Atom.Decoration.destroy);
+  //       delete_(key);
+  //     }
+  //   | Link(MouseClick(loc)) => {
+  //       // let range = Base2.Loc.toRange(loc);
+  //       // select the range
+  //       Atom.TextEditor.setSelectedScreenRange(range, editor);
+  //     }
+  //   | SetMode(_mode) => ()
+  //   | Initialized => ()
+  //   | Destroyed => (),
+  // )
+  // |> ignore;
 
   let view = {editor, element, subscriptions: [||], onRequest, onResponse};
 
