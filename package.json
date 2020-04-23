@@ -1,6 +1,6 @@
 {
   "name": "gcl-atom",
-  "main": "./lib/js/src/Main2.bs.js",
+  "main": "./lib/js/src/Main.bs.js",
   "version": "0.0.0",
   "description": "A short description of your package",
   "keywords": [],
@@ -28,7 +28,7 @@
     "bs-nd": "^0.1.5",
     "bs-platform": "^7.2",
     "bs-webapi": "^0.15.3",
-    "guacamole": "github:scmlab/gcl-vscode",
+    "guacamole": "github:scmlab/gcl-vscode#cc339e",
     "reason-promise": "^1.0.1",
     "reason-react": ">=0.7.0",
     "reason-react-update": "^0.1.1"
