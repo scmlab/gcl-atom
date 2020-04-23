@@ -1,6 +1,4 @@
 open Belt;
-open Base;
-open Types.View;
 
 module PanelContainer = {
   // get "article.gcl-panel-container", create one if not found
@@ -8,9 +6,9 @@ module PanelContainer = {
   external asElement:
     Webapi.Dom.HtmlElement.t_htmlElement => Webapi.Dom.Element.t =
     "%identity";
+  open Webapi.Dom;
 
-  let make = (): Webapi.Dom.Element.t => {
-    open Webapi.Dom;
+  let make = (): Element.t => {
     open DomTokenList;
 
     // create "article.gcl-panel-container"
@@ -27,6 +25,7 @@ module PanelContainer = {
       panelContainer;
     };
 
+    // see if the container has already been created
     let containers =
       Atom.Workspace.getBottomPanels()
       ->Array.map(Atom.Views.getView)
@@ -46,9 +45,38 @@ module PanelContainer = {
     | Some(container) => asElement(container)
     };
   };
+
+  let add = (container, element) =>
+    container |> Element.appendChild(element);
 };
 
-let make = (editor: Atom.TextEditor.t) => {
+type t = {
+  editor: Atom.TextEditor.t,
+  element: Webapi.Dom.Element.t,
+  subscriptions: array(unit => unit),
+  onRequest: Guacamole.Event.t(Guacamole.View.Request.t),
+  onResponse: Guacamole.Event.t(Guacamole.View.Response.t),
+};
+
+// messaging
+let send = (view, request) => {
+  view.onRequest.emit(request);
+  Promise.resolved(true);
+};
+let recv = (view, callback) => {
+  view.onResponse.on(callback)->Js.Array.push(view.subscriptions)->ignore;
+  Atom.Disposable.make(_ => ());
+};
+
+// show/hide
+let show = view => view->send(Show)->ignore;
+let hide = view => view->send(Hide)->ignore;
+
+let make = (_context, editor: Atom.TextEditor.t) => {
+  let editorType = Guacamole.Sig.Atom;
+  // event emitters for communicating with the view
+  let onRequest = Guacamole.Event.make();
+  let onResponse = Guacamole.Event.make();
   open Webapi.Dom;
   let container = PanelContainer.make();
 
@@ -63,64 +91,34 @@ let make = (editor: Atom.TextEditor.t) => {
   element |> Element.setAttribute("tabIndex", "-1");
   element |> Element.classList |> DomTokenList.add("gcl-panel");
   element |> Element.classList |> DomTokenList.add("native-key-bindings");
-  //
-  let id = "gcl:" ++ string_of_int(Atom.TextEditor.id(editor));
-  Element.setId(element, id);
-  container |> Element.appendChild(element);
 
-  // channels for communicating with the view
-  let channels = Channels.make();
-  let events = Events.make();
+  // add the element to the container
+  PanelContainer.add(container, element);
+
   // render
-  let component =
-    React.createElementVariadic(
-      Panel.make,
-      Panel.makeProps(~channels, ~events, ()),
-      [||],
-    );
-  ReactDOMRe.render(component, element);
-  // <Links>
-  let linkDict: Js.Dict.t(Atom.Decoration.t) = Js.Dict.empty();
-  let delete_: string => unit = [%raw "function (id) {delete linkDict[id]}"];
-  open Link;
-  channels.link.on(
-    fun
-    | MouseOver(loc) => {
-        let key = Loc.toString(loc);
-        Js.Dict.set(linkDict, key, Decoration.markLink(loc, editor));
-      }
-    | MouseOut(loc) => {
-        let key = Loc.toString(loc);
-        Js.Dict.get(linkDict, key)->Option.forEach(Atom.Decoration.destroy);
-        delete_(key);
-      }
-    | MouseClick(loc) => {
-        let range = Loc.toRange(loc);
-        // select the range
-        Atom.TextEditor.setSelectedScreenRange(range, editor);
-      },
-  )
-  |> ignore;
+  ReactDOMRe.render(
+    <Guacamole.Panel editorType onRequest onResponse />,
+    element,
+  );
 
-  // expose the interface
-  Interface.make(channels, events);
+  let view = {editor, element, subscriptions: [||], onRequest, onResponse};
+
+  // show the panel
+  view->send(Show)->ignore;
+
+  view;
 };
 
-let destroy = (editor: Atom.TextEditor.t) => {
-  open Webapi.Dom;
-
+let destroy = view => {
   // unmount the component
-  let id = "gcl:" ++ string_of_int(Atom.TextEditor.id(editor));
-
-  Document.getElementById(id, document)
-  ->Option.forEach(element => {
-      ReactDOMRe.unmountComponentAtNode(element);
-      Element.remove(element);
-    });
+  ReactDOMRe.unmountComponentAtNode(view.element);
+  Webapi.Dom.Element.remove(view.element);
 
   // remove "gcl" from the class-list of the editor
-  editor
+  view.editor
   |> Atom.Views.getView
   |> Webapi.Dom.HtmlElement.classList
   |> Webapi.Dom.DomTokenList.remove("gcl");
+
+  view.subscriptions->Belt.Array.forEach(destructor => destructor());
 };

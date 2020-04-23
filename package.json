@@ -1,6 +1,6 @@
 {
   "name": "gcl-atom",
-  "main": "./lib/js/src/Main.bs",
+  "main": "./lib/js/src/Main2.bs.js",
   "version": "0.0.0",
   "description": "A short description of your package",
   "keywords": [],
@@ -16,22 +16,25 @@
   "engines": {
     "atom": ">=1.0.0 <2.0.0"
   },
-  "dependencies": {
-    "react": "^16.9.0",
-    "react-dom": "^16.9.0",
-    "reason-react": ">=0.7.0",
-    "agda-mode": "github:banacorn/agda-mode#603903"
-  },
   "devDependencies": {
+    "webpack": "^4.42.0",
+    "webpack-cli": "^3.3.11"
+  },
+  "dependencies": {
     "@glennsl/bs-json": "^5.0.1",
-    "bs-mocha": "^0.5.0",
+    "agda-mode": "github:banacorn/agda-mode#dev",
     "bs-atom2": "^1.40.1",
     "bs-let": "^0.1.11",
     "bs-nd": "^0.1.5",
     "bs-platform": "^7.2",
     "bs-webapi": "^0.15.3",
+    "guacamole": "github:scmlab/gcl-vscode",
     "reason-promise": "^1.0.1",
-    "webpack": "^4.39.1",
-    "webpack-cli": "^3.1.2"
+    "reason-react": ">=0.7.0",
+    "reason-react-update": "^0.1.1"
+  },
+  "resolutions": {
+    "**/react": "16.9.0",
+    "**/react-dom": "16.9.0"
   }
 }
