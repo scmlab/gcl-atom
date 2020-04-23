@@ -23,7 +23,7 @@ module Impl:
     let fromPos =
       fun
       | Pos(_, line, column) => make(line - 1, column - 1);
-    let toPos = (filepath, point) => {
+    let toPos = (point, filepath) => {
       Pos(filepath, line(point) + 1, column(point) + 1);
     };
   };
@@ -39,7 +39,7 @@ module Impl:
       | NoLoc => make(Point.make(0, 0), Point.make(0, 0))
       | Loc(x, Pos(_, line, column)) =>
         make(Point.fromPos(x), Point.make(line - 1, column));
-    let toLoc = (filepath, range) => {
+    let toLoc = (range, filepath) => {
       let start = start(range);
       let end_ = end_(range);
       Loc(
@@ -47,6 +47,10 @@ module Impl:
         Pos(filepath, Point.line(end_) + 1, Point.column(end_)),
       );
     };
+
+    let contains = (self, point) => Atom.Range.containsPoint(point, self);
+    let containsRange = (self, others) =>
+      Atom.Range.containsRange(others, self);
   };
 
   type fileName = string;
@@ -153,6 +157,24 @@ module Impl:
   module View = View;
   module Decoration = GclAtom.Decoration;
 
-  let select = (editor, range) =>
+  let getCursorPosition = editor =>
+    TextEditor.getCursorBufferPosition(editor);
+  let rangeForLine = (editor, line) =>
+    editor |> TextEditor.getBuffer |> TextBuffer.rangeForRow(line, true);
+
+  let getText = (editor, range) =>
+    editor |> TextEditor.getBuffer |> TextBuffer.getTextInRange(range);
+
+  let selectText = (editor, range) =>
     Atom.TextEditor.setSelectedScreenRange(range, editor);
+
+  let insertText = (editor, point, text) => {
+    editor |> TextEditor.getBuffer |> TextBuffer.insert(point, text) |> ignore;
+    Promise.resolved(true);
+  };
+
+  let deleteText = (editor, range) => {
+    editor |> TextEditor.getBuffer |> TextBuffer.delete(range) |> ignore;
+    Promise.resolved(true);
+  };
 };
