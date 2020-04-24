@@ -1,8 +1,5 @@
 .DS_Store
 
-# editor
-.vscode
-
 # OCaml
 .DS_Store
 .merlin
