@@ -1233,9 +1233,9 @@ graceful-fs@^4.1.11, graceful-fs@^4.1.15, graceful-fs@^4.1.2:
   resolved "https://registry.yarnpkg.com/graceful-fs/-/graceful-fs-4.2.4.tgz#2256bde14d3632958c465ebc96dc467ca07a29fb"
   integrity sha512-WjKPNJF79dtJAVniUlGGWHYGz2jWxT6VhN/4m1NdkbZ2nOsEF+cI1Edgql5zCRhs/VsQYRvrXctxktVXZUkixw==
 
-"guacamole@github:scmlab/gcl-vscode#f9620da":
+"guacamole@github:scmlab/gcl-vscode#f694389":
   version "0.0.1"
-  resolved "https://codeload.github.com/scmlab/gcl-vscode/tar.gz/f9620da4714972b52259b2ff8e004ecdbc5ae443"
+  resolved "https://codeload.github.com/scmlab/gcl-vscode/tar.gz/f69438987ca5abb8bb03a75ea8e240f06918cd2f"
   dependencies:
     "@glennsl/bs-json" "^5.0.1"
     agda-mode "github:banacorn/agda-mode#dev"

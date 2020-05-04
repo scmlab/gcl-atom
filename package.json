@@ -29,7 +29,7 @@
     "bs-nd": "^0.1.5",
     "bs-platform": "^7.2",
     "bs-webapi": "^0.15.3",
-    "guacamole": "github:scmlab/gcl-vscode#f9620da",
+    "guacamole": "github:scmlab/gcl-vscode#f694389",
     "reason-promise": "^1.0.1",
     "reason-react": ">=0.7.0",
     "reason-react-update": "^0.1.1"
