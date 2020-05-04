@@ -47,6 +47,15 @@ rm -rf lib
 yarn run build && apm rebuild
 ```
 
+## Update
+
+This should update the package and its dependencies to the latest and rebuild everything
+
+```
+yarn run update
+```
+
+
 ## Developing gcl-atom along side gcl-vscode
 
 Since `gcl-atom` depends on `gcl-vscode`, it would be nice for `gcl-atom` to have direct access to `gcl-vscode` on the disk, so that any changes made to `gcl-vscode` would also reflect on `gcl-atom`.
