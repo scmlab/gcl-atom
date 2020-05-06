@@ -7,7 +7,7 @@
   "scripts": {
     "start": "bsb -clean && bsb -make-world -w",
     "build": "bsb -make-world && npx webpack --mode=production",
-    "update": "rm -rf node_modules && rm -f yarn.lock && yarn && yarn run build && apm rebuild"
+    "update": "git pull && rm -rf node_modules && rm -f yarn.lock && yarn && yarn run build && apm rebuild"
   },
   "activationCommands": {
     "atom-text-editor": "gcl-atom:toggle"
@@ -29,7 +29,7 @@
     "bs-nd": "^0.1.5",
     "bs-platform": "^7.2",
     "bs-webapi": "^0.15.3",
-    "guacamole": "github:scmlab/gcl-vscode#4fcc7a0",
+    "guacamole": "github:scmlab/gcl-vscode#e953dab",
     "reason-promise": "^1.0.1",
     "reason-react": ">=0.7.0",
     "reason-react-update": "^0.1.1"
