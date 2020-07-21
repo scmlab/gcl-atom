@@ -22,14 +22,10 @@
     "webpack-cli": "^3.3.11"
   },
   "dependencies": {
-    "@glennsl/bs-json": "^5.0.1",
-    "agda-mode": "github:banacorn/agda-mode#dev",
     "bs-atom2": "^1.40.1",
-    "bs-let": "^0.1.11",
-    "bs-nd": "^0.1.5",
     "bs-platform": "^7.2",
     "bs-webapi": "^0.15.3",
-    "guacamole": "github:scmlab/gcl-vscode#50f1789",
+    "guacamole": "github:scmlab/gcl-vscode#4e88987",
     "reason-promise": "^1.0.1",
     "reason-react": ">=0.7.0",
     "reason-react-update": "^0.1.1"
