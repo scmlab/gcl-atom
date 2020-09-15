@@ -18,10 +18,11 @@
     "atom": ">=1.0.0 <2.0.0"
   },
   "devDependencies": {
-    "webpack": "^4.42.0",
+    "webpack": "^5.0.0-beta.30",
     "webpack-cli": "^3.3.11"
   },
   "dependencies": {
+    "@glennsl/bs-json": "^5.0.1",
     "bs-atom2": "^1.40.1",
     "bs-platform": "^7.2",
     "bs-webapi": "^0.15.3",
