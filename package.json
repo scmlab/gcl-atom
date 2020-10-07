@@ -7,7 +7,7 @@
   "scripts": {
     "start": "bsb -clean && bsb -make-world -w",
     "build": "bsb -make-world && npx webpack --mode=production",
-    "update": "git pull && rm -rf node_modules && rm -f yarn.lock && yarn && yarn run build && apm rebuild"
+    "update": "git pull && rm -rf node_modules && rm -f package-lock.json && npm install && npm run build && apm rebuild"
   },
   "activationCommands": {
     "atom-text-editor": "gcl-atom:toggle"
@@ -22,14 +22,17 @@
     "webpack-cli": "^3.3.11"
   },
   "dependencies": {
-    "@glennsl/bs-json": "^5.0.1",
+    "agda-mode-vscode": "github:banacorn/agda-mode-vscode#v0.1.2",
     "bs-atom2": "^1.40.1",
     "bs-platform": "^7.2",
     "bs-webapi": "^0.15.3",
-    "guacamole": "github:scmlab/gcl-vscode#4e88987",
+    "guacamole": "github:scmlab/gcl-vscode#395b738",
     "reason-promise": "^1.0.1",
     "reason-react": ">=0.7.0",
     "reason-react-update": "^0.1.1"
+  },
+  "peerDependencies": {
+    "@glennsl/bs-json": "^5.0.1"
   },
   "resolutions": {
     "**/react": "16.9.0",

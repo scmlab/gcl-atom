@@ -54,8 +54,8 @@ type t = {
   editor: Atom.TextEditor.t,
   element: Webapi.Dom.Element.t,
   subscriptions: array(unit => unit),
-  onRequest: Guacamole.Event.t(Guacamole.View.Request.t),
-  onResponse: Guacamole.Event.t(Guacamole.View.Response.t),
+  onRequest: AgdaModeVscode.Event.t(Guacamole.View.Request.t),
+  onResponse: AgdaModeVscode.Event.t(Guacamole.View.Response.t),
 };
 
 // messaging
@@ -75,8 +75,8 @@ let hide = view => view->send(Hide)->ignore;
 let make = (_context, editor: Atom.TextEditor.t) => {
   let editorType = Guacamole.Sig.Atom;
   // event emitters for communicating with the view
-  let onRequest = Guacamole.Event.make();
-  let onResponse = Guacamole.Event.make();
+  let onRequest = AgdaModeVscode.Event.make();
+  let onResponse = AgdaModeVscode.Event.make();
   open Webapi.Dom;
   let container = PanelContainer.make();
 
