@@ -77,14 +77,14 @@ yarn link guacamole
 
 However, this would create 2 copies of `react` on the `gcl-atom` side, and [break the view](https://reactjs.org/warnings/invalid-hook-call-warning.html). To solve this, we will do the trick again. This time we are creating a link for `react`.
 
-First, go to `gcl-vscode`'s `node_modules/react` (assuming you have executed `yarn` on `gcl-vscode`), and create the link called `react`.
+First, go to `gcl-vscode`'s `node_modules/react` (assuming you have executed `npm install` on `gcl-vscode`), and create the link called `react`.
 
 ```
 cd gcl-vscode/node_modules/react
 yarn link
 ```
 
-Then go back to `gcl-vscode` to use the link:
+Then go back to `gcl-atom` to use the link:
 
 ```
 cd ../gcl-atom
