@@ -37,14 +37,13 @@ atom -d file.gcl
 To keep the BuckleScript transpiler running in watch mode:
 
 ```
-yarn run start
+npm run start
 ```
 
 If the build becomes "stale", here's how to rebuild it:
 
 ```
-rm -rf lib
-yarn run build && apm rebuild
+npm run rebuild 
 ```
 
 ## Update
@@ -52,7 +51,7 @@ yarn run build && apm rebuild
 This should update the package and its dependencies to the latest and rebuild everything
 
 ```
-yarn run update
+npm run update
 ```
 
 

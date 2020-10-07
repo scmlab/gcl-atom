@@ -5,8 +5,9 @@
   "description": "A short description of your package",
   "keywords": [],
   "scripts": {
-    "start": "bsb -clean && bsb -make-world -w",
+    "dev": "bsb -clean && bsb -make-world -w",
     "build": "bsb -make-world && npx webpack --mode=production",
+    "rebuild": "rm -rf lib && npm run build && apm rebuild",
     "update": "git pull && rm -rf node_modules && rm -f package-lock.json && npm install && npm run build && apm rebuild"
   },
   "activationCommands": {
