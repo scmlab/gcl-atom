@@ -142,13 +142,10 @@
 
 
   .expr {
-    white-space: pre;
     color      : @text-color-highlight;
 
-    display: inline-flex;
-
     * {
-      display: inline-flex;
+      display: inline;
     }
 
     .expr-paren {
@@ -165,20 +162,12 @@
 
     .expr-subst {
       cursor     : ew-resize;
-      white-space: pre;
-      display    : inline-flex;
     }
 
     .expr-link {
-      display: inline-flex;
-
       &:hover {
         color: @text-color-selected
       }
-    }
-
-    .expr-space {
-        display: inline;
     }
   }
 
