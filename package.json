@@ -27,7 +27,7 @@
     "bs-atom2": "^1.40.1",
     "bs-platform": "^7.2",
     "bs-webapi": "^0.15.3",
-    "guacamole": "github:scmlab/gcl-vscode#v0.0.2",
+    "guacamole": "github:scmlab/gcl-vscode#v0.0.3",
     "reason-promise": "^1.0.1",
     "reason-react": ">=0.7.0",
     "reason-react-update": "^0.1.1"
